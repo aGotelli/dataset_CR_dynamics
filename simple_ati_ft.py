@@ -73,7 +73,7 @@ class SimpleATI_FT:
         
         return bias_voltages
     
-    def acquire_data(self, duration, output_file="ati_data.csv", calculate_bias=True, save_raw_voltages=False):
+    def acquire_data(self, duration, output_file="ati_data.csv", calculate_bias=True):
         """
         Acquire data for specified duration
         
@@ -81,7 +81,6 @@ class SimpleATI_FT:
             duration: Acquisition time in seconds
             output_file: Output CSV filename
             calculate_bias: Whether to calculate and subtract bias
-            save_raw_voltages: Whether to save raw voltages alongside F/T data
             
         Returns:
             success: True if acquisition completed successfully
@@ -110,7 +109,11 @@ class SimpleATI_FT:
                     bias_voltages = self.calculate_bias(task)
                 
                 # Prepare data storage
-                all_data = []
+                # Preallocate memory for all_data as a numpy array for efficiency
+                num_channels = 6  # Fx, Fy, Fz, Mx, My, Mz
+                expected_samples = int(self.sampling_rate * duration)
+                # Add extra buffer to prevent index out of bounds
+                all_data = np.zeros((expected_samples + 1000, num_channels + 1))  # +1 for timestamp
                 start_time = time.time()
                 sample_count = 0
                 
@@ -133,17 +136,22 @@ class SimpleATI_FT:
                         # Ensure ft_values is flattened to avoid bracket issues in CSV
                         ft_values_flat = ft_values.flatten()
                         
-                        # Store data based on options
-                        if save_raw_voltages:
-                            # Extended format: [timestamp, V0-V5, Fx, Fy, Fz, Mx, My, Mz]
-                            data_row = [timestamp] + list(raw_voltages) + list(ft_values_flat)
-                        else:
-                            # Standard format: [timestamp, Fx, Fy, Fz, Mx, My, Mz]
-                            data_row = [timestamp] + list(ft_values_flat)
+                        # # Store data based on options
+                        # if save_raw_voltages:
+                        #     # Extended format: [timestamp, V0-V5, Fx, Fy, Fz, Mx, My, Mz]
+                        #     data_row = [timestamp] + list(raw_voltages) + list(ft_values_flat)
+                        # else:
+                        #     # Standard format: [timestamp, Fx, Fy, Fz, Mx, My, Mz]
+                        data_row = [timestamp] + list(ft_values_flat)
                         
-                        all_data.append(data_row)
+                        all_data[sample_count, :] = data_row
                         
                         sample_count += 1
+
+                        # Check if we've reached the buffer limit
+                        if sample_count >= all_data.shape[0]:
+                            print("Warning: Data buffer full, stopping acquisition early")
+                            break
 
                         # Progress update every self.sampling_rate samples
                         if sample_count % self.sampling_rate == 0:
@@ -166,8 +174,11 @@ class SimpleATI_FT:
                 print(f"  Actual duration: {actual_duration:.2f} seconds")
                 print(f"  Actual rate: {actual_rate:.1f} Hz")
                 
+                # Trim the data array to actual samples collected
+                actual_data = all_data[:sample_count, :]
+                
                 # Save data to CSV
-                self.save_data(all_data, output_file, save_raw_voltages)
+                self.save_data(actual_data, output_file)
                 
                 return True
                 
@@ -183,11 +194,12 @@ class SimpleATI_FT:
         Save data to CSV file
         
         Args:
-            data: List of data rows 
+            data: numpy array or list of data rows 
             filename: Output filename
             include_raw_voltages: Whether data includes raw voltage columns
         """
-        if not data:
+        # Check if data is empty (works for both numpy arrays and lists)
+        if data is None or len(data) == 0:
             print("No data to save")
             return False
         
@@ -196,10 +208,10 @@ class SimpleATI_FT:
                 writer = csv.writer(csvfile)
                 
                 # Write header
-                if include_raw_voltages:
-                    header = ['timestamp', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
-                else:
-                    header = ['timestamp', 'Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
+                # if include_raw_voltages:
+                #     header = ['timestamp', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
+                # else:
+                header = ['timestamp', 'Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
                 writer.writerow(header)
                 
                 # Write data
