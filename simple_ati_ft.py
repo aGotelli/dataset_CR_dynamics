@@ -5,6 +5,19 @@ import numpy as np
 import time
 import csv
 from datetime import datetime
+import pandas as pd
+import sys
+import os
+
+# Optional imports for plotting (only needed if using ATI_FT_Plotter)
+try:
+    import pyqtgraph as pg
+    from pyqtgraph.Qt import QtCore, QtWidgets
+    from scipy.signal import butter, filtfilt
+    PLOTTING_AVAILABLE = True
+except ImportError:
+    PLOTTING_AVAILABLE = False
+    print("Warning: Plotting dependencies not available. Install pyqtgraph and scipy for plotting functionality.")
 
 class SimpleATI_FT:
     """
@@ -262,16 +275,330 @@ class ThreadableATI_FT(SimpleATI_FT):
         print(f"{self.name}: Threaded acquisition {'completed' if success else 'failed'}")
         return success
 
+class ATI_FT_Plotter:
+    """
+    Standalone class for interactive plotting of ATI Force/Torque data
+    Used for post-processing and analysis of collected data
+    """
+    
+    def __init__(self):
+        """Initialize the plotter"""
+        if not PLOTTING_AVAILABLE:
+            raise ImportError("Plotting dependencies not available. Install pyqtgraph and scipy.")
+        
+        self.app = None
+        self.win = None
+        self.data = None
+        self.relative_time = None
+        self.sampling_rate = None
+        
+        # Define channel information
+        self.force_channels = ['Fx', 'Fy', 'Fz']
+        self.torque_channels = ['Mx', 'My', 'Mz']
+        self.all_channels = self.force_channels + self.torque_channels
+        
+        print("ATI F/T Data Plotter initialized")
+    
+    def estimate_sampling_rate(self, timestamps):
+        """Estimate sampling rate from timestamps"""
+        dt = np.diff(timestamps)
+        avg_dt = np.mean(dt)
+        sampling_rate = 1.0 / avg_dt
+        return sampling_rate, avg_dt
+    
+    def butterworth_filter(self, data, cutoff_freq, sampling_rate, order=4, filter_type='low'):
+        """Apply Butterworth filter using filtfilt (zero-phase filtering)"""
+        nyquist = sampling_rate / 2.0
+        normal_cutoff = cutoff_freq / nyquist
+        
+        # Design the Butterworth filter
+        b, a = butter(order, normal_cutoff, btype=filter_type, analog=False)
+        
+        # Apply zero-phase filtering
+        filtered_data = filtfilt(b, a, data)
+        
+        return filtered_data
+    
+    def load_data(self, filename):
+        """Load CSV data and perform initial analysis"""
+        try:
+            # Load data
+            self.data = pd.read_csv(filename)
+            print(f"Loaded {len(self.data)} samples from {filename}")
+            print(f"Columns: {list(self.data.columns)}")
+            
+            # Extract timestamps and convert to relative time
+            timestamps = self.data['timestamp'].values
+            self.relative_time = timestamps - timestamps[0]
+            duration = self.relative_time[-1]
+            
+            # Estimate sampling rate
+            self.sampling_rate, avg_dt = self.estimate_sampling_rate(timestamps)
+            
+            print(f"Duration: {duration:.2f} seconds")
+            print(f"Average sampling interval: {avg_dt*1000:.2f} ms")
+            print(f"Estimated sampling rate: {self.sampling_rate:.2f} Hz")
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error loading data: {e}")
+            return False
+    
+    def recommend_filter_parameters(self):
+        """Recommend meaningful filter parameters based on sampling rate"""
+        if self.sampling_rate is None:
+            print("No data loaded. Load data first.")
+            return 10.0
+        
+        nyquist = self.sampling_rate / 2
+        
+        print(f"\nRecommended Filter Parameters:")
+        print(f"  Sampling rate: {self.sampling_rate:.2f} Hz")
+        print(f"  Nyquist frequency: {nyquist:.2f} Hz")
+        
+        # For force/torque sensors, typical recommendations:
+        if self.sampling_rate > 100:
+            # High sampling rate - can use higher cutoff
+            low_cutoff = min(10, nyquist * 0.1)
+            medium_cutoff = min(25, nyquist * 0.25)
+            high_cutoff = min(50, nyquist * 0.4)
+        else:
+            # Lower sampling rate - be more conservative
+            low_cutoff = min(5, nyquist * 0.1)
+            medium_cutoff = min(15, nyquist * 0.3)
+            high_cutoff = min(25, nyquist * 0.4)
+        
+        print(f"  Low-pass options:")
+        print(f"    Conservative: {low_cutoff:.1f} Hz (removes high-freq noise)")
+        print(f"    Moderate: {medium_cutoff:.1f} Hz (good balance)")
+        print(f"    Aggressive: {high_cutoff:.1f} Hz (preserves more signal)")
+        print(f"  Recommended order: 4 (good balance of rolloff and phase)")
+        
+        return medium_cutoff
+    
+    def plot_interactive(self, cutoff_freq=None, filter_order=4):
+        """Create an interactive PyQtGraph plot with real-time controls"""
+        if self.data is None:
+            print("No data loaded. Use load_data() first.")
+            return None, None
+        
+        if cutoff_freq is None:
+            cutoff_freq = self.recommend_filter_parameters()
+        
+        # Create PyQtGraph application
+        self.app = QtWidgets.QApplication.instance()
+        if self.app is None:
+            self.app = QtWidgets.QApplication(sys.argv)
+        
+        # Create main window
+        self.win = QtWidgets.QMainWindow()
+        self.win.setWindowTitle('Interactive ATI F/T Data Viewer')
+        self.win.resize(1400, 900)
+        
+        # Create central widget and layout
+        central_widget = QtWidgets.QWidget()
+        self.win.setCentralWidget(central_widget)
+        layout = QtWidgets.QVBoxLayout(central_widget)
+        
+        # Create control panel
+        control_panel = QtWidgets.QWidget()
+        control_layout = QtWidgets.QHBoxLayout(control_panel)
+        
+        # Filter controls
+        filter_group = QtWidgets.QGroupBox("Filter Controls")
+        filter_layout = QtWidgets.QGridLayout(filter_group)
+        
+        # Cutoff frequency control
+        cutoff_label = QtWidgets.QLabel("Cutoff Freq (Hz):")
+        cutoff_spinbox = QtWidgets.QDoubleSpinBox()
+        cutoff_spinbox.setRange(0.1, min(self.sampling_rate/2 * 0.8, 100))
+        cutoff_spinbox.setValue(cutoff_freq)
+        cutoff_spinbox.setDecimals(1)
+        cutoff_spinbox.setSingleStep(0.5)
+        
+        # Filter order control
+        order_label = QtWidgets.QLabel("Filter Order:")
+        order_spinbox = QtWidgets.QSpinBox()
+        order_spinbox.setRange(1, 10)
+        order_spinbox.setValue(filter_order)
+        
+        filter_layout.addWidget(cutoff_label, 0, 0)
+        filter_layout.addWidget(cutoff_spinbox, 0, 1)
+        filter_layout.addWidget(order_label, 1, 0)
+        filter_layout.addWidget(order_spinbox, 1, 1)
+        
+        # Visibility controls
+        visibility_group = QtWidgets.QGroupBox("Visibility")
+        visibility_layout = QtWidgets.QVBoxLayout(visibility_group)
+        
+        raw_checkbox = QtWidgets.QCheckBox("Show Raw Data")
+        raw_checkbox.setChecked(True)
+        filtered_checkbox = QtWidgets.QCheckBox("Show Filtered Data")
+        filtered_checkbox.setChecked(True)
+        
+        visibility_layout.addWidget(raw_checkbox)
+        visibility_layout.addWidget(filtered_checkbox)
+        
+        # Statistics display
+        stats_group = QtWidgets.QGroupBox("Statistics")
+        stats_layout = QtWidgets.QVBoxLayout(stats_group)
+        stats_label = QtWidgets.QLabel("Noise reduction info will appear here")
+        stats_layout.addWidget(stats_label)
+        
+        # Add groups to control layout
+        control_layout.addWidget(filter_group)
+        control_layout.addWidget(visibility_group)
+        control_layout.addWidget(stats_group)
+        control_layout.addStretch()
+        
+        # Create plot widget with 2x3 grid
+        plot_widget = pg.GraphicsLayoutWidget()
+        plot_widget.setBackground('w')  # White background
+        
+        # Create subplots
+        plots = []
+        raw_curves = []
+        filtered_curves = []
+        
+        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]  # RGB colors
+        
+        for i, channel in enumerate(self.all_channels):
+            row = i // 3
+            col = i % 3
+            
+            # Create plot
+            plot = plot_widget.addPlot(row=row, col=col)
+            plot.setLabel('left', f'{channel}', units='N' if channel in self.force_channels else 'Nm')
+            plot.setLabel('bottom', 'Time', units='s')
+            plot.setTitle(f'{"Force" if channel in self.force_channels else "Torque"} {channel}')
+            plot.showGrid(x=True, y=True, alpha=0.3)
+            plot.enableAutoRange()
+            
+            # Create curves
+            color = colors[i % 3]
+            # Raw data as shadow: lighter color, thinner line
+            shadow_color = (*color, 80)  # Add alpha for transparency
+            raw_curve = plot.plot(name='Raw', pen=pg.mkPen(color=shadow_color, width=1))
+            # Filtered data: solid color, thicker line
+            filtered_curve = plot.plot(name='Filtered', pen=pg.mkPen(color=color, width=2))
+            
+            plots.append(plot)
+            raw_curves.append(raw_curve)
+            filtered_curves.append(filtered_curve)
+        
+        # Add widgets to main layout
+        layout.addWidget(control_panel)
+        layout.addWidget(plot_widget)
+        
+        # Function to update plots
+        def update_plots():
+            current_cutoff = cutoff_spinbox.value()
+            current_order = order_spinbox.value()
+            show_raw = raw_checkbox.isChecked()
+            show_filtered = filtered_checkbox.isChecked()
+            
+            noise_reductions = []
+            
+            for i, channel in enumerate(self.all_channels):
+                # Get data
+                raw_data = self.data[channel].values
+                
+                # Apply filter
+                try:
+                    filtered_data = self.butterworth_filter(
+                        raw_data, current_cutoff, self.sampling_rate, order=current_order
+                    )
+                except Exception as e:
+                    print(f"Filter error for {channel}: {e}")
+                    filtered_data = raw_data
+                
+                # Update curves
+                if show_raw:
+                    raw_curves[i].setData(self.relative_time, raw_data)
+                    raw_curves[i].show()
+                else:
+                    raw_curves[i].hide()
+                
+                if show_filtered:
+                    filtered_curves[i].setData(self.relative_time, filtered_data)
+                    filtered_curves[i].show()
+                else:
+                    filtered_curves[i].hide()
+                
+                # Calculate noise reduction
+                raw_std = np.std(raw_data)
+                filtered_std = np.std(filtered_data)
+                noise_reduction = (1 - filtered_std/raw_std) * 100 if raw_std > 0 else 0
+                noise_reductions.append(noise_reduction)
+            
+            # Update statistics
+            avg_noise_reduction = np.mean(noise_reductions)
+            stats_text = f"Average Noise Reduction: {avg_noise_reduction:.1f}%\n"
+            stats_text += f"Cutoff: {current_cutoff:.1f} Hz, Order: {current_order}\n"
+            stats_text += f"Data points: {len(self.relative_time)}, Duration: {self.relative_time[-1]:.1f}s"
+            stats_label.setText(stats_text)
+        
+        # Connect signals
+        cutoff_spinbox.valueChanged.connect(update_plots)
+        order_spinbox.valueChanged.connect(update_plots)
+        raw_checkbox.stateChanged.connect(update_plots)
+        filtered_checkbox.stateChanged.connect(update_plots)
+        
+        # Initial plot
+        update_plots()
+        
+        # Show window
+        self.win.show()
+        
+        print("\nPyQtGraph Interactive Features:")
+        print("- Real-time filter adjustment with spinboxes")
+        print("- Toggle raw/filtered data visibility with checkboxes")
+        print("- Zoom: Mouse wheel or right-click drag")
+        print("- Pan: Left-click drag")
+        print("- Auto-range: Right-click -> View All")
+        print("- Export: Right-click -> Export...")
+        print("- Each plot has independent zoom/pan")
+        print("- Close the window to exit")
+        
+        return self.app, self.win
+    
+    def run(self):
+        """Run the application event loop"""
+        if self.app is None:
+            print("No application created. Use plot_interactive() first.")
+            return
+        
+        # Run the application
+        if hasattr(self.app, 'exec'):
+            self.app.exec()  # PyQt6/PySide6
+        else:
+            self.app.exec_()  # PyQt5/PySide2
+    
+    def plot_data_file(self, filename, cutoff_freq=None, filter_order=4):
+        """
+        Convenience method to load and plot data in one call
+        
+        Args:
+            filename: CSV file to plot
+            cutoff_freq: Filter cutoff frequency (auto-recommended if None)
+            filter_order: Filter order (default 4)
+        """
+        if not self.load_data(filename):
+            return False
+        
+        self.plot_interactive(cutoff_freq, filter_order)
+        self.run()
+        return True
+
 def main():
     """Main function with menu"""
     print("=" * 60)
     print("Simple ATI Force/Torque Sensor Data Acquisition")
     print("=" * 60)
    
-
     duration = 60
     rate = 2000
-
     output = "data/test_data.csv"
 
     sensor = SimpleATI_FT(sampling_rate=rate)
