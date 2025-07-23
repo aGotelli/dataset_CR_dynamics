@@ -1,1 +1,7 @@
 data/
+cybergear/
+build/
+drivers/
+debug_can/
+old_stuff/
+__pycache__/
