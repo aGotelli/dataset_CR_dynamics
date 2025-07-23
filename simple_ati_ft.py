@@ -602,8 +602,11 @@ def main():
     output = "data/test_data.csv"
 
     sensor = SimpleATI_FT(sampling_rate=rate)
-    return sensor.acquire_data(duration, output)
-    
+    success = sensor.acquire_data(duration, output)
+
+
+    plotting = ATI_FT_Plotter()
+    plotting.plot_data_file(output)
 
 
 if __name__ == "__main__":
