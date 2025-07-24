@@ -123,58 +123,14 @@ class SimpleVicon:
         print(f"Found {len(subject_names)} subjects with {len(self.column_names)} data columns")
     
     def collect_frame_data(self):
-        """Collect data for one frame - optimized for performance, and store pose/supplementary vectors for debugging"""
-        # Record timestamp for this frame
+        """Collect data for one frame - optimized for performance, fills buffer directly"""
         self.data_buffer[self.sample_count, 0] = time.time()
-
-        # --- Per-frame vector for debugging (mimics sample code, but uses euler angles) ---
-        timestamp = self.data_buffer[self.sample_count, 0]
-        subjectNames = self.client.GetSubjectNames()
-        try:
-            subjectNames.sort(key=lambda name: int(name[-1]))
-        except Exception:
-            pass  # fallback if subject names are not numeric
-        row_data = [timestamp]
-        for subjectName in subjectNames:
-            segmentNames = self.client.GetSegmentNames(subjectName)
-            for segmentName in segmentNames:
-                translation, translation_occluded = self.client.GetSegmentGlobalTranslation(subjectName, segmentName)
-                translation_m = [t / 1000.0 for t in translation]  # convert mm to meters
-                euler, euler_occluded = self.client.GetSegmentGlobalRotationEulerXYZ(subjectName, segmentName)
-                subject_index = subjectName[-1] if subjectName else ''
-                # row_data: subject_index, translation (m), euler angles (deg), occlusion flags
-                row_data.extend([
-                    subject_index,
-                    translation_m[0], translation_m[1], translation_m[2],
-                    euler[0], euler[1], euler[2],
-                    int(translation_occluded), int(euler_occluded)
-                ])
-
-        # Store per-frame row_data for debugging
-        if not hasattr(self, 'all_frame_vectors'):
-            self.all_frame_vectors = []
-        self.all_frame_vectors.append(row_data)
-
-        # --- Original data buffer logic for main CSV output ---
-        frame_poses = []
-        frame_supplementary = []
         col_index = 1
         for subject_name, segment_name, data_type, axis in self.data_structure:
             if data_type == 'position':
                 translation, occluded = self.client.GetSegmentGlobalTranslation(subject_name, segment_name)
                 axis_idx = ['X', 'Y', 'Z'].index(axis)
                 self.data_buffer[self.sample_count, col_index] = translation[axis_idx] if not occluded else 0.0
-                if axis == 'Z':
-                    t, t_occ = self.client.GetSegmentGlobalTranslation(subject_name, segment_name)
-                    r, r_occ = self.client.GetSegmentGlobalRotationEulerXYZ(subject_name, segment_name)
-                    frame_poses.append({
-                        'subject': subject_name,
-                        'segment': segment_name,
-                        'translation': t,
-                        'translation_occluded': t_occ,
-                        'euler': r,
-                        'euler_occluded': r_occ
-                    })
                 if self.sample_count < 3 and axis == 'X':
                     print(f"  {subject_name}.{segment_name}: pos={translation}, occluded={occluded}")
             elif data_type == 'euler':
@@ -185,11 +141,6 @@ class SimpleVicon:
                 try:
                     quality = self.client.GetObjectQuality(subject_name)
                     self.data_buffer[self.sample_count, col_index] = quality
-                    frame_supplementary.append({
-                        'subject': subject_name,
-                        'segment': segment_name,
-                        'quality': quality
-                    })
                     if self.sample_count < 3:
                         print(f"  {subject_name} quality: {quality}")
                 except Exception as e:
@@ -199,18 +150,50 @@ class SimpleVicon:
             elif data_type == 'occluded':
                 _, occluded = self.client.GetSegmentGlobalTranslation(subject_name, segment_name)
                 self.data_buffer[self.sample_count, col_index] = 1.0 if occluded else 0.0
-                if frame_supplementary:
-                    frame_supplementary[-1]['occluded'] = occluded
             col_index += 1
-
-        if not hasattr(self, 'all_frame_poses'):
-            self.all_frame_poses = []
-        if not hasattr(self, 'all_frame_supplementary'):
-            self.all_frame_supplementary = []
-        self.all_frame_poses.append(frame_poses)
-        self.all_frame_supplementary.append(frame_supplementary)
-
         self.sample_count += 1
+    def collect_debug_vectors(self):
+        """Collect pose and supplementary vectors for all frames after acquisition"""
+        self.all_frame_poses = []
+        self.all_frame_supplementary = []
+        for i in range(self.sample_count):
+            frame_poses = []
+            frame_supplementary = []
+            col_index = 1
+            for subject_name, segment_name, data_type, axis in self.data_structure:
+                if data_type == 'position':
+                    t, t_occ = self.client.GetSegmentGlobalTranslation(subject_name, segment_name)
+                    r, r_occ = self.client.GetSegmentGlobalRotationEulerXYZ(subject_name, segment_name)
+                    if axis == 'Z':
+                        frame_poses.append({
+                            'subject': subject_name,
+                            'segment': segment_name,
+                            'translation': t,
+                            'translation_occluded': t_occ,
+                            'euler': r,
+                            'euler_occluded': r_occ
+                        })
+                elif data_type == 'quality':
+                    try:
+                        quality = self.client.GetObjectQuality(subject_name)
+                        frame_supplementary.append({
+                            'subject': subject_name,
+                            'segment': segment_name,
+                            'quality': quality
+                        })
+                    except Exception:
+                        frame_supplementary.append({
+                            'subject': subject_name,
+                            'segment': segment_name,
+                            'quality': 0.0
+                        })
+                elif data_type == 'occluded':
+                    _, occluded = self.client.GetSegmentGlobalTranslation(subject_name, segment_name)
+                    if frame_supplementary:
+                        frame_supplementary[-1]['occluded'] = occluded
+                col_index += 1
+            self.all_frame_poses.append(frame_poses)
+            self.all_frame_supplementary.append(frame_supplementary)
     
     def acquire_data(self, output_file="vicon_data.csv"):
         """
@@ -255,21 +238,24 @@ class SimpleVicon:
         
         # Trim data to actual samples collected
         final_data = self.data_buffer[:self.sample_count]
-        
+
         # Calculate actual performance
         actual_duration = time.time() - start_time
         actual_rate = self.sample_count / actual_duration
-        
+
         print(f"Collection completed:")
         print(f"  Samples: {self.sample_count}")
         print(f"  Duration: {actual_duration:.2f}s")
         print(f"  Actual rate: {actual_rate:.2f} Hz")
         print(f"  Vicon rate: {self.vicon_frame_rate:.2f} Hz")
         print(f"  Rate efficiency: {(actual_rate/self.vicon_frame_rate)*100:.1f}%")
-        
+
+        # Collect debug vectors after acquisition
+        self.collect_debug_vectors()
+
         # Save data
         success = self.save_data(final_data, output_file)
-        
+
         return success
     
     def save_data(self, data, filename):
@@ -334,6 +320,254 @@ class ThreadableVicon(SimpleVicon):
         return success
 
 class Vicon_Plotter:
+    def plot_3d_pose_dynamic(self, interval_ms=100, arrow_length=100):
+        """Create a 3D dynamic plot showing the pose of the last marker with RGB arrows for axes"""
+        try:
+            from pyqtgraph.opengl import GLViewWidget, GLLinePlotItem, GLGridItem, GLAxisItem
+            import pyqtgraph.opengl as gl
+        except ImportError:
+            print("ERROR: pyqtgraph.opengl not available.")
+            print("To fix this on Windows, try:")
+            print("  pip install PyOpenGL PyOpenGL_accelerate")
+            print("  pip install --upgrade pyqtgraph")
+            print("Or install via conda:")
+            print("  conda install pyopengl pyopengl-accelerate")
+            return
+
+        if self.data is None:
+            print("No data loaded. Use load_data() first.")
+            return
+
+        self.app = QtWidgets.QApplication.instance()
+        if self.app is None:
+            self.app = QtWidgets.QApplication(sys.argv)
+
+        self.win = QtWidgets.QMainWindow()
+        self.win.setWindowTitle('3D Dynamic Vicon Pose Viewer')
+        self.win.resize(900, 700)
+
+        central_widget = QtWidgets.QWidget()
+        self.win.setCentralWidget(central_widget)
+        layout = QtWidgets.QVBoxLayout(central_widget)
+
+        # Create OpenGL view
+        gl_view = GLViewWidget()
+        gl_view.setBackgroundColor((0.9, 0.9, 0.9, 1.0))  # Light gray background
+        layout.addWidget(gl_view)
+
+        # Get all marker columns
+        pos_cols = [col for col in self.position_columns if '_pos_' in col]
+        euler_cols = [col for col in self.euler_columns if '_euler_' in col]
+        
+        # Group columns by marker (every 3 columns: X, Y, Z)
+        num_markers = len(pos_cols) // 3
+        markers_pos = []
+        markers_euler = []
+        marker_names = []
+        
+        for i in range(num_markers):
+            start_idx = i * 3
+            markers_pos.append([pos_cols[start_idx], pos_cols[start_idx+1], pos_cols[start_idx+2]])
+            markers_euler.append([euler_cols[start_idx], euler_cols[start_idx+1], euler_cols[start_idx+2]])
+            # Extract marker name from column name
+            marker_name = pos_cols[start_idx].replace('_pos_X', '')
+            marker_names.append(marker_name)
+
+        print(f"Found {num_markers} markers: {marker_names}")
+
+        # Prepare trajectory lines for all markers
+        trajectories = []
+        marker_colors = [(1,0,0,0.7), (0,1,0,0.7), (0,0,1,0.7), (1,1,0,0.7), (1,0,1,0.7)]  # Different colors
+        
+        for i in range(num_markers):
+            positions = np.vstack([
+                self.data[markers_pos[i][0]].values,
+                self.data[markers_pos[i][1]].values,
+                self.data[markers_pos[i][2]].values
+            ]).T
+            
+            color = marker_colors[i % len(marker_colors)]
+            trajectory = GLLinePlotItem(pos=positions, color=color, width=3, antialias=True)
+            gl_view.addItem(trajectory)
+            trajectories.append(positions)
+        
+        # Check data range for all markers
+        all_positions = np.vstack(trajectories)
+        pos_range = [np.min(all_positions, axis=0), np.max(all_positions, axis=0)]
+        print(f"All markers range: X[{pos_range[0][0]:.1f}, {pos_range[1][0]:.1f}], "
+              f"Y[{pos_range[0][1]:.1f}, {pos_range[1][1]:.1f}], "
+              f"Z[{pos_range[0][2]:.1f}, {pos_range[1][2]:.1f}]")
+
+        # Add grid for reference - scale based on data range
+        data_range = np.max(all_positions) - np.min(all_positions)
+        grid_size = max(100, data_range / 5)  # Adaptive grid size
+        grid = GLGridItem()
+        grid.scale(grid_size, grid_size, 1)
+        gl_view.addItem(grid)
+
+        # Arrow colors for axes (same for all markers)
+        axis_colors = [(1,0,0,1), (0,1,0,1), (0,0,1,1)]  # RGB
+
+        # Animation state
+        self.frame_idx = 0
+        self.max_frames = len(self.data)
+        self.all_arrows = []  # Store arrows for all markers
+
+        def make_arrow(origin, direction, color, length=arrow_length):
+            # Normalize direction vector
+            norm = np.linalg.norm(direction)
+            if norm < 1e-8:
+                direction = np.array([1,0,0])  # Default to X-axis if no rotation
+            else:
+                direction = direction / norm
+            
+            end = origin + direction * length
+            pts = np.array([origin, end])
+            return GLLinePlotItem(pos=pts, color=color, width=6, antialias=True)
+
+        def euler_to_rotmat(euler):
+            # Euler angles in degrees, XYZ order
+            rx, ry, rz = np.deg2rad(euler)
+            cx, sx = np.cos(rx), np.sin(rx)
+            cy, sy = np.cos(ry), np.sin(ry)
+            cz, sz = np.cos(rz), np.sin(rz)
+            # Rotation matrix (XYZ order)
+            rot_x = np.array([[1,0,0],[0,cx,-sx],[0,sx,cx]])
+            rot_y = np.array([[cy,0,sy],[0,1,0],[-sy,0,cy]])
+            rot_z = np.array([[cz,-sz,0],[sz,cz,0],[0,0,1]])
+            return rot_z @ rot_y @ rot_x
+
+        def update():
+            # Remove previous arrows for all markers
+            for arrow_list in self.all_arrows:
+                for arr in arrow_list:
+                    gl_view.removeItem(arr)
+            self.all_arrows = []
+            
+            if self.frame_idx >= self.max_frames:
+                self.frame_idx = 0  # Restart animation
+            
+            # Draw pose for each marker
+            for i in range(num_markers):
+                # Get pose for current frame and marker
+                pos = np.array([
+                    self.data[markers_pos[i][0]].values[self.frame_idx],
+                    self.data[markers_pos[i][1]].values[self.frame_idx],
+                    self.data[markers_pos[i][2]].values[self.frame_idx]
+                ])
+                euler = [self.data[markers_euler[i][0]].values[self.frame_idx],
+                         self.data[markers_euler[i][1]].values[self.frame_idx],
+                         self.data[markers_euler[i][2]].values[self.frame_idx]]
+                
+                # Convert euler to rotation matrix
+                rotmat = euler_to_rotmat(euler)
+                
+                # Draw arrows for axes (X=red, Y=green, Z=blue) for this marker
+                marker_arrows = []
+                for j, color in enumerate(axis_colors):
+                    arr = make_arrow(pos, rotmat[:,j], color, arrow_length)
+                    gl_view.addItem(arr)
+                    marker_arrows.append(arr)
+                self.all_arrows.append(marker_arrows)
+            
+            # Only print every 50th frame to reduce output
+            if self.frame_idx % 50 == 0:
+                print(f"Frame {self.frame_idx}/{self.max_frames} - Showing poses for {num_markers} markers")
+            
+            self.frame_idx += 1
+
+        # Set camera position for better view
+        center_pos = np.mean(all_positions, axis=0)
+        data_range = np.max(all_positions) - np.min(all_positions)
+        camera_distance = max(1000, data_range * 2)  # Adaptive camera distance
+        gl_view.setCameraPosition(distance=camera_distance)
+
+        # Start timer
+        timer = QtCore.QTimer()
+        timer.timeout.connect(update)
+        timer.start(interval_ms)
+
+        # Call update once to show initial pose
+        update()
+
+        self.win.show()
+        print("3D dynamic pose plot started. Close the window to stop animation.")
+        print("Use mouse to rotate view, scroll to zoom.")
+        print(f"Animating {self.max_frames} frames at {1000/interval_ms:.1f} FPS")
+        print(f"Showing poses for all {num_markers} markers with different colored trajectories")
+        self.app.exec_()
+    def plot_dynamic(self, interval_ms=50):
+        """Create a dynamic plot showing time evolution of the last marker's position and euler angles"""
+        if self.data is None:
+            print("No data loaded. Use load_data() first.")
+            return
+
+        self.app = QtWidgets.QApplication.instance()
+        if self.app is None:
+            self.app = QtWidgets.QApplication(sys.argv)
+
+        self.win = QtWidgets.QMainWindow()
+        self.win.setWindowTitle('Dynamic Vicon Motion Capture Data Viewer')
+        self.win.resize(1200, 600)
+
+        central_widget = QtWidgets.QWidget()
+        self.win.setCentralWidget(central_widget)
+        layout = QtWidgets.QVBoxLayout(central_widget)
+
+        plot_widget = pg.GraphicsLayoutWidget()
+        plot_widget.setBackground('w')
+        layout.addWidget(plot_widget)
+
+        # Get last marker columns
+        pos_cols = [col for col in self.position_columns if '_pos_' in col]
+        euler_cols = [col for col in self.euler_columns if '_euler_' in col]
+        last_pos = [pos_cols[-3], pos_cols[-2], pos_cols[-1]] if len(pos_cols) >= 3 else pos_cols
+        last_euler = [euler_cols[-3], euler_cols[-2], euler_cols[-1]] if len(euler_cols) >= 3 else euler_cols
+
+        # Create subplots for X, Y, Z position and euler
+        plots = []
+        curves = []
+        for i, (col, label, units) in enumerate(zip(last_pos, ['X', 'Y', 'Z'], ['mm', 'mm', 'mm'])):
+            plot = plot_widget.addPlot(row=0, col=i)
+            plot.setLabel('left', f'Position {label}', units=units)
+            plot.setLabel('bottom', 'Time', units='s')
+            plot.setTitle(f'Position {label}')
+            plot.showGrid(x=True, y=True, alpha=0.3)
+            curve = plot.plot(pen=pg.mkPen((i*80, 100, 200), width=2))
+            plots.append(plot)
+            curves.append(curve)
+        for i, (col, label, units) in enumerate(zip(last_euler, ['X', 'Y', 'Z'], ['deg', 'deg', 'deg'])):
+            plot = plot_widget.addPlot(row=1, col=i)
+            plot.setLabel('left', f'Euler {label}', units=units)
+            plot.setLabel('bottom', 'Time', units='s')
+            plot.setTitle(f'Euler {label}')
+            plot.showGrid(x=True, y=True, alpha=0.3)
+            curve = plot.plot(pen=pg.mkPen((i*80, 200, 100), width=2))
+            plots.append(plot)
+            curves.append(curve)
+
+        # Animation state
+        self.frame_idx = 0
+        self.max_frames = len(self.data)
+
+        def update():
+            if self.frame_idx >= self.max_frames:
+                timer.stop()
+                return
+            t = self.relative_time[:self.frame_idx+1]
+            for i, col in enumerate(last_pos):
+                curves[i].setData(t, self.data[col].values[:self.frame_idx+1])
+            for i, col in enumerate(last_euler):
+                curves[i+3].setData(t, self.data[col].values[:self.frame_idx+1])
+            self.frame_idx += 1
+
+        timer = QtCore.QTimer()
+        timer.timeout.connect(update)
+        timer.start(interval_ms)
+
+        self.win.show()
+        print("Dynamic plot started. Close the window to stop animation.")
+        self.app.exec_()
     """
     Standalone class for interactive plotting of Vicon motion capture data
     Used for post-processing and analysis of collected data
@@ -713,12 +947,20 @@ def main():
     
     if success:
         print("\nData acquisition completed successfully!")
-        
         # Plot data if plotting is available
         if PLOTTING_AVAILABLE:
             print("\nStarting interactive plotter...")
             plotter = Vicon_Plotter()
-            plotter.plot_data_file(output)
+            # Load data from file
+            if plotter.load_data(output):
+                # Interactive plot
+                #plotter.plot_interactive()
+                # Dynamic plot (animated)
+                #plotter.plot_dynamic()
+                # 3D dynamic pose plot
+                plotter.plot_3d_pose_dynamic()
+            else:
+                print("Failed to load data for plotting.")
         else:
             print("Install pyqtgraph and scipy for interactive plotting")
     else:
