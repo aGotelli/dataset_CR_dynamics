@@ -6,65 +6,76 @@ from pcan_cybergear import CANMotorController
 import can
 import time
 import math
+from datetime import datetime
 
-class MotorController:
-    def __init__(self, motor_id=3, main_can_id=254, interface="candle", channel=0, bitrate=1000000):
-        """Initialize motor controller with CAN bus connection."""
-        self.bus = can.interface.Bus(interface=interface, channel=channel, bitrate=bitrate)
-        self.motor = CANMotorController(self.bus, motor_id=motor_id, main_can_id=main_can_id)
-        self.home_position = 0.0
-        self.motor_data = []
-        
-        # Setup motor
-        self.motor.set_run_mode(self.motor.RunModes.POSITION_MODE)
-        self.motor.enable()
-        
-   
+class DualMotorController:
+    """Simple controller for managing two motors without threading."""
     
-    def go_home(self, tolerance=0.05, max_attempts=100):
-        """Move motor back to home position with feedback control."""
-        print("Returning to home position...")
-        target_position = self.home_position
-        attempt = 0
-        
-        while attempt < max_attempts:
-            self.motor.set_motor_position_control(limit_spd=10, loc_ref=target_position)
-            time.sleep(0.1)
-            
-            try:
-                msg = self.bus.recv(timeout=0.1)
-                if msg and ((msg.arbitration_id >> 24) & 0xFF) == 2:
-                    current_pos = self.motor._uint_to_float(
-                        (msg.data[0] << 8) + msg.data[1],
-                        self.motor.P_MIN, self.motor.P_MAX, self.motor.TWO_BYTES_BITS
-                    )
-                    error = abs(current_pos - target_position)
-                    print(f"Position: {current_pos:.3f} rad, Target: {target_position:.3f} rad, Error: {error:.3f} rad")
-                    
-                    if error < tolerance:
-                        print(f"Reached home position in {attempt + 1} attempts!")
-                        return True
-                else:
-                    print("No feedback received, continuing...")
-            except:
-                print("Error reading position, continuing...")
-            
-            attempt += 1
-        
-        print(f"Warning: Could not reach home position after {max_attempts} attempts")
-        return False
-    
-    def execute_trajectory(self, position_function, duration, frequency=50.0, speed_limit=50, save_data=True):
-        """Execute a trajectory defined by a position function of time.
+    def __init__(self, motor1_id=1, motor2_id=2, main_can_id=254, interface="candle", channel=0, bitrate=1000000):
+        """Initialize dual motor controller.
         
         Args:
-            position_function: Function that takes time (t) and returns position relative to home
+            motor1_id: ID of first motor
+            motor2_id: ID of second motor
+            main_can_id: Main CAN ID
+            interface: CAN interface type
+            channel: CAN channel
+            bitrate: CAN bitrate
+        """
+        print(f"Initializing dual motor controller for motors: {motor1_id}, {motor2_id}")
+        
+        # Create shared CAN bus
+        self.bus = can.interface.Bus(interface=interface, channel=channel, bitrate=bitrate)
+        print("CAN bus created")
+        
+        # Initialize motors
+        self.motor1 = CANMotorController(self.bus, motor_id=motor1_id, main_can_id=main_can_id)
+        self.motor2 = CANMotorController(self.bus, motor_id=motor2_id, main_can_id=main_can_id)
+        
+        # Setup motors
+        self.motor1.set_run_mode(self.motor1.RunModes.POSITION_MODE)
+        self.motor1.enable()
+        print(f"Motor {motor1_id} initialized and enabled")
+        
+        self.motor2.set_run_mode(self.motor2.RunModes.POSITION_MODE)
+        self.motor2.enable()
+        print(f"Motor {motor2_id} initialized and enabled")
+        
+        # Home positions (current position as zero)
+        self.home_position1 = 0.0
+        self.home_position2 = 0.0
+        
+        # Data storage
+        self.motor_data = []
+        
+        print("Dual motor controller initialized")
+    
+    def set_home_positions(self):
+        """Set current positions as home positions."""
+        print("Setting home positions to 0.0 rad for both motors")
+        self.home_position1 = 0.0
+        self.home_position2 = 0.0
+    
+    def go_home(self):
+        """Move both motors to home position."""
+        print("Moving both motors to home position...")
+        self.motor1.set_motor_position_control(limit_spd=10, loc_ref=self.home_position1)
+        self.motor2.set_motor_position_control(limit_spd=10, loc_ref=self.home_position2)
+        time.sleep(2)  # Give motors time to reach position
+        print("Homing commands sent")
+    
+    def execute_synchronized_trajectories(self, trajectory_func1, trajectory_func2, duration, frequency=50.0, speed_limit=50, save_data=True):
+        """Execute synchronized trajectories on both motors.
+        
+        Args:
+            trajectory_func1: Function for motor 1 (takes time, returns position relative to home)
+            trajectory_func2: Function for motor 2 (takes time, returns position relative to home) 
             duration: Duration in seconds
             frequency: Control frequency in Hz
             speed_limit: Motor speed limit
             save_data: Whether to save trajectory data to CSV
         """
-        print(f"Executing trajectory for {duration}s at {frequency}Hz...")
+        print(f"Executing synchronized trajectories for {duration}s at {frequency}Hz...")
         
         dt = 1.0 / frequency
         self.motor_data = []
@@ -80,21 +91,19 @@ class MotorController:
                 break
                 
             t = current_time - start_time
-
-            target_position = position_function(t)
-            self.motor.set_motor_position_control(limit_spd=speed_limit, loc_ref=target_position)
-
-            # Read motor feedback
-            try:
-                msg = self.bus.recv(timeout=0.001)
-                if msg and ((msg.arbitration_id >> 24) & 0xFF) == 2:
-                    actual_pos = self.motor._uint_to_float(
-                        (msg.data[0] << 8) + msg.data[1],
-                        self.motor.P_MIN, self.motor.P_MAX, self.motor.TWO_BYTES_BITS
-                    )
-                    self.motor_data.append([t, target_position, actual_pos])
-            except:
-                self.motor_data.append([t, target_position, None])
+            
+            # Calculate target positions for both motors
+            relative_pos1 = trajectory_func1(t)
+            relative_pos2 = trajectory_func2(t)
+            target_pos1 = self.home_position1 + relative_pos1
+            target_pos2 = self.home_position2 + relative_pos2
+            
+            # Send commands to both motors
+            self.motor1.set_motor_position_control(limit_spd=speed_limit, loc_ref=target_pos1)
+            self.motor2.set_motor_position_control(limit_spd=speed_limit, loc_ref=target_pos2)
+            
+            # Read motor feedback (simple approach - just log the commands)
+            self.motor_data.append([t, target_pos1, target_pos2, None, None])
             
             loop_count += 1
             
@@ -106,64 +115,162 @@ class MotorController:
         if save_data:
             self.save_data()
         
-        print(f"Trajectory completed. Collected {len(self.motor_data)} data points.")
+        print(f"Synchronized trajectory completed. Collected {len(self.motor_data)} data points.")
     
-    def save_data(self, filename="motor_data.csv"):
-        """Save collected motor data to CSV file."""
+    def execute_motor1_trajectory(self, trajectory_func, duration, frequency=50.0, speed_limit=50):
+        """Execute trajectory on motor 1 only."""
+        print(f"Executing trajectory on motor 1 for {duration}s at {frequency}Hz...")
+        
+        dt = 1.0 / frequency
+        start_time = time.perf_counter()
+        loop_count = 0
+        
+        while True:
+            target_time = start_time + loop_count * dt
+            current_time = time.perf_counter()
+            
+            if current_time - start_time >= duration:
+                break
+                
+            t = current_time - start_time
+            relative_pos = trajectory_func(t)
+            target_pos = self.home_position1 + relative_pos
+            
+            self.motor1.set_motor_position_control(limit_spd=speed_limit, loc_ref=target_pos)
+            
+            loop_count += 1
+            
+            sleep_time = target_time - current_time
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+        
+        print("Motor 1 trajectory completed.")
+    
+    def execute_motor2_trajectory(self, trajectory_func, duration, frequency=50.0, speed_limit=50):
+        """Execute trajectory on motor 2 only."""
+        print(f"Executing trajectory on motor 2 for {duration}s at {frequency}Hz...")
+        
+        dt = 1.0 / frequency
+        start_time = time.perf_counter()
+        loop_count = 0
+        
+        while True:
+            target_time = start_time + loop_count * dt
+            current_time = time.perf_counter()
+            
+            if current_time - start_time >= duration:
+                break
+                
+            t = current_time - start_time
+            relative_pos = trajectory_func(t)
+            target_pos = self.home_position2 + relative_pos
+            
+            self.motor2.set_motor_position_control(limit_spd=speed_limit, loc_ref=target_pos)
+            
+            loop_count += 1
+            
+            sleep_time = target_time - current_time
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+        
+        print("Motor 2 trajectory completed.")
+    
+    def save_data(self, filename=None):
+        """Save collected motor data to CSV file in data/ directory."""
+        os.makedirs("data", exist_ok=True)
+        
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"data/dual_motor_data_{timestamp}.csv"
+        else:
+            filename = f"data/{filename}"
+        
         print(f"Saving {len(self.motor_data)} data points to {filename}...")
         with open(filename, "w") as f:
-            f.write("time,commanded_position,actual_position\n")
+            f.write("time,motor1_commanded,motor2_commanded,motor1_actual,motor2_actual\n")
             for data_point in self.motor_data:
-                f.write(f"{data_point[0]:.6f},{data_point[1]:.6f},{data_point[2]}\n")
+                f.write(f"{data_point[0]:.6f},{data_point[1]:.6f},{data_point[2]:.6f},{data_point[3]},{data_point[4]}\n")
     
     def cleanup(self):
-        """Disable motor and shutdown CAN bus."""
+        """Disable motors and shutdown CAN bus."""
+        print("Cleaning up dual motor controller...")
+        
         try:
-            self.motor.disable()
+            self.motor1.disable()
+            print("Motor 1 disabled")
         except Exception as e:
-            print(f"Warning: Error disabling motor: {e}")
+            print(f"Warning: Error disabling motor 1: {e}")
+        
+        try:
+            self.motor2.disable()
+            print("Motor 2 disabled")
+        except Exception as e:
+            print(f"Warning: Error disabling motor 2: {e}")
+        
         try:
             self.bus.shutdown()
+            print("CAN bus shut down")
         except Exception as e:
             print(f"Warning: Error shutting down CAN bus: {e}")
-        print("Motor disabled and CAN bus shut down.")
+        
+        print("Cleanup completed")
 
 def main():
-    # Create motor controller instance
-    controller = MotorController(motor_id=3, main_can_id=254)
+    # Create dual motor controller
+    controller = DualMotorController(motor1_id=3, motor2_id=4)
     
     try:
-        # Set current position as home
-        controller.go_home(0.001)
+        # Set home positions
+        controller.set_home_positions()
         
         # Define trajectory functions
-        
-        # Example 1: Sine wave trajectory
         def sine_trajectory(t):
-            amplitude = 1  # Amplitude in radians
-            cycles = 1.0
-            duration = 5.0
-            omega = 2 * math.pi 
-            return amplitude * math.sin(omega * t)
+            """Sine wave trajectory."""
+            amplitude = 1.0
+            frequency = 0.5
+            return amplitude * math.sin(2 * math.pi * frequency * t)
         
-        # Example 2: Linear rotation trajectory
-        def linear_trajectory(t):
-            rotations_per_second = 0.5
-            return 2 * math.pi * rotations_per_second * t
+        def cosine_trajectory(t):
+            """Cosine wave trajectory (90 degrees out of phase)."""
+            amplitude = 1.0
+            frequency = 0.5
+            return amplitude * math.cos(2 * math.pi * frequency * t)
         
-        # Example 3: Custom lambda trajectory
-        triangle_wave = lambda t: 2.0 * (2 * abs((t % 4) - 2) - 1)  # Triangle wave ±2 rad
+        def triangle_wave(t):
+            """Triangle wave trajectory."""
+            period = 4.0
+            return 2.0 * (2 * abs((t % period) / period - 0.5) - 0.5)
         
-        # Execute sine trajectory
-        print("\n=== Executing Sine Trajectory ===")
-        controller.execute_trajectory(sine_trajectory, duration=5.0, frequency=50.0)
+        # Demo 1: Synchronized trajectories
+        print("\n=== Demo 1: Synchronized Sine/Cosine Trajectories ===")
+        controller.execute_synchronized_trajectories(
+            sine_trajectory, cosine_trajectory,
+            duration=10.0, frequency=100.0, speed_limit=30
+        )
         
-        # Go home between trajectories
+        # Return to home
         controller.go_home()
-        time.sleep(1)
+        time.sleep(2)
+        
+        # Demo 2: Motor 1 only
+        print("\n=== Demo 2: Motor 1 Triangle Wave ===")
+        controller.execute_motor1_trajectory(
+            triangle_wave, duration=5.0, frequency=50.0
+        )
+        
+        # Demo 3: Motor 2 only  
+        print("\n=== Demo 3: Motor 2 Sine Wave ===")
+        controller.execute_motor2_trajectory(
+            sine_trajectory, duration=5.0, frequency=50.0
+        )
+        
+        # Final homing
+        controller.go_home()
         
     except Exception as e:
         print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         controller.cleanup()
 
