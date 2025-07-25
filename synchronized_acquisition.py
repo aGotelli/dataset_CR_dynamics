@@ -76,9 +76,21 @@ class SynchronizedDataAcquisition:
             print(f"❌ Mark-10 setup failed: {e}")
             return False
     
-    def setup_vicon_sensor(self, host="localhost:801", duration=10):
+    def setup_vicon_sensor(self, host="localhost:801", duration=10, remote_only=True):
         """Setup Vicon motion capture"""
-        try:
+        if remote_only:
+            # Test TCP connection to Vicon client
+            print("🔗 Testing Vicon TCP connection...")
+            test_command = {"command": "status"}
+            response = self.send_vicon_command(test_command)
+            if response:
+                print("✅ Vicon TCP connection OK")
+                self.vicon_sensor = True
+                return True
+            else:
+                print("❌ Vicon TCP connection failed")
+                return False
+        else:
             self.vicon_sensor = ThreadableVicon(
                 host=host,
                 duration=duration,
@@ -86,23 +98,16 @@ class SynchronizedDataAcquisition:
             )
             print("✅ Vicon sensor ready")
             return True
-        except Exception as e:
-            print(f"❌ Vicon setup failed: {e}")
-            return False
     
-    def setup_motor_controller(self, motor1_id=1, motor2_id=2):
+    def setup_motor_controller(self, motor1_id=3, motor2_id=4):
         """Setup dual motor controller"""
-        try:
-            self.motor_controller = DualMotorController(
-                motor1_id=motor1_id,
-                motor2_id=motor2_id
-            )
-            self.motor_controller.set_home_positions()
-            print("✅ Motor controller ready")
-            return True
-        except Exception as e:
-            print(f"❌ Motor setup failed: {e}")
-            return False
+        self.motor_controller = DualMotorController(
+            motor1_id=motor1_id,
+            motor2_id=motor2_id
+        )
+        self.motor_controller.set_home_positions()
+        print("✅ Motor controller ready")
+        return True
     
     def receive_vicon_data(self):
         """Start server to receive Vicon data back from client"""
@@ -296,22 +301,16 @@ class SynchronizedDataAcquisition:
     
     def cleanup(self):
         """Cleanup all sensors and actuators"""
-        try:
-            if self.motor_controller:
-                self.motor_controller.cleanup()
-            
-            # Stop all sensors
-            if self.ati_sensor:
-                self.ati_sensor.stop()
-            
-            for sensor in self.mark10_sensors:
-                sensor.stop()
-            
-            if self.vicon_sensor:
-                self.vicon_sensor.stop()
-                
-        except Exception as e:
-            print(f"Cleanup error: {e}")
+        if self.motor_controller:
+            self.motor_controller.cleanup()
+        
+        if self.ati_sensor:
+            self.ati_sensor.stop()
+        
+        for sensor in self.mark10_sensors:
+            sensor.stop()
+        
+        # Vicon sensor is just a boolean for remote mode, no cleanup needed
 
 def main():
     """Main function"""
@@ -337,8 +336,8 @@ def main():
     VICON_TCP_ADDRESS = "192.168.10.2"
     
     # Motor config
-    MOTOR1_ID = 1
-    MOTOR2_ID = 2
+    MOTOR1_ID = 3
+    MOTOR2_ID = 4
     
     # Trajectory functions
     def sine_trajectory_motor1(t):
@@ -361,12 +360,35 @@ def main():
         # Setup all systems
         ati_ok = acquisition.setup_ati_sensor(ATI_CHANNELS, ATI_RATE, DURATION)
         mark10_ok = acquisition.setup_mark10_sensors(MARK10_PORTS, MARK10_RATE)
-        vicon_ok = acquisition.setup_vicon_sensor(VICON_HOST, DURATION)
-        motor_ok = acquisition.setup_motor_controller(MOTOR1_ID, MOTOR2_ID)
+        vicon_ok = acquisition.setup_vicon_sensor(VICON_HOST, DURATION, remote_only=True)  # Use remote only
+        # motor_ok = acquisition.setup_motor_controller(MOTOR1_ID, MOTOR2_ID)  # Temporarily disabled
+        motor_ok = False  # Disabled for testing
         
         if not any([ati_ok, mark10_ok, vicon_ok, motor_ok]):
             print("❌ No systems ready. Check connections.")
             return
+        
+        # Show what's working
+        working_systems = []
+        if ati_ok: working_systems.append("ATI F/T")
+        if mark10_ok: working_systems.append("Mark-10")
+        if vicon_ok: working_systems.append("Vicon (remote)")
+        if motor_ok: working_systems.append("Motors")
+        
+        print(f"✅ Working systems: {', '.join(working_systems)}")
+        
+        # Warn about failed systems
+        failed_systems = []
+        if not ati_ok: failed_systems.append("ATI F/T")
+        if not mark10_ok: failed_systems.append("Mark-10")
+        if not motor_ok: failed_systems.append("Motors")
+        
+        if failed_systems:
+            print(f"⚠️  Failed systems: {', '.join(failed_systems)}")
+            proceed = input("Continue with working systems? (y/n): ").lower().strip()
+            if proceed != 'y':
+                print("Experiment cancelled.")
+                return
         
         # Run synchronized acquisition
         acquisition.run_synchronized_acquisition(
