@@ -152,6 +152,8 @@ class SimpleVicon:
                 self.data_buffer[self.sample_count, col_index] = 1.0 if occluded else 0.0
             col_index += 1
         self.sample_count += 1
+
+        
     def collect_debug_vectors(self):
         """Collect pose and supplementary vectors for all frames after acquisition"""
         self.all_frame_poses = []

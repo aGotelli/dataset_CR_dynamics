@@ -437,8 +437,22 @@ class ATI_FT_Plotter:
         filtered_checkbox = QtWidgets.QCheckBox("Show Filtered Data")
         filtered_checkbox.setChecked(True)
         
+        # Raw data transparency control
+        transparency_label = QtWidgets.QLabel("Raw Data Transparency:")
+        transparency_dial = QtWidgets.QDial()
+        transparency_dial.setRange(0, 100)
+        transparency_dial.setValue(30)  # Default 30% transparency (70% alpha)
+        transparency_dial.setNotchesVisible(True)
+        transparency_dial.setFixedSize(60, 60)
+        
+        transparency_value_label = QtWidgets.QLabel("30%")
+        transparency_value_label.setAlignment(QtCore.Qt.AlignCenter)
+        
         visibility_layout.addWidget(raw_checkbox)
         visibility_layout.addWidget(filtered_checkbox)
+        visibility_layout.addWidget(transparency_label)
+        visibility_layout.addWidget(transparency_dial)
+        visibility_layout.addWidget(transparency_value_label)
         
         # Statistics display
         stats_group = QtWidgets.QGroupBox("Statistics")
@@ -477,9 +491,8 @@ class ATI_FT_Plotter:
             
             # Create curves
             color = colors[i % 3]
-            # Raw data as shadow: lighter color, thinner line
-            shadow_color = (*color, 80)  # Add alpha for transparency
-            raw_curve = plot.plot(name='Raw', pen=pg.mkPen(color=shadow_color, width=1))
+            # Raw data as shadow: will use dial-controlled transparency
+            raw_curve = plot.plot(name='Raw', pen=pg.mkPen(color=(*color, 76), width=1))  # Default 30% transparency
             # Filtered data: solid color, thicker line
             filtered_curve = plot.plot(name='Filtered', pen=pg.mkPen(color=color, width=2))
             
@@ -497,6 +510,14 @@ class ATI_FT_Plotter:
             current_order = order_spinbox.value()
             show_raw = raw_checkbox.isChecked()
             show_filtered = filtered_checkbox.isChecked()
+            transparency_percent = transparency_dial.value()
+            
+            # Update transparency value label
+            transparency_value_label.setText(f"{transparency_percent}%")
+            
+            # Calculate alpha value (0-255) from transparency percentage
+            # transparency_percent: 0% = fully opaque (alpha=255), 100% = fully transparent (alpha=0)
+            alpha = int(255 * (100 - transparency_percent) / 100)
             
             noise_reductions = []
             
@@ -513,8 +534,13 @@ class ATI_FT_Plotter:
                     print(f"Filter error for {channel}: {e}")
                     filtered_data = raw_data
                 
-                # Update curves
+                # Update curves with new transparency for raw data
+                color = colors[i % 3]
+                
                 if show_raw:
+                    # Update raw curve with new transparency
+                    raw_pen = pg.mkPen(color=(*color, alpha), width=1)
+                    raw_curves[i].setPen(raw_pen)
                     raw_curves[i].setData(self.relative_time, raw_data)
                     raw_curves[i].show()
                 else:
@@ -544,6 +570,7 @@ class ATI_FT_Plotter:
         order_spinbox.valueChanged.connect(update_plots)
         raw_checkbox.stateChanged.connect(update_plots)
         filtered_checkbox.stateChanged.connect(update_plots)
+        transparency_dial.valueChanged.connect(update_plots)
         
         # Initial plot
         update_plots()
@@ -597,7 +624,7 @@ def main():
     print("Simple ATI Force/Torque Sensor Data Acquisition")
     print("=" * 60)
    
-    duration = 60
+    duration = 10
     rate = 2000
     output = "data/test_data.csv"
 
