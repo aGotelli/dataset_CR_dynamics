@@ -18,13 +18,44 @@ def main():
         motor.set_run_mode(motor.RunModes.POSITION_MODE)
         motor.enable()
         
-        # Move to different positions
-        positions = [0, 3.14, -3.14, 0]
+        # Perform sine trajectory for 5 seconds
+        print("Starting sine trajectory for 5 seconds...")
+        import math
         
-        for pos in positions:
-            print(f"Moving to position: {pos:.2f} rad")
-            motor.set_motor_position_control(limit_spd=6, loc_ref=pos)
-            time.sleep(3)
+        # Perform continuous rotation for 5 seconds at 200Hz
+        print("Starting continuous rotation for 5 seconds at 200Hz...")
+        import math
+        
+        duration = 5.0  # 5 seconds
+        frequency = 200.0  # 200Hz
+        dt = 1.0 / frequency  # 0.005 seconds per loop
+        rotations_per_second = 0.5  # 0.5 rotations per second
+        
+        start_time = time.perf_counter()
+        loop_count = 0
+        
+        while True:
+            target_time = start_time + loop_count * dt
+            current_time = time.perf_counter()
+            
+            if current_time - start_time >= duration:
+                break
+                
+            t = current_time - start_time
+            position = 2 * math.pi * rotations_per_second * t
+            motor.set_motor_position_control(limit_spd=15, loc_ref=position)
+            
+            loop_count += 1
+            
+            # Sleep until next loop time
+            sleep_time = target_time - current_time
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+        
+        # Return to zero position
+        print("Returning to zero position...")
+        motor.set_motor_position_control(limit_spd=6, loc_ref=0)
+        time.sleep(2)
         
     except Exception as e:
         print(f"Error: {e}")
