@@ -1,20 +1,20 @@
 # Stop Windows Time service
-net stop w32time
+sudo net stop w32time
 
 # Configure as NTP server
-w32tm /config /manualpeerlist:"time.windows.com" /syncfromflags:manual /reliable:yes /update
+sudo w32tm /config /manualpeerlist:"time.windows.com" /syncfromflags:manual /reliable:yes /update
 
 # Enable NTP server
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpServer" /v Enabled /t REG_DWORD /d 1 /f
+sudo reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpServer" /v Enabled /t REG_DWORD /d 1 /f
 
 # Set high precision timing
-w32tm /config /update /manualpeerlist:"time.windows.com" /syncfromflags:manual /reliable:yes
+sudo w32tm /config /update /manualpeerlist:"time.windows.com" /syncfromflags:manual /reliable:yes
 
 # Start the service
-net start w32time
+sudo net start w32time
 
 # Force synchronization with external time server
-w32tm /resync /force
+sudo w32tm /resync /force
 
 # Verify configuration
-w32tm /query /configuration
+sudo w32tm /query /configuration
