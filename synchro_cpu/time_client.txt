@@ -1,0 +1,12 @@
+# Set Windows to high-precision event timer mode
+bcdedit /set useplatformclock true
+
+# Configure W32Time for higher precision
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\Config" /v MaxPosPhaseCorrection /t REG_DWORD /d 3600 /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\Config" /v MaxNegPhaseCorrection /t REG_DWORD /d 3600 /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\Config" /v UpdateInterval /t REG_DWORD /d 30 /f
+
+
+# Restart W32Time service
+net stop w32time
+net start w32time
