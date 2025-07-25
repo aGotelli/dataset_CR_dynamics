@@ -427,6 +427,8 @@ class Vicon_Plotter:
             pts = np.array([origin, end])
             return GLLinePlotItem(pos=pts, color=color, width=6, antialias=True)
 
+
+
         def euler_to_rotmat(euler):
             # Euler angles in degrees, XYZ order
             rx, ry, rz = np.deg2rad(euler)
