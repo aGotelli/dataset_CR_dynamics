@@ -184,6 +184,10 @@ class ViconTCPClient:
                     response = {"status": "completed", "message": "Acquisition done, but failed to send data back"}
             else:
                 response = {"status": "completed", "message": "Acquisition completed"}
+            
+            # Reset state for next experiment
+            self.is_ready = False
+            self.data_file_path = None
         
         elif command == "status":
             # Return current status

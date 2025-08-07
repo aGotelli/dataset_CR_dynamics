@@ -109,7 +109,7 @@ class SynchronizedDataAcquisition:
         print("✅ Motor controller ready")
         return True
     
-    def receive_vicon_data(self):
+    def receive_vicon_data(self, duration=10):
         """Start server to receive Vicon data back from client"""
         def data_receiver():
             try:
@@ -117,7 +117,7 @@ class SynchronizedDataAcquisition:
                     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     server_socket.bind(("0.0.0.0", self.vicon_data_port))
                     server_socket.listen(1)
-                    server_socket.settimeout(30)  # 30 second timeout
+                    server_socket.settimeout(duration + 5)  # Wait a bit longer than acquisition duration
                     
                     print(f"📡 Waiting for Vicon data on port {self.vicon_data_port}...")
                     
@@ -217,7 +217,7 @@ class SynchronizedDataAcquisition:
         # Send setup command to Vicon if available
         if self.vicon_sensor:
             # Start data receiver first
-            data_receiver_thread = self.receive_vicon_data()
+            data_receiver_thread = self.receive_vicon_data(duration)
             
             vicon_command = {
                 "command": "setup",
