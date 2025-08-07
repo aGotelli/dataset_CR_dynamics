@@ -36,7 +36,7 @@ class SynchronizedDataAcquisition:
         # Vicon TCP settings
         self.vicon_tcp_address = "192.168.10.2"
         self.vicon_tcp_port = 8080
-        self.vicon_data_port = 8081  # Port to receive data back from Vicon
+        self.vicon_data_port = 12345  # Port to receive data back from Vicon
         
         print("Synchronized Data Acquisition System initialized")
     
@@ -121,6 +121,7 @@ class SynchronizedDataAcquisition:
                     
                     print(f"📡 Waiting for Vicon data on port {self.vicon_data_port}...")
                     print(f"🕐 Timeout set to {duration + 5} seconds")
+                    print(f"🌐 Listening on all interfaces (0.0.0.0:{self.vicon_data_port})")
                     
                     client_socket, address = server_socket.accept()
                     print(f"📥 Receiving Vicon data from {address}")

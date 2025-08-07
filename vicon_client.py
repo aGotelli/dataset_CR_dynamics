@@ -74,7 +74,7 @@ class ViconTCPClient:
         if self.acquisition_thread:
             self.acquisition_thread.join()
     
-    def send_data_back(self, server_address, server_port=8081):
+    def send_data_back(self, server_address, server_port=12345):
         """Send acquired data back to server PC"""
         if not self.data_file_path or not os.path.exists(self.data_file_path):
             print("❌ No data file to send back")
