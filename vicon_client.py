@@ -45,15 +45,32 @@ class ViconTCPClient:
             return False
         
         self.data_file_path = output_file
+        duration = self.experiment_config.get("duration", 10)
+        time_offset = self.experiment_config.get("precise_time_offset", 
+                                                 self.experiment_config.get("time_offset", 0.0))
         
         def acquire_data():
             try:
-                print(f"🚀 Starting Vicon acquisition...")
-                success = self.vicon_sensor.acquire_data(output_file)
+                print(f"🚀 Starting Vicon acquisition for {duration}s...")
+                print(f"🕐 Using time offset: {time_offset:.3f}s")
+                
+                # Start acquisition with time correction
+                self.vicon_sensor.start_acquisition(time_offset=time_offset)
+                
+                # Wait for specified duration
+                time.sleep(duration)
+                
+                # Stop acquisition automatically
+                print(f"⏰ {duration}s elapsed, stopping Vicon acquisition...")
+                self.vicon_sensor.stop()
+                
+                # Save data
+                success = self.vicon_sensor.save_data(output_file)
                 if success:
                     print(f"✅ Vicon data saved to: {output_file}")
                 else:
-                    print(f"❌ Vicon acquisition failed")
+                    print(f"❌ Vicon data save failed")
+                    
             except Exception as e:
                 print(f"❌ Vicon acquisition error: {e}")
         
@@ -110,17 +127,27 @@ class ViconTCPClient:
             experiment_name = command_data.get("experiment_name", "vicon_experiment")
             duration = command_data.get("duration", 10)
             vicon_host = command_data.get("vicon_host", "localhost:801")
+            server_time = command_data.get("server_time", time.time())  # Time from main PC
+            
+            # Calculate time offset between PCs
+            local_time = time.time()
+            time_offset = server_time - local_time
             
             self.experiment_config = {
                 "experiment_name": experiment_name,
                 "duration": duration,
                 "vicon_host": vicon_host,
-                "server_address": client_socket.getpeername()[0]  # Get server IP
+                "server_address": client_socket.getpeername()[0],
+                "time_offset": time_offset,  # Difference between server and local time
+                "server_time": server_time,
+                "local_time": local_time
             }
+            
+            print(f"🕐 Time sync: Server={server_time:.3f}, Local={local_time:.3f}, Offset={time_offset:.3f}s")
             
             success = self.setup_vicon(duration, vicon_host)
             if success:
-                response = {"status": "ready", "message": f"Vicon ready for {duration}s"}
+                response = {"status": "ready", "message": f"Vicon ready for {duration}s, time synced"}
             else:
                 response = {"status": "error", "message": "Vicon setup failed"}
         
@@ -129,12 +156,22 @@ class ViconTCPClient:
             if not self.is_ready:
                 response = {"status": "error", "message": "Vicon not ready"}
             else:
+                # Get precise start time from command (sent at the moment of "GO!")
+                precise_start_time = command_data.get("precise_start_time", time.time())
+                local_start_time = time.time()
+                
+                # Update time offset with more precise timing
+                precise_offset = precise_start_time - local_start_time
+                self.experiment_config["precise_time_offset"] = precise_offset
+                
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"vicon_data_{timestamp}.csv"
                 
+                print(f"🕐 Precise sync: Server start={precise_start_time:.6f}, Local={local_start_time:.6f}, Offset={precise_offset:.6f}s")
+                
                 success = self.start_acquisition(filename)
                 if success:
-                    response = {"status": "started", "message": "Acquisition started"}
+                    response = {"status": "started", "message": f"Acquisition started with precise timing"}
                 else:
                     response = {"status": "error", "message": "Failed to start acquisition"}
         

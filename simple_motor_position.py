@@ -250,6 +250,13 @@ def main():
             amplitude = 1.0
             frequency = 0.1
             return amplitude * math.sin(2 * math.pi * frequency * t)
+        # Variante: Fast con frequenze diverse ma entrambe veloci
+        def fast_sine_alt_motor1(t):
+            """Fast sine alternative - Group 1"""
+            frequency = 2.3  # 1.8 Hz
+            amplitude = 0.45
+            return amplitude * math.sin(2 * math.pi * frequency * t)
+        
         # Demo 1: Synchronized trajectories
         # print("\n=== Demo 1: Synchronized Sine/Cosine Trajectories ===")
         # controller.execute_synchronized_trajectories(
@@ -280,11 +287,11 @@ def main():
         #     duration=10.0, frequency=100.0, speed_limit=30, save_data=True, save_path="data/synchronized_trajectories.csv"
         # )   
        
-        # # Demo 4: Fast trajectory
-        # print("\n=== Demo 4: Fast Sine Wave Trajectory ===")
-        # controller.execute_motor1_trajectory(
-        #     fast_trajectory, duration=5.0, frequency=700.0
-        # )
+        # Demo 4: Fast trajectory
+        print("\n=== Demo 4: Fast Sine Wave Trajectory ===")
+        controller.execute_motor1_trajectory(
+            fast_sine_alt_motor1, duration=5.0, frequency=700.0
+        )
         
         # Final homing
         controller.go_home()

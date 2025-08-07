@@ -9,7 +9,7 @@ import threading
 import socket
 import json
 from datetime import datetime
-
+import math
 # Import all sensor classes
 from simple_ati_ft import ThreadableATI_FT
 from simple_mark10_clean import SimpleMark10
@@ -223,7 +223,8 @@ class SynchronizedDataAcquisition:
                 "command": "setup",
                 "experiment_name": experiment_name,
                 "duration": duration,
-                "vicon_host": "localhost:801"
+                "vicon_host": "localhost:801",
+                "server_time": time.time()  # Send current time for synchronization
             }
             response = self.send_vicon_command(vicon_command)
             if response and response.get("status") == "ready":
@@ -265,10 +266,14 @@ class SynchronizedDataAcquisition:
             mark10_thread.start()
             self.threads.append(mark10_thread)
         
-        # Start Vicon sensor
+        # Start Vicon sensor with precise timing
         if self.vicon_sensor:
-            # Send start command to remote Vicon
-            start_command = {"command": "start"}
+            # Send start command with precise timestamp
+            precise_start_time = time.time()
+            start_command = {
+                "command": "start",
+                "precise_start_time": precise_start_time
+            }
             response = self.send_vicon_command(start_command)
             print(f"📡 Vicon start response: {response}")
             
@@ -340,14 +345,33 @@ def main():
     MOTOR2_ID = 4
     
     # Trajectory functions
+    def fast_sine(t):
+        """Fast sine alternative - Group 1"""
+        frequency = 2.3
+        amplitude = 0.45
+        return amplitude * math.sin(2 * math.pi * frequency * t)
+    def fast_cosine(t):
+        """Fast cosine wave for motor 2 - Group 1"""
+        frequency = 2.0 
+        amplitude = 0.3  
+        return amplitude * math.cos(2 * math.pi * frequency * t)
+    def slow_sine(t):
+        """Slow sine wave for motor 1 - Group 2"""
+        frequency = 0.2  
+        amplitude = 0.4 
+        return amplitude * math.sin(2 * math.pi * frequency * t)
+    def slow_cosine(t):
+        """Slow cosine wave for motor 2 - Group 2"""
+        frequency = 0.3 
+        amplitude = 0.3 
+        return amplitude * math.cos(2 * math.pi * frequency * t)
+
     def sine_trajectory_motor1(t):
         """Sine wave trajectory for motor 1"""
-        import math
         return math.sin(2 * math.pi * 0.5 * t)  # 0.5 Hz
     
     def cosine_trajectory_motor2(t):
         """Cosine wave trajectory for motor 2"""
-        import math
         return math.cos(2 * math.pi * 0.3 * t)  # 0.3 Hz
     
     # Create acquisition system
@@ -394,8 +418,8 @@ def main():
         acquisition.run_synchronized_acquisition(
             experiment_name=EXPERIMENT_NAME,
             duration=DURATION,
-            trajectory_func1=sine_trajectory_motor1,
-            trajectory_func2=cosine_trajectory_motor2,
+            trajectory_func1=slow_sine,  # sine_trajectory_motor1,
+            trajectory_func2=fast_cosine,  # cosine_trajectory_motor2,
             additional_info="Test experiment with sine/cosine trajectories"
         )
         
