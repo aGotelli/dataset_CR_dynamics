@@ -120,6 +120,7 @@ class SynchronizedDataAcquisition:
                     server_socket.settimeout(duration + 5)  # Wait a bit longer than acquisition duration
                     
                     print(f"📡 Waiting for Vicon data on port {self.vicon_data_port}...")
+                    print(f"🕐 Timeout set to {duration + 5} seconds")
                     
                     client_socket, address = server_socket.accept()
                     print(f"📥 Receiving Vicon data from {address}")
@@ -156,9 +157,15 @@ class SynchronizedDataAcquisition:
                 print(f"❌ Error receiving Vicon data: {e}")
         
         # Start data receiver in background
+        print(f"🔧 Starting data receiver on port {self.vicon_data_port}...")
         receiver_thread = threading.Thread(target=data_receiver)
         receiver_thread.daemon = True
         receiver_thread.start()
+        
+        # Give the server a moment to start
+        time.sleep(0.5)
+        print(f"✅ Data receiver ready on port {self.vicon_data_port}")
+        
         return receiver_thread
 
     def send_vicon_command(self, command_data):

@@ -79,13 +79,22 @@ class ViconTCPClient:
         if not self.data_file_path or not os.path.exists(self.data_file_path):
             print("❌ No data file to send back")
             return False
+
+        # Wait a moment to ensure server is ready
+        print(f"⏳ Waiting 2 seconds before sending data to {server_address}:{server_port}...")
+        time.sleep(2)
         
         try:
+            print(f"📤 Attempting to connect to {server_address}:{server_port}...")
+            
             with open(self.data_file_path, 'rb') as f:
                 data = f.read()
             
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(10.0)  # 10 second timeout
                 sock.connect((server_address, server_port))
+                
+                print(f"🔗 Connected! Sending file info...")
                 
                 # Send file info first
                 file_info = {
@@ -98,6 +107,8 @@ class ViconTCPClient:
                 sock.sendall(len(info_msg).to_bytes(4, 'big'))  # Send length first
                 sock.sendall(info_msg)
                 
+                print(f"📄 Sending file data ({len(data)} bytes)...")
+                
                 # Send file data
                 sock.sendall(data)
                 
@@ -106,6 +117,8 @@ class ViconTCPClient:
                 
         except Exception as e:
             print(f"❌ Failed to send data back: {e}")
+            print(f"   Server: {server_address}:{server_port}")
+            print(f"   File: {self.data_file_path}")
             return False
     
     def handle_command(self, command_data, client_socket):
