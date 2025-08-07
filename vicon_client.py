@@ -54,22 +54,13 @@ class ViconTCPClient:
                 print(f"🚀 Starting Vicon acquisition for {duration}s...")
                 print(f"🕐 Using time offset: {time_offset:.3f}s")
                 
-                # Start acquisition with time correction
-                self.vicon_sensor.start_acquisition(time_offset=time_offset)
+                # Use the standard acquire_data method
+                success = self.vicon_sensor.acquire_data(output_file)
                 
-                # Wait for specified duration
-                time.sleep(duration)
-                
-                # Stop acquisition automatically
-                print(f"⏰ {duration}s elapsed, stopping Vicon acquisition...")
-                self.vicon_sensor.stop()
-                
-                # Save data
-                success = self.vicon_sensor.save_data(output_file)
                 if success:
                     print(f"✅ Vicon data saved to: {output_file}")
                 else:
-                    print(f"❌ Vicon data save failed")
+                    print(f"❌ Vicon acquisition failed")
                     
             except Exception as e:
                 print(f"❌ Vicon acquisition error: {e}")
