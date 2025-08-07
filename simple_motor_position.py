@@ -64,7 +64,7 @@ class DualMotorController:
         time.sleep(2)  # Give motors time to reach position
         print("Homing commands sent")
     
-    def execute_synchronized_trajectories(self, trajectory_func1, trajectory_func2, duration, frequency=50.0, speed_limit=50, save_data=True):
+    def execute_synchronized_trajectories(self, trajectory_func1, trajectory_func2, duration, frequency=50.0, speed_limit=50, save_data=True,save_path=""):
         """Execute synchronized trajectories on both motors.
         
         Args:
@@ -74,6 +74,7 @@ class DualMotorController:
             frequency: Control frequency in Hz
             speed_limit: Motor speed limit
             save_data: Whether to save trajectory data to CSV
+            save_path: Path to save data file
         """
         print(f"Executing synchronized trajectories for {duration}s at {frequency}Hz...")
         
@@ -113,7 +114,7 @@ class DualMotorController:
                 time.sleep(sleep_time)
         
         if save_data:
-            self.save_data()
+            self.save_data(save_path if save_path else None)
         
         print(f"Synchronized trajectory completed. Collected {len(self.motor_data)} data points.")
     
@@ -176,15 +177,14 @@ class DualMotorController:
         print("Motor 2 trajectory completed.")
     
     def save_data(self, filename=None):
-        """Save collected motor data to CSV file in data/ directory."""
-        os.makedirs("data", exist_ok=True)
-        
+        """Save collected motor data to CSV file."""
         if filename is None:
+            # Default behavior - save to data/ directory with timestamp
+            os.makedirs("data", exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"data/dual_motor_data_{timestamp}.csv"
-        else:
-            filename = f"data/{filename}"
         
+        # Use the full path as provided (no modification)
         print(f"Saving {len(self.motor_data)} data points to {filename}...")
         with open(filename, "w") as f:
             f.write("time,motor1_commanded,motor2_commanded,motor1_actual,motor2_actual\n")
@@ -240,29 +240,51 @@ def main():
             """Triangle wave trajectory."""
             period = 4.0
             return 2.0 * (2 * abs((t % period) / period - 0.5) - 0.5)
-        
+        def fast_trajectory(t):
+            """Fast sine wave trajectory."""
+            amplitude = 3.0
+            frequency = 0.9
+            return amplitude * math.sin(2 * math.pi * frequency * t)
+        def slow_trajectory(t):
+            """Slow sine wave trajectory."""
+            amplitude = 1.0
+            frequency = 0.1
+            return amplitude * math.sin(2 * math.pi * frequency * t)
         # Demo 1: Synchronized trajectories
-        print("\n=== Demo 1: Synchronized Sine/Cosine Trajectories ===")
-        controller.execute_synchronized_trajectories(
-            sine_trajectory, cosine_trajectory,
-            duration=10.0, frequency=100.0, speed_limit=30
-        )
+        # print("\n=== Demo 1: Synchronized Sine/Cosine Trajectories ===")
+        # controller.execute_synchronized_trajectories(
+        #     sine_trajectory, cosine_trajectory,
+        #     duration=10.0, frequency=100.0, speed_limit=30
+        # )
         
-        # Return to home
-        controller.go_home()
-        time.sleep(2)
+        # # Return to home
+        # controller.go_home()
+        # time.sleep(2)
         
-        # Demo 2: Motor 1 only
-        print("\n=== Demo 2: Motor 1 Triangle Wave ===")
-        controller.execute_motor1_trajectory(
-            triangle_wave, duration=5.0, frequency=50.0
-        )
+        # # Demo 2: Motor 1 only
+        # print("\n=== Demo 2: Motor 1 Triangle Wave ===")
+        # controller.execute_motor1_trajectory(
+        #     sine_trajectory, duration=5.0, frequency=700.0
+        # )
         
-        # Demo 3: Motor 2 only  
-        print("\n=== Demo 3: Motor 2 Sine Wave ===")
-        controller.execute_motor2_trajectory(
-            sine_trajectory, duration=5.0, frequency=50.0
-        )
+        # # Demo 3: Motor 2 only  
+        # print("\n=== Demo 3: Motor 2 Sine Wave ===")
+        # controller.execute_motor2_trajectory(
+        #     sine_trajectory, duration=5.0, frequency=50.0
+        # )
+
+        # #Demo 3: Synchronized trajectories
+        # print("\n=== Demo 3: Synchronized Sine/Cosine Trajectories ===")
+        # controller.execute_synchronized_trajectories(
+        #     sine_trajectory, triangle_wave,
+        #     duration=10.0, frequency=100.0, speed_limit=30, save_data=True, save_path="data/synchronized_trajectories.csv"
+        # )   
+       
+        # # Demo 4: Fast trajectory
+        # print("\n=== Demo 4: Fast Sine Wave Trajectory ===")
+        # controller.execute_motor1_trajectory(
+        #     fast_trajectory, duration=5.0, frequency=700.0
+        # )
         
         # Final homing
         controller.go_home()

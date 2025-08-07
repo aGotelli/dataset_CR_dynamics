@@ -278,7 +278,7 @@ class SynchronizedDataAcquisition:
         if self.motor_controller:
             motor_thread = threading.Thread(
                 target=self.motor_controller.execute_synchronized_trajectories,
-                args=(trajectory_func1, trajectory_func2, duration, 50.0, 50, True)
+                args=(trajectory_func1, trajectory_func2, duration, 50.0, 50, True, os.path.join(self.experiment_dir, "motor_data.csv"))
             )
             motor_thread.start()
             self.threads.append(motor_thread)
