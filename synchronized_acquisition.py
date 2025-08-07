@@ -361,8 +361,8 @@ def main():
         ati_ok = acquisition.setup_ati_sensor(ATI_CHANNELS, ATI_RATE, DURATION)
         mark10_ok = acquisition.setup_mark10_sensors(MARK10_PORTS, MARK10_RATE)
         vicon_ok = acquisition.setup_vicon_sensor(VICON_HOST, DURATION, remote_only=True)  # Use remote only
-        # motor_ok = acquisition.setup_motor_controller(MOTOR1_ID, MOTOR2_ID)  # Temporarily disabled
-        motor_ok = False  # Disabled for testing
+        motor_ok = acquisition.setup_motor_controller(MOTOR1_ID, MOTOR2_ID)  # Temporarily disabled
+        # motor_ok = False  # Disabled for testing
         
         if not any([ati_ok, mark10_ok, vicon_ok, motor_ok]):
             print("❌ No systems ready. Check connections.")
