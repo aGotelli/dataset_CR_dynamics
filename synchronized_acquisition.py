@@ -117,10 +117,10 @@ class SynchronizedDataAcquisition:
                     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     server_socket.bind(("0.0.0.0", self.vicon_data_port))
                     server_socket.listen(1)
-                    server_socket.settimeout(duration + 5)  # Wait a bit longer than acquisition duration
+                    server_socket.settimeout(30)  # Wait a bit longer than acquisition duration
                     
                     print(f"📡 Waiting for Vicon data on port {self.vicon_data_port}...")
-                    print(f"🕐 Timeout set to {duration + 5} seconds")
+                    print(f"🕐 Timeout set to 30 seconds") # ho provato anche con meno secondi: se metti un numero minore allora si ferma il codice
                     print(f"🌐 Listening on all interfaces (0.0.0.0:{self.vicon_data_port})")
                     
                     client_socket, address = server_socket.accept()
