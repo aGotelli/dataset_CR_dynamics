@@ -170,7 +170,8 @@ class ViconTCPClient:
                 self.experiment_config["precise_time_offset"] = precise_offset
                 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"vicon_data_{timestamp}.csv"
+                experiment_name = self.experiment_config.get("experiment_name", "vicon_experiment")
+                filename = f"{experiment_name}_vicon_data_{timestamp}.csv"
                 
                 print(f"🕐 Precise sync: Server start={precise_start_time:.6f}, Local={local_start_time:.6f}, Offset={precise_offset:.6f}s")
                 
@@ -215,6 +216,34 @@ class ViconTCPClient:
         """Start TCP server to listen for commands"""
         print(f"🔧 Starting Vicon TCP server on {self.host}:{self.port}")
         
+        def handle_client(client_socket, address):
+            """Handle individual client connection in a separate thread"""
+            print(f"📡 Connection from {address}")
+            
+            try:
+                with client_socket:
+                    # Receive command
+                    data = client_socket.recv(1024)
+                    if data:
+                        try:
+                            command_data = json.loads(data.decode('utf-8'))
+                            print(f"📨 Received command: {command_data}")
+                            
+                            # Handle command
+                            response = self.handle_command(command_data, client_socket)
+                            
+                            # Send response
+                            response_data = json.dumps(response).encode('utf-8')
+                            client_socket.sendall(response_data)
+                            
+                            print(f"📤 Sent response: {response}")
+                            
+                        except json.JSONDecodeError:
+                            error_response = {"status": "error", "message": "Invalid JSON"}
+                            client_socket.sendall(json.dumps(error_response).encode('utf-8'))
+            except Exception as e:
+                print(f"❌ Client handler error: {e}")
+        
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self.host, self.port))
@@ -226,28 +255,14 @@ class ViconTCPClient:
             while True:
                 try:
                     client_socket, address = server_socket.accept()
-                    print(f"📡 Connection from {address}")
                     
-                    with client_socket:
-                        # Receive command
-                        data = client_socket.recv(1024)
-                        if data:
-                            try:
-                                command_data = json.loads(data.decode('utf-8'))
-                                print(f"📨 Received command: {command_data}")
-                                
-                                # Handle command
-                                response = self.handle_command(command_data, client_socket)
-                                
-                                # Send response
-                                response_data = json.dumps(response).encode('utf-8')
-                                client_socket.sendall(response_data)
-                                
-                                print(f"📤 Sent response: {response}")
-                                
-                            except json.JSONDecodeError:
-                                error_response = {"status": "error", "message": "Invalid JSON"}
-                                client_socket.sendall(json.dumps(error_response).encode('utf-8'))
+                    # Handle each client in a separate thread
+                    client_thread = threading.Thread(
+                        target=handle_client, 
+                        args=(client_socket, address),
+                        daemon=True
+                    )
+                    client_thread.start()
                 
                 except KeyboardInterrupt:
                     print("\n⚠️ Server interrupted by user")
