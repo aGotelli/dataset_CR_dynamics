@@ -3,9 +3,10 @@ import json
 import numpy as np
 
 def main():
-    host = input("Server IP (localhost): ") or "localhost"
-    port = int(input("Port (8080): ") or "8080")
-    duration = int(input("Duration (5): ") or "5")
+    host = "192.168.10.5"
+    port = 8080
+    duration = 5  # seconds
+
     
     with socket.socket() as s:
         s.connect((host, port))
