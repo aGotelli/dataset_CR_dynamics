@@ -1,44 +1,47 @@
 import socket
+import json
 import numpy as np
 
 def main():
-    server_host = input("Server IP (localhost): ") or "localhost"
-    server_port = int(input("Server port (8080): ") or "8080")
+    host = input("Server IP (localhost): ") or "localhost"
+    port = int(input("Port (8080): ") or "8080")
+    duration = int(input("Duration (5): ") or "5")
     
     with socket.socket() as s:
-        s.connect((server_host, server_port))
-        print(f"Connected to {server_host}:{server_port}")
+        s.connect((host, port))
+        print(f"Connected to {host}:{port}")
         
-        # Receive data size, rows, and cols
-        size_bytes = s.recv(4)
-        data_size = int.from_bytes(size_bytes, 'big')
+        # Start recording
+        s.sendall(json.dumps({"command": "start", "duration": duration}).encode())
+        print(s.recv(1024).decode())
+        print(f"Recording for {duration}s...")
         
-        rows_bytes = s.recv(4)
-        rows = int.from_bytes(rows_bytes, 'big')
+        input("Press Enter to save data...")
         
-        cols_bytes = s.recv(4)
-        cols = int.from_bytes(cols_bytes, 'big')
+        # Save and receive data
+        s.sendall(json.dumps({"command": "save"}).encode())
+        print(s.recv(1024).decode())
         
-        print(f"Receiving {rows}x{cols} matrix ({data_size} bytes)...")
+        # Get data
+        data_size = int.from_bytes(s.recv(4), 'big')
+        rows = int.from_bytes(s.recv(4), 'big')
+        cols = int.from_bytes(s.recv(4), 'big')
+        info_size = int.from_bytes(s.recv(4), 'big')
         
-        # Receive all matrix data
+        column_info = json.loads(s.recv(info_size).decode())
+        
         data = b''
         while len(data) < data_size:
-            chunk = s.recv(min(4096, data_size - len(data)))
-            data += chunk
+            data += s.recv(data_size - len(data))
         
-        # Convert back to numpy array
         matrix = np.frombuffer(data, dtype=np.float64).reshape(rows, cols)
         
-        print(f"Matrix shape: {matrix.shape}")
-        print(f"Matrix data:")
+        print(f"Matrix {rows}x{cols}:")
         print(matrix)
+        print(f"Columns: {column_info}")
         
-        # Save to file
-        filename = f"received_matrix_{rows}x{cols}.npy"
-        np.save(filename, matrix)
-        print(f"Saved matrix to: {filename}")
-        print(f"Total elements: {matrix.size}, Shape: {rows}x{cols}")
+        np.save(f"matrix_{rows}x{cols}.npy", matrix)
+        print("Saved!")
 
 if __name__ == "__main__":
     main()
