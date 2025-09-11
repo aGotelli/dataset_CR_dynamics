@@ -138,13 +138,12 @@ class ViconV2:
         print(f"\nCollected {self.sample_count} samples")
         
         # Return data matrix and column info
-        data_matrix = self.data_buffer[:self.sample_count]
-        column_info = self.column_names.copy()
-        
-        print(f"Matrix shape: {data_matrix.shape}")
-        print(f"Columns: {len(column_info)}")
-        
-        return data_matrix, column_info
+        self.data_matrix = self.data_buffer[:self.sample_count]
+        self.column_info = self.column_names.copy()
+
+        print(f"Matrix shape: {self.data_matrix.shape}")
+        print(f"Columns: {len(self.column_info)}")
+
 
 def main():
     # Initialize without duration
@@ -153,12 +152,12 @@ def main():
     # Later, prepare for acquisition with specific duration
     vicon.prepare(duration=5.0)  # Test connectivity and allocate memory
 
-    data_matrix, column_info = vicon.acquire()
-    
-    print(f"\nData matrix shape: {data_matrix.shape}")
-    print(f"Column info: {column_info}")
+    vicon.acquire()
+
+    print(f"\nData matrix shape: {vicon.data_matrix.shape}")
+    print(f"Column info: {vicon.column_info}")
     print(f"First few samples:")
-    print(data_matrix[:3, :5])  # Show first 3 rows, 5 columns
+    print(vicon.data_matrix[:3, :5])  # Show first 3 rows, 5 columns
 
 if __name__ == "__main__":
     main()
