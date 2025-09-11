@@ -142,6 +142,7 @@ class ViconTCPClient:
                 "duration": duration,
                 "vicon_host": vicon_host,
                 "server_address": client_socket.getpeername()[0],
+                "data_port": command_data.get("data_port", 12345),  # Port to send data back to
                 "time_offset": time_offset,  # Difference between server and local time
                 "server_time": server_time,
                 "local_time": local_time
@@ -189,8 +190,9 @@ class ViconTCPClient:
             
             # Send data back to server
             server_address = self.experiment_config.get("server_address")
+            data_port = self.experiment_config.get("data_port", 12345)
             if server_address and self.data_file_path:
-                success = self.send_data_back(server_address)
+                success = self.send_data_back(server_address, data_port)
                 if success:
                     response = {"status": "completed", "message": "Data sent back to server"}
                 else:

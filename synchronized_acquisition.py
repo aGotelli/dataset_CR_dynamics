@@ -117,41 +117,48 @@ class SynchronizedDataAcquisition:
                     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     server_socket.bind(("0.0.0.0", self.vicon_data_port))
                     server_socket.listen(1)
-                    server_socket.settimeout(30)  # Wait a bit longer than acquisition duration
+                    # Shorter timeout that's just a bit longer than acquisition duration
+                    timeout = duration + 5  # 5 seconds grace period
+                    server_socket.settimeout(timeout)
                     
                     print(f"📡 Waiting for Vicon data on port {self.vicon_data_port}...")
-                    print(f"🕐 Timeout set to 30 seconds") # ho provato anche con meno secondi: se metti un numero minore allora si ferma il codice
+                    print(f"🕐 Timeout set to {timeout} seconds")
                     print(f"🌐 Listening on all interfaces (0.0.0.0:{self.vicon_data_port})")
                     
-                    client_socket, address = server_socket.accept()
-                    print(f"📥 Receiving Vicon data from {address}")
+                    try:
+                        client_socket, address = server_socket.accept()
+                        print(f"📥 Receiving Vicon data from {address}")
+                        
+                        with client_socket:
+                            # Receive file info first
+                            info_length = int.from_bytes(client_socket.recv(4), 'big')
+                            info_data = client_socket.recv(info_length)
+                            file_info = json.loads(info_data.decode('utf-8'))
+                            
+                            print(f"📄 Receiving: {file_info['filename']} ({file_info['size']} bytes)")
+                            
+                            # Receive file data
+                            received_data = b""
+                            remaining = file_info['size']
+                            
+                            while remaining > 0:
+                                chunk = client_socket.recv(min(remaining, 8192))
+                                if not chunk:
+                                    break
+                                received_data += chunk
+                                remaining -= len(chunk)
+                            
+                            # Save file
+                            vicon_file_path = os.path.join(self.experiment_dir, file_info['filename'])
+                            with open(vicon_file_path, 'wb') as f:
+                                f.write(received_data)
+                            
+                            print(f"✅ Vicon data saved: {vicon_file_path}")
                     
-                    with client_socket:
-                        # Receive file info first
-                        info_length = int.from_bytes(client_socket.recv(4), 'big')
-                        info_data = client_socket.recv(info_length)
-                        file_info = json.loads(info_data.decode('utf-8'))
-                        
-                        print(f"📄 Receiving: {file_info['filename']} ({file_info['size']} bytes)")
-                        
-                        # Receive file data
-                        received_data = b""
-                        remaining = file_info['size']
-                        
-                        while remaining > 0:
-                            chunk = client_socket.recv(min(remaining, 8192))
-                            if not chunk:
-                                break
-                            received_data += chunk
-                            remaining -= len(chunk)
-                        
-                        # Save file
-                        vicon_file_path = os.path.join(self.experiment_dir, file_info['filename'])
-                        with open(vicon_file_path, 'wb') as f:
-                            f.write(received_data)
-                        
-                        print(f"✅ Vicon data saved: {vicon_file_path}")
-                        
+                    except socket.timeout:
+                        print(f"⚠️ Timeout waiting for Vicon data after {timeout} seconds")
+                        print("   This is normal if Vicon system is not sending data back")
+                            
             except socket.timeout:
                 print("⚠️ Timeout waiting for Vicon data")
             except Exception as e:
@@ -160,7 +167,7 @@ class SynchronizedDataAcquisition:
         # Start data receiver in background
         print(f"🔧 Starting data receiver on port {self.vicon_data_port}...")
         receiver_thread = threading.Thread(target=data_receiver)
-        receiver_thread.daemon = True
+        receiver_thread.daemon = True  # This is important - daemon threads don't block program exit
         receiver_thread.start()
         
         # Give the server a moment to start
@@ -169,18 +176,27 @@ class SynchronizedDataAcquisition:
         
         return receiver_thread
 
-    def send_vicon_command(self, command_data):
+    def send_vicon_command(self, command_data, timeout=10.0):
         """Send command to Vicon system via TCP"""
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(5.0)
+                sock.settimeout(timeout)
+                print(f"🔗 Connecting to Vicon at {self.vicon_tcp_address}:{self.vicon_tcp_port} (timeout: {timeout}s)")
                 sock.connect((self.vicon_tcp_address, self.vicon_tcp_port))
                 
                 message = json.dumps(command_data).encode('utf-8')
+                print(f"📤 Sending command: {command_data}")
                 sock.sendall(message)
                 
                 response = sock.recv(1024).decode('utf-8')
+                print(f"📥 Received response: {response}")
                 return json.loads(response)
+        except socket.timeout:
+            print(f"❌ Vicon TCP communication timed out after {timeout}s")
+            return None
+        except ConnectionRefusedError:
+            print(f"❌ Vicon connection refused - client not running?")
+            return None
         except Exception as e:
             print(f"❌ Vicon TCP communication failed: {e}")
             return None
@@ -213,7 +229,7 @@ class SynchronizedDataAcquisition:
         
         print(f"README created: {readme_path}")
     
-    def run_synchronized_acquisition(self, experiment_name, duration, trajectory_func1, trajectory_func2, additional_info=""):
+    def run_synchronized_acquisition(self, experiment_name, duration, trajectory_func1, trajectory_func2, additional_info="", wait_for_vicon_data=False):
         """Run synchronized data acquisition"""
         
         # Setup experiment folder
@@ -223,16 +239,26 @@ class SynchronizedDataAcquisition:
         self.create_readme(experiment_name, duration, trajectory_func1, trajectory_func2, additional_info)
         
         # Send setup command to Vicon if available
+        vicon_data_thread = None
         if self.vicon_sensor:
-            # Start data receiver first
-            data_receiver_thread = self.receive_vicon_data(duration)
+            # Start data receiver first - but make it optional
+            if wait_for_vicon_data:
+                try:
+                    vicon_data_thread = self.receive_vicon_data(duration)
+                    print("🔧 Vicon data receiver started - will wait for data")
+                except Exception as e:
+                    print(f"⚠️ Vicon data receiver failed to start: {e}")
+                    print("Continuing without Vicon data reception...")
+            else:
+                print("🔧 Vicon data reception disabled (wait_for_vicon_data=False)")
             
             vicon_command = {
                 "command": "setup",
                 "experiment_name": experiment_name,
                 "duration": duration,
                 "vicon_host": "localhost:801",
-                "server_time": time.time()  # Send current time for synchronization
+                "server_time": time.time(),  # Send current time for synchronization
+                "data_port": self.vicon_data_port  # Tell client which port to send data back to
             }
             response = self.send_vicon_command(vicon_command)
             if response and response.get("status") == "ready":
@@ -275,14 +301,15 @@ class SynchronizedDataAcquisition:
             self.threads.append(mark10_thread)
         
         # Start Vicon sensor with precise timing
+        # Send start command with precise timestamp (use long timeout for acquisition)
         if self.vicon_sensor:
-            # Send start command with precise timestamp
             precise_start_time = time.time()
             start_command = {
                 "command": "start",
                 "precise_start_time": precise_start_time
             }
-            response = self.send_vicon_command(start_command)
+            timeout = duration + 10  # Long timeout for acquisition
+            response = self.send_vicon_command(start_command, timeout=timeout)
             print(f"📡 Vicon start response: {response}")
             
             # Don't start local Vicon thread since remote is handling it
@@ -309,6 +336,13 @@ class SynchronizedDataAcquisition:
         if self.vicon_sensor:
             stop_command = {"command": "stop"}
             self.send_vicon_command(stop_command)
+        
+        # Optionally wait for Vicon data (with timeout)
+        if vicon_data_thread and wait_for_vicon_data:
+            print("⏳ Waiting for Vicon data reception...")
+            vicon_data_thread.join(timeout=15)  # Wait max 15 seconds for Vicon data
+            if vicon_data_thread.is_alive():
+                print("⚠️ Vicon data reception taking too long, continuing...")
         
         print(f"📁 All data saved to: {self.experiment_dir}")
     
@@ -428,7 +462,8 @@ def main():
             duration=DURATION,
             trajectory_func1=slow_sine,  # sine_trajectory_motor1,
             trajectory_func2=fast_cosine,  # cosine_trajectory_motor2,
-            additional_info="Test experiment with sine/cosine trajectories"
+            additional_info="Test experiment with sine/cosine trajectories",
+            wait_for_vicon_data=False  # Set to True if you want to wait for Vicon data
         )
         
         print("🎉 Experiment completed successfully!")
