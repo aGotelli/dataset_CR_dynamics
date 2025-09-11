@@ -1,13 +1,21 @@
 import socket
 import json
 import numpy as np
+import signal
+import sys
+
+def signal_handler(sig, frame):
+    print("\nStopping...")
+    sys.exit(0)
 
 def main():
+    signal.signal(signal.SIGINT, signal_handler)
+    
     host = "192.168.10.5"
     port = 8080
     duration = 5  # seconds
 
-    
+
     with socket.socket() as s:
         s.connect((host, port))
         print(f"Connected to {host}:{port}")
