@@ -23,41 +23,46 @@ class MatrixServer:
         with socket.socket() as s:
             s.bind(("0.0.0.0", self.port))
             s.listen()
+            s.settimeout(1.0)  # 1 second timeout
             print(f"Server on port {self.port}")
 
             while True:
-                conn, addr = s.accept()
-                print(f"Connected: {addr}")
-                
-                with conn:
-                    while True:
-                        data = conn.recv(1024)
-                        if not data:
-                            break
+                try:
+                    conn, addr = s.accept()
+                    print(f"Connected: {addr}")
+                    
+                    with conn:
+                        while True:
+                            data = conn.recv(1024)
+                            if not data:
+                                break
+                                
+                            cmd = json.loads(data.decode())
+                            command = cmd.get("command")
                             
-                        cmd = json.loads(data.decode())
-                        command = cmd.get("command")
-                        
-                        if command == "start":
-                            self.duration = cmd.get("duration", 5)
-                            conn.sendall(b'{"status": "started"}')
-                            self.external_operation()
-                            
-                        elif command == "save":
-                            conn.sendall(b'{"status": "sending"}')
-                            
-                            data_bytes = self.data.tobytes()
-                            column_bytes = json.dumps(self.column_info).encode()
-                            
-                            conn.sendall(len(data_bytes).to_bytes(4, 'big'))
-                            conn.sendall((10).to_bytes(4, 'big'))  # rows
-                            conn.sendall((5).to_bytes(4, 'big'))   # cols
-                            conn.sendall(len(column_bytes).to_bytes(4, 'big'))
-                            conn.sendall(column_bytes)
-                            conn.sendall(data_bytes)
-                            print("Data sent")
+                            if command == "start":
+                                self.duration = cmd.get("duration", 5)
+                                conn.sendall(b'{"status": "started"}')
+                                self.external_operation()
+                                
+                            elif command == "save":
+                                conn.sendall(b'{"status": "sending"}')
+                                
+                                data_bytes = self.data.tobytes()
+                                column_bytes = json.dumps(self.column_info).encode()
+                                
+                                conn.sendall(len(data_bytes).to_bytes(4, 'big'))
+                                conn.sendall((10).to_bytes(4, 'big'))  # rows
+                                conn.sendall((5).to_bytes(4, 'big'))   # cols
+                                conn.sendall(len(column_bytes).to_bytes(4, 'big'))
+                                conn.sendall(column_bytes)
+                                conn.sendall(data_bytes)
+                                print("Data sent")
+                except socket.timeout:
+                    continue  # Check for Ctrl+C and continue listening
 
 def signal_handler(sig, frame):
+    print("\nStopping server...")
     sys.exit(0)
 
 def main():
@@ -66,4 +71,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
