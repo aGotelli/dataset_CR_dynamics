@@ -9,10 +9,17 @@ def main():
         s.connect((server_host, server_port))
         print(f"Connected to {server_host}:{server_port}")
         
-        # Receive data size first
+        # Receive data size, rows, and cols
         size_bytes = s.recv(4)
         data_size = int.from_bytes(size_bytes, 'big')
-        print(f"Receiving {data_size} bytes...")
+        
+        rows_bytes = s.recv(4)
+        rows = int.from_bytes(rows_bytes, 'big')
+        
+        cols_bytes = s.recv(4)
+        cols = int.from_bytes(cols_bytes, 'big')
+        
+        print(f"Receiving {rows}x{cols} matrix ({data_size} bytes)...")
         
         # Receive all matrix data
         data = b''
@@ -20,20 +27,12 @@ def main():
             chunk = s.recv(min(4096, data_size - len(data)))
             data += chunk
         
-        # Convert back to numpy array (assuming float64)
-        matrix = np.frombuffer(data, dtype=np.float64)
-        
-        # Reshape to 2D (you may need to adjust based on your matrix dimensions)
-        # For now, let's assume it's a square matrix or ask user
-        total_elements = len(matrix)
-        rows = int(input(f"Matrix rows ({int(np.sqrt(total_elements))}): ") or int(np.sqrt(total_elements)))
-        cols = total_elements // rows
-        
-        matrix = matrix.reshape(rows, cols)
+        # Convert back to numpy array
+        matrix = np.frombuffer(data, dtype=np.float64).reshape(rows, cols)
         
         print(f"Matrix shape: {matrix.shape}")
-        print(f"Matrix data (first 5x5):")
-        print(matrix[:5, :5])
+        print(f"Matrix data:")
+        print(matrix)
         
         # Save to file
         filename = f"received_matrix_{rows}x{cols}.npy"
