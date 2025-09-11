@@ -5,40 +5,29 @@ import csv
 import signal
 import sys
 
-class MatrixClient:
-    def __init__(self, port=8080):
+class MatrixServer:
+    def __init__(self, port=8080, rows=1000, cols=50):
         self.port = port
         self.ready = False
+
+        self.rows = rows
+        self.cols = cols
+
+        print(f"Generating {self.rows}x{self.cols} matrix...")
+        self.data = np.random.randn(self.rows, self.cols)
         
     def handle_command(self, cmd, sock):
         if cmd["command"] == "setup":
-            self.rows = cmd.get("matrix_rows", 1000)
-            self.cols = cmd.get("matrix_cols", 50)
             self.ready = True
             return {"status": "ready"}
             
         elif cmd["command"] == "start" and self.ready:
-            # Generate big matrix instantly
-            print(f"Generating {self.rows}x{self.cols} matrix...")
-            data = np.random.randn(self.rows, self.cols)
-            filename = f"matrix_{self.rows}x{self.cols}.csv"
-            
-            with open(filename, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerows(data)
-            
-            # Send file back
-            with open(filename, 'rb') as f:
-                file_data = f.read()
-            
-            # Send to server
-            server_addr = sock.getpeername()[0]
-            data_port = cmd.get("data_port", 12345)
-            print(f"Sending {len(file_data)} bytes to {server_addr}:{data_port}")
-            with socket.socket() as s:
-                s.connect((server_addr, data_port))
-                s.sendall(json.dumps({"filename": filename, "size": len(file_data)}).encode())
-                s.sendall(file_data)
+            # Send numpy data directly back through the same connection
+            data_bytes = self.data.tobytes()
+            print(f"Sending {len(data_bytes)} bytes matrix data")
+
+            sock.sendall(len(data_bytes).to_bytes(4, 'big'))  # Send size first
+            sock.sendall(data_bytes)  # Send raw numpy data
             print("Data sent!")
             
             return {"status": "completed"}
@@ -50,18 +39,19 @@ class MatrixClient:
             s.bind(("0.0.0.0", self.port))
             s.listen()
             s.settimeout(1.0)  # 1 second timeout
-            print(f"Matrix client on port {self.port}")
-            
+            print(f"Matrix server on port {self.port}")
+
             while True:
                 try:
                     conn, addr = s.accept()
                     print(f"Connection from {addr}")
                     with conn:
-                        data = conn.recv(1024)
-                        cmd = json.loads(data.decode())
-                        print(f"Command: {cmd['command']}")
-                        resp = self.handle_command(cmd, conn)
-                        conn.sendall(json.dumps(resp).encode())
+                        # Send matrix data immediately
+                        data_bytes = self.data.tobytes()
+                        print(f"Sending {len(data_bytes)} bytes matrix data")
+                        conn.sendall(len(data_bytes).to_bytes(4, 'big'))  # Send size first
+                        conn.sendall(data_bytes)  # Send raw numpy data
+                        print("Data sent!")
                 except socket.timeout:
                     continue  # Keep listening
 
@@ -71,7 +61,7 @@ def signal_handler(sig, frame):
 
 def main():
     signal.signal(signal.SIGINT, signal_handler)
-    MatrixClient().start()
+    MatrixServer().start()
 
 if __name__ == "__main__":
     main()

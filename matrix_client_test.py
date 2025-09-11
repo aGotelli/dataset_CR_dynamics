@@ -1,60 +1,45 @@
 import socket
-import json
-import threading
-
-def data_receiver(port=12345):
-    """Listen for incoming data files"""
-    with socket.socket() as s:
-        s.bind(("0.0.0.0", port))
-        s.listen()
-        print(f"Data receiver on port {port}")
-        
-        conn, addr = s.accept()
-        with conn:
-            # Get file info
-            info_len = int.from_bytes(conn.recv(4), 'big')
-            info = json.loads(conn.recv(info_len).decode())
-            print(f"Receiving: {info['filename']} ({info['size']} bytes)")
-            
-            # Get file data
-            data = conn.recv(info['size'])
-            with open(info['filename'], 'wb') as f:
-                f.write(data)
-            print(f"Saved: {info['filename']}")
+import numpy as np
 
 def main():
     server_host = input("Server IP (localhost): ") or "localhost"
     server_port = int(input("Server port (8080): ") or "8080")
     
-    # Start data receiver in background
-    threading.Thread(target=data_receiver, daemon=True).start()
-    
     with socket.socket() as s:
         s.connect((server_host, server_port))
+        print(f"Connected to {server_host}:{server_port}")
         
-        # Setup
-        setup_cmd = {
-            "command": "setup",
-            "matrix_rows": int(input("Matrix rows (1000): ") or "1000"),
-            "matrix_cols": int(input("Matrix cols (50): ") or "50"),
-            "data_port": 12345
-        }
-        s.sendall(json.dumps(setup_cmd).encode())
-        resp = json.loads(s.recv(1024).decode())
-        print(f"Setup: {resp['status']}")
-    
-    input("Press Enter to start...")
-    
-    with socket.socket() as s:
-        s.connect((server_host, server_port))
+        # Receive data size first
+        size_bytes = s.recv(4)
+        data_size = int.from_bytes(size_bytes, 'big')
+        print(f"Receiving {data_size} bytes...")
         
-        # Start
-        start_cmd = {"command": "start"}
-        s.sendall(json.dumps(start_cmd).encode())
-        resp = json.loads(s.recv(1024).decode())
-        print(f"Start: {resp['status']}")
-    
-    input("Press Enter to exit...")
+        # Receive all matrix data
+        data = b''
+        while len(data) < data_size:
+            chunk = s.recv(min(4096, data_size - len(data)))
+            data += chunk
+        
+        # Convert back to numpy array (assuming float64)
+        matrix = np.frombuffer(data, dtype=np.float64)
+        
+        # Reshape to 2D (you may need to adjust based on your matrix dimensions)
+        # For now, let's assume it's a square matrix or ask user
+        total_elements = len(matrix)
+        rows = int(input(f"Matrix rows ({int(np.sqrt(total_elements))}): ") or int(np.sqrt(total_elements)))
+        cols = total_elements // rows
+        
+        matrix = matrix.reshape(rows, cols)
+        
+        print(f"Matrix shape: {matrix.shape}")
+        print(f"Matrix data (first 5x5):")
+        print(matrix[:5, :5])
+        
+        # Save to file
+        filename = f"received_matrix_{rows}x{cols}.npy"
+        np.save(filename, matrix)
+        print(f"Saved matrix to: {filename}")
+        print(f"Total elements: {matrix.size}, Shape: {rows}x{cols}")
 
 if __name__ == "__main__":
     main()
