@@ -123,7 +123,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     
     # Configuration
-    host = "192.168.10.5"  # Vicon server IP
+    host = "192.168.10.2"  # Vicon server IP
     port = 8080
     duration = 10  # Recording duration in seconds
     extra_wait = 2  # Extra time to wait after recording completes

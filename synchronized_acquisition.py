@@ -8,13 +8,124 @@ import time
 import threading
 import socket
 import json
+import csv
+import numpy as np
 from datetime import datetime
 import math
 # Import all sensor classes
 from simple_ati_ft import ThreadableATI_FT
 from simple_mark10_clean import SimpleMark10
-from simple_vicon import ThreadableVicon
 from simple_motor_position import DualMotorController
+
+class SimpleViconClient:
+    def __init__(self, host="192.168.10.2", port=8080):
+        """Connect to the Vicon TCP server in constructor"""
+        self.host = host
+        self.port = port
+        self.socket = None
+        self.duration = 0
+        self.connect()
+    
+    def connect(self):
+        """Connect to the TCP server"""
+        try:
+            self.socket = socket.socket()
+            print(f"Connecting to {self.host}:{self.port}...")
+            self.socket.connect((self.host, self.port))
+            print(f"Connected to {self.host}:{self.port}")
+        except ConnectionRefusedError:
+            print(f"Could not connect to {self.host}:{self.port}. Make sure the Vicon TCP server is running.")
+            raise
+        except Exception as e:
+            print(f"Connection error: {e}")
+            raise
+    
+    def send_setup(self, duration=10):
+        """Send setup message with specified duration"""
+        try:
+            self.duration = duration
+            print(f"Setting up recording for {duration} seconds...")
+            setup_cmd = {"command": "setup", "duration": duration}
+            self.socket.sendall(json.dumps(setup_cmd).encode())
+            response = self.socket.recv(1024).decode()
+            print(f"Server response: {response}")
+            return True
+        except Exception as e:
+            print(f"Setup error: {e}")
+            return False
+    
+    def start_recording(self):
+        """Start recording"""
+        try:
+            start_cmd = {"command": "start"}
+            self.socket.sendall(json.dumps(start_cmd).encode())
+            response = self.socket.recv(1024).decode()
+            print(f"Server response: {response}")
+            print(f"Recording started! Duration: {self.duration} seconds")
+            return True
+        except Exception as e:
+            print(f"Start recording error: {e}")
+            return False
+    
+    def get_data(self):
+        """Get data from server and save to files"""
+        try:
+            print("Requesting data...")
+            get_data_cmd = {"command": "get_data"}
+            self.socket.sendall(json.dumps(get_data_cmd).encode())
+            
+            # Receive status message
+            status_response = self.socket.recv(1024).decode()
+            print(f"Server status: {status_response}")
+            
+            # Receive data size and shape information
+            data_size = int.from_bytes(self.socket.recv(4), 'big')
+            rows = int.from_bytes(self.socket.recv(4), 'big')
+            cols = int.from_bytes(self.socket.recv(4), 'big')
+            header_size = int.from_bytes(self.socket.recv(4), 'big')
+            
+            print(f"Receiving matrix of size {rows}x{cols} ({data_size} bytes)")
+            
+            # Receive column headers
+            column_headers = json.loads(self.socket.recv(header_size).decode())
+            
+            # Receive data
+            data = b''
+            while len(data) < data_size:
+                chunk = self.socket.recv(min(data_size - len(data), 4096))
+                data += chunk
+            
+            # Convert to numpy matrix
+            matrix = np.frombuffer(data, dtype=np.float64).reshape(rows, cols)
+            
+            print(f"Successfully received Vicon data:")
+            print(f"Matrix shape: {matrix.shape}")
+            print(f"Columns: {column_headers}")
+            print(f"First 5 rows:")
+            print(matrix[:5] if len(matrix) > 5 else matrix)
+            
+            # Save data
+            filename = f"vicon_data_{rows}x{cols}.npy"
+            np.save(filename, matrix)
+            print(f"Data saved to {filename}")
+            
+            # Also save column headers
+            headers_filename = f"vicon_headers_{rows}x{cols}.json"
+            with open(headers_filename, 'w') as f:
+                json.dump(column_headers, f, indent=2)
+            print(f"Headers saved to {headers_filename}")
+            
+            return matrix, column_headers
+            
+        except Exception as e:
+            print(f"Get data error: {e}")
+            return None, None
+    
+    def close(self):
+        """Close the connection"""
+        if self.socket:
+            self.socket.close()
+            print("Connection closed")
 
 class SynchronizedDataAcquisition:
     """Main coordinator for all sensors and actuators"""
@@ -26,17 +137,16 @@ class SynchronizedDataAcquisition:
         # Sensor instances
         self.ati_sensor = None
         self.mark10_sensors = []
-        self.vicon_sensor = None
+        self.vicon_client = None
         self.motor_controller = None
         
         # Threading
         self.threads = []
         self.acquisition_started = False
         
-        # Vicon TCP settings
-        self.vicon_tcp_address = "192.168.10.2"
-        self.vicon_tcp_port = 8080
-        self.vicon_data_port = 12345  # Port to receive data back from Vicon
+        # Vicon settings
+        self.vicon_host = "192.168.10.2"
+        self.vicon_port = 8080
         
         print("Synchronized Data Acquisition System initialized")
     
@@ -76,29 +186,6 @@ class SynchronizedDataAcquisition:
             print(f"❌ Mark-10 setup failed: {e}")
             return False
     
-    def setup_vicon_sensor(self, host="localhost:801", duration=10, remote_only=True):
-        """Setup Vicon motion capture"""
-        if remote_only:
-            # Test TCP connection to Vicon client
-            print("🔗 Testing Vicon TCP connection...")
-            test_command = {"command": "status"}
-            response = self.send_vicon_command(test_command)
-            if response:
-                print("✅ Vicon TCP connection OK")
-                self.vicon_sensor = True
-                return True
-            else:
-                print("❌ Vicon TCP connection failed")
-                return False
-        else:
-            self.vicon_sensor = ThreadableVicon(
-                host=host,
-                duration=duration,
-                name="Vicon"
-            )
-            print("✅ Vicon sensor ready")
-            return True
-    
     def setup_motor_controller(self, motor1_id=3, motor2_id=4):
         """Setup dual motor controller"""
         self.motor_controller = DualMotorController(
@@ -109,99 +196,95 @@ class SynchronizedDataAcquisition:
         print("✅ Motor controller ready")
         return True
     
-    def receive_vicon_data(self, duration=10):
-        """Start server to receive Vicon data back from client"""
-        def data_receiver():
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-                    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    server_socket.bind(("0.0.0.0", self.vicon_data_port))
-                    server_socket.listen(1)
-                    # Shorter timeout that's just a bit longer than acquisition duration
-                    timeout = duration + 5  # 5 seconds grace period
-                    server_socket.settimeout(timeout)
-                    
-                    print(f"📡 Waiting for Vicon data on port {self.vicon_data_port}...")
-                    print(f"🕐 Timeout set to {timeout} seconds")
-                    print(f"🌐 Listening on all interfaces (0.0.0.0:{self.vicon_data_port})")
-                    
-                    try:
-                        client_socket, address = server_socket.accept()
-                        print(f"📥 Receiving Vicon data from {address}")
-                        
-                        with client_socket:
-                            # Receive file info first
-                            info_length = int.from_bytes(client_socket.recv(4), 'big')
-                            info_data = client_socket.recv(info_length)
-                            file_info = json.loads(info_data.decode('utf-8'))
-                            
-                            print(f"📄 Receiving: {file_info['filename']} ({file_info['size']} bytes)")
-                            
-                            # Receive file data
-                            received_data = b""
-                            remaining = file_info['size']
-                            
-                            while remaining > 0:
-                                chunk = client_socket.recv(min(remaining, 8192))
-                                if not chunk:
-                                    break
-                                received_data += chunk
-                                remaining -= len(chunk)
-                            
-                            # Save file
-                            vicon_file_path = os.path.join(self.experiment_dir, file_info['filename'])
-                            with open(vicon_file_path, 'wb') as f:
-                                f.write(received_data)
-                            
-                            print(f"✅ Vicon data saved: {vicon_file_path}")
-                    
-                    except socket.timeout:
-                        print(f"⚠️ Timeout waiting for Vicon data after {timeout} seconds")
-                        print("   This is normal if Vicon system is not sending data back")
-                            
-            except socket.timeout:
-                print("⚠️ Timeout waiting for Vicon data")
-            except Exception as e:
-                print(f"❌ Error receiving Vicon data: {e}")
-        
-        # Start data receiver in background
-        print(f"🔧 Starting data receiver on port {self.vicon_data_port}...")
-        receiver_thread = threading.Thread(target=data_receiver)
-        receiver_thread.daemon = True  # This is important - daemon threads don't block program exit
-        receiver_thread.start()
-        
-        # Give the server a moment to start
-        time.sleep(0.5)
-        print(f"✅ Data receiver ready on port {self.vicon_data_port}")
-        
-        return receiver_thread
-
-    def send_vicon_command(self, command_data, timeout=10.0):
-        """Send command to Vicon system via TCP"""
+    def setup_vicon_sensor(self, duration, host=None, port=None):
+        """Setup Vicon motion capture client"""
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(timeout)
-                print(f"🔗 Connecting to Vicon at {self.vicon_tcp_address}:{self.vicon_tcp_port} (timeout: {timeout}s)")
-                sock.connect((self.vicon_tcp_address, self.vicon_tcp_port))
-                
-                message = json.dumps(command_data).encode('utf-8')
-                print(f"📤 Sending command: {command_data}")
-                sock.sendall(message)
-                
-                response = sock.recv(1024).decode('utf-8')
-                print(f"📥 Received response: {response}")
-                return json.loads(response)
-        except socket.timeout:
-            print(f"❌ Vicon TCP communication timed out after {timeout}s")
-            return None
-        except ConnectionRefusedError:
-            print(f"❌ Vicon connection refused - client not running?")
-            return None
+            # Use provided host/port or defaults
+            vicon_host = host.split(':')[0] if host and ':' in host else (host or self.vicon_host)
+            vicon_port = int(host.split(':')[1]) if host and ':' in host else (port or self.vicon_port)
+            
+            print(f"🔗 Setting up Vicon client connection to {vicon_host}:{vicon_port}...")
+            self.vicon_client = SimpleViconClient(vicon_host, vicon_port)
+            print("✅ Vicon client ready")
+            return True
         except Exception as e:
-            print(f"❌ Vicon TCP communication failed: {e}")
-            return None
+            print(f"❌ Vicon setup failed: {e}")
+            self.vicon_client = None
+            return False
+    def run_vicon_acquisition(self, duration):
+        """Run Vicon data acquisition in a separate thread"""
+        def vicon_thread():
+            try:
+                if self.vicon_client:
+                    print("📡 Starting Vicon recording...")
+                    self.vicon_client.send_setup(duration)
+                    self.vicon_client.start_recording()
+                    
+                    # Wait for recording to complete
+                    time.sleep(duration + 2)  # Extra time for completion
+                    
+                    # Get data and save it
+                    matrix, headers = self.vicon_client.get_data()
+                    if matrix is not None:
+                        # Save as CSV in the experiment directory
+                        csv_filename = os.path.join(self.experiment_dir, "vicon_data.csv")
+                        self.save_vicon_as_csv(matrix, headers, csv_filename)
+                        
+                        # Move the original .npy and .json files to experiment directory if they exist
+                        import glob
+                        for file_pattern in ["vicon_data_*.npy", "vicon_headers_*.json"]:
+                            for file_path in glob.glob(file_pattern):
+                                import shutil
+                                dest_path = os.path.join(self.experiment_dir, os.path.basename(file_path))
+                                shutil.move(file_path, dest_path)
+                                print(f"📁 Moved {file_path} to {dest_path}")
+                        print("✅ Vicon data acquisition completed")
+                    else:
+                        print("❌ Failed to get Vicon data")
+            except Exception as e:
+                print(f"❌ Vicon acquisition error: {e}")
+        
+        return threading.Thread(target=vicon_thread) 
     
-    def create_readme(self, experiment_name, duration, trajectory_func1, trajectory_func2, additional_info=""):
+    def save_vicon_as_csv(self, matrix, headers, csv_filename):
+        """Save Vicon data as CSV file with proper headers and optimized writing"""
+        try:
+            if matrix is None or matrix.size == 0:
+                print("❌ No Vicon data to save")
+                return False
+            
+            num_samples, num_cols = matrix.shape
+            
+            # Validate headers match data dimensions
+            if len(headers) != num_cols:
+                print(f"⚠️ Header count ({len(headers)}) doesn't match data columns ({num_cols})")
+                # Create generic headers if mismatch
+                headers = [f"col_{i}" for i in range(num_cols)]
+                headers[0] = "timestamp"  # First column should be timestamp
+            
+            # Write CSV with optimized approach
+            with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+                
+                # Write header row
+                writer.writerow(headers)
+                
+                # Write data rows efficiently (avoid .tolist() call per row)
+                writer.writerows(matrix)
+            
+            # Calculate and display statistics
+            print(f"💾 Vicon CSV saved: {csv_filename}")
+            print(f"📊 {num_samples:,} samples × {num_cols} columns")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error saving Vicon CSV: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def create_readme(self, experiment_name, duration, trajectory_func1, trajectory_func2):
         """Create README file with experiment details"""
         readme_path = os.path.join(self.experiment_dir, "README.md")
         
@@ -219,52 +302,23 @@ class SynchronizedDataAcquisition:
                 f.write("- ATI Force/Torque Sensor\n")
             if self.mark10_sensors:
                 f.write(f"- Mark-10 Force Gauges ({len(self.mark10_sensors)} sensors)\n")
-            if self.vicon_sensor:
+            if self.vicon_client:
                 f.write("- Vicon Motion Capture\n")
             if self.motor_controller:
                 f.write("- Dual Motor Controller\n")
-            
-            if additional_info:
-                f.write(f"\n## Additional Information\n\n{additional_info}\n")
+            # if additional_info:
+            #     f.write(f"\n## Additional Information\n\n{additional_info}\n")
         
         print(f"README created: {readme_path}")
-    
-    def run_synchronized_acquisition(self, experiment_name, duration, trajectory_func1, trajectory_func2, additional_info="", wait_for_vicon_data=False):
+
+    def run_synchronized_acquisition(self, experiment_name, duration, trajectory_func1, trajectory_func2, additional_info=""):
         """Run synchronized data acquisition"""
         
         # Setup experiment folder
         self.setup_experiment_folder(experiment_name)
         
         # Create README
-        self.create_readme(experiment_name, duration, trajectory_func1, trajectory_func2, additional_info)
-        
-        # Send setup command to Vicon if available
-        vicon_data_thread = None
-        if self.vicon_sensor:
-            # Start data receiver first - but make it optional
-            if wait_for_vicon_data:
-                try:
-                    vicon_data_thread = self.receive_vicon_data(duration)
-                    print("🔧 Vicon data receiver started - will wait for data")
-                except Exception as e:
-                    print(f"⚠️ Vicon data receiver failed to start: {e}")
-                    print("Continuing without Vicon data reception...")
-            else:
-                print("🔧 Vicon data reception disabled (wait_for_vicon_data=False)")
-            
-            vicon_command = {
-                "command": "setup",
-                "experiment_name": experiment_name,
-                "duration": duration,
-                "vicon_host": "localhost:801",
-                "server_time": time.time(),  # Send current time for synchronization
-                "data_port": self.vicon_data_port  # Tell client which port to send data back to
-            }
-            response = self.send_vicon_command(vicon_command)
-            if response and response.get("status") == "ready":
-                print("✅ Vicon system configured remotely")
-            else:
-                print("⚠️ Vicon remote setup failed, continuing with local only")
+        self.create_readme(experiment_name, duration, trajectory_func1, trajectory_func2)
         
         print(f"\n🎬 All systems ready. Press ENTER to start synchronized acquisition...")
         input()
@@ -282,6 +336,12 @@ class SynchronizedDataAcquisition:
         # Start all sensors simultaneously
         start_time = time.time()
         
+        # Start Vicon acquisition
+        if self.vicon_client:
+            vicon_thread = self.run_vicon_acquisition(duration)
+            vicon_thread.start()
+            self.threads.append(vicon_thread)
+
         # Start ATI sensor
         if self.ati_sensor:
             ati_thread = threading.Thread(
@@ -299,21 +359,7 @@ class SynchronizedDataAcquisition:
             )
             mark10_thread.start()
             self.threads.append(mark10_thread)
-        
-        # Start Vicon sensor with precise timing
-        # Send start command with precise timestamp (use long timeout for acquisition)
-        if self.vicon_sensor:
-            precise_start_time = time.time()
-            start_command = {
-                "command": "start",
-                "precise_start_time": precise_start_time
-            }
-            timeout = duration + 10  # Long timeout for acquisition
-            response = self.send_vicon_command(start_command, timeout=timeout)
-            print(f"📡 Vicon start response: {response}")
-            
-            # Don't start local Vicon thread since remote is handling it
-        
+
         # Start motor trajectory execution
         if self.motor_controller:
             motor_thread = threading.Thread(
@@ -328,22 +374,9 @@ class SynchronizedDataAcquisition:
         
         for thread in self.threads:
             thread.join()
-        
+
         elapsed_time = time.time() - start_time
         print(f"✅ All acquisitions completed in {elapsed_time:.1f} seconds")
-        
-        # Send stop command to Vicon
-        if self.vicon_sensor:
-            stop_command = {"command": "stop"}
-            self.send_vicon_command(stop_command)
-        
-        # Optionally wait for Vicon data (with timeout)
-        if vicon_data_thread and wait_for_vicon_data:
-            print("⏳ Waiting for Vicon data reception...")
-            vicon_data_thread.join(timeout=15)  # Wait max 15 seconds for Vicon data
-            if vicon_data_thread.is_alive():
-                print("⚠️ Vicon data reception taking too long, continuing...")
-        
         print(f"📁 All data saved to: {self.experiment_dir}")
     
     def cleanup(self):
@@ -357,7 +390,8 @@ class SynchronizedDataAcquisition:
         for sensor in self.mark10_sensors:
             sensor.stop()
         
-        # Vicon sensor is just a boolean for remote mode, no cleanup needed
+        if self.vicon_client:
+            self.vicon_client.close()
 
 def main():
     """Main function"""
@@ -367,7 +401,7 @@ def main():
     
     # Configuration
     EXPERIMENT_NAME = "test_experiment"
-    DURATION = 10  # seconds
+    DURATION = 10  # seconds (increased for more motor turns)
     OUTPUT_DIR = "data"
     
     # ATI config
@@ -379,8 +413,8 @@ def main():
     MARK10_RATE = 350
     
     # Vicon config
-    VICON_HOST = "localhost:801"
-    VICON_TCP_ADDRESS = "192.168.10.2"
+    VICON_HOST = "192.168.10.2"
+    VICON_PORT = 8080
     
     # Motor config
     MOTOR1_ID = 3
@@ -393,14 +427,14 @@ def main():
         amplitude = 0.45
         return amplitude * math.sin(2 * math.pi * frequency * t)
     def fast_cosine(t):
-        """Fast cosine wave for motor 2 - Group 1"""
-        frequency = 2.0 
-        amplitude = 0.3  
+        """Fast cosine wave for motor 2 -  amplitude * math.cos(2 * math.pi * frequency * t) -- frequency = 0.8; amplitude = 0.75"""
+        frequency = 0.5
+        amplitude = 0.75
         return amplitude * math.cos(2 * math.pi * frequency * t)
     def slow_sine(t):
-        """Slow sine wave for motor 1 - Group 2"""
-        frequency = 0.2  
-        amplitude = 0.4 
+        """Slow sine wave for motor 1 - amplitude * math.sin(2 * math.pi * frequency * t) -- frequency = 0.3; amplitude = 0.7"""
+        frequency = 0.3  # 0.3 Hz = 1 full cycle every 3.33 seconds
+        amplitude = 0.9  # 
         return amplitude * math.sin(2 * math.pi * frequency * t)
     def slow_cosine(t):
         """Slow cosine wave for motor 2 - Group 2"""
@@ -418,7 +452,8 @@ def main():
     
     # Create acquisition system
     acquisition = SynchronizedDataAcquisition(output_base_dir=OUTPUT_DIR)
-    acquisition.vicon_tcp_address = VICON_TCP_ADDRESS
+    acquisition.vicon_host = VICON_HOST
+    acquisition.vicon_port = VICON_PORT
     
     try:
         print("Setting up sensors and actuators...")
@@ -426,9 +461,8 @@ def main():
         # Setup all systems
         ati_ok = acquisition.setup_ati_sensor(ATI_CHANNELS, ATI_RATE, DURATION)
         mark10_ok = acquisition.setup_mark10_sensors(MARK10_PORTS, MARK10_RATE)
-        vicon_ok = acquisition.setup_vicon_sensor(VICON_HOST, DURATION, remote_only=True)  # Use remote only
-        motor_ok = acquisition.setup_motor_controller(MOTOR1_ID, MOTOR2_ID)  # Temporarily disabled
-        # motor_ok = False  # Disabled for testing
+        motor_ok = acquisition.setup_motor_controller(MOTOR1_ID, MOTOR2_ID)
+        vicon_ok = acquisition.setup_vicon_sensor(DURATION, VICON_HOST, VICON_PORT)
         
         if not any([ati_ok, mark10_ok, vicon_ok, motor_ok]):
             print("❌ No systems ready. Check connections.")
@@ -438,7 +472,7 @@ def main():
         working_systems = []
         if ati_ok: working_systems.append("ATI F/T")
         if mark10_ok: working_systems.append("Mark-10")
-        if vicon_ok: working_systems.append("Vicon (remote)")
+        if vicon_ok: working_systems.append("Vicon")
         if motor_ok: working_systems.append("Motors")
         
         print(f"✅ Working systems: {', '.join(working_systems)}")
@@ -463,7 +497,6 @@ def main():
             trajectory_func1=slow_sine,  # sine_trajectory_motor1,
             trajectory_func2=fast_cosine,  # cosine_trajectory_motor2,
             additional_info="Test experiment with sine/cosine trajectories",
-            wait_for_vicon_data=False  # Set to True if you want to wait for Vicon data
         )
         
         print("🎉 Experiment completed successfully!")

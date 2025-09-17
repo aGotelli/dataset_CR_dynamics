@@ -102,10 +102,26 @@ class DualMotorController:
             # Send commands to both motors
             self.motor1.set_motor_position_control(limit_spd=speed_limit, loc_ref=target_pos1)
             self.motor2.set_motor_position_control(limit_spd=speed_limit, loc_ref=target_pos2)
+
+            motor1_feedback = self.motor1.send_motor_control_command(
+                torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
+            )
+
+            motor2_feedback = self.motor2.send_motor_control_command(
+                torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
+            )
+
+            motor1_position = None
+            motor2_position = None
+            if motor1_feedback and len(motor1_feedback) > 1:
+                motor1_position = motor1_feedback[1]  # position is second element
+
+            if motor2_feedback and len(motor2_feedback) > 1:
+                motor2_position = motor2_feedback[1]  # position is second element
             
             # Read motor feedback (simple approach - just log the commands)
-            self.motor_data.append([t, target_pos1, target_pos2, None, None])
-            
+            self.motor_data.append([t, target_pos1, target_pos2, motor1_position, motor2_position])
+
             loop_count += 1
             
             # Sleep until next loop time

@@ -235,6 +235,24 @@ class PositionTensionController:
             self.home_position = 0.0
             self.current_position = 0.0
             print("Using 0.0 rad as home position")
+
+
+
+    def read_motor_angle(self):
+        """
+        Reads and returns the current motor angle (in radians).
+        Returns:
+            float: Current motor angle, or None if unable to read.
+        """
+        try:
+            motor_feedback = self.motor.send_motor_control_command(
+                torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
+            )
+            if motor_feedback and len(motor_feedback) > 1:
+                return motor_feedback[1]  # position is second element
+        except Exception as e:
+            print(f"Error reading motor angle: {e}")
+        return None
     
     def find_tension_position(self, max_position_change=2.0, step_size=0.05, wait_time=0.2):
         """
@@ -249,9 +267,7 @@ class PositionTensionController:
         print(f"Finding position for target tension: {self.min_tension:.3f} N")
         
         # Start from home position
-        current_pos = self.home_position
-        self.motor.set_motor_position_control(limit_spd=5, loc_ref=current_pos)
-        time.sleep(1.0)
+        current_pos = self.read_motor_angle()
         
         # Move counterclockwise (negative direction) in small steps
         step_count = 0

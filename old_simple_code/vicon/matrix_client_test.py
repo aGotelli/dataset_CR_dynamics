@@ -11,7 +11,7 @@ def signal_handler(sig, frame):
 def main():
     signal.signal(signal.SIGINT, signal_handler)
     
-    host = "192.168.10.5"
+    host = "192.168.10.2"
     port = 8080
     duration = 5  # seconds
 
