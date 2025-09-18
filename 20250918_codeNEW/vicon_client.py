@@ -11,7 +11,7 @@ import numpy as np
 from datetime import datetime
 
 
-class SimpleViconClient:
+class ViconClient:
     def __init__(self, host="192.168.10.2", port=8080):
         """Connect to the Vicon TCP server in constructor"""
         self.host = host

@@ -7,50 +7,80 @@ import time
 from datetime import datetime
 import threading
 # Import all sensor classes
-from simple_ati_ft import ThreadableATI_FT
+from sensor_ati_ft import ATI_FTSensor
 
-class SynchronizedDataAcquisition:
-    """Main coordinator for all sensors and actuators"""
-    def __init__(self, output_base_dir="data"):
-        # temporary initialized variables
-        self.output_base_dir = output_base_dir
-        self.experiment_dir = None
-        self.threads = []  # Initialize threads list
+class SensorContainer:
+    """Main coordinator for all sensors and actuators 
+        initialization of sensors
+        run acquisition"""
+    def __init__(self, experiment_dir, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, motor1_id, motor2_id):
         
-        # Sensors will be retrieved from their classes after setup
+        # Basic setup
+        self.experiment_dir = experiment_dir
+        self.threads = []
+        
+        # Store all parameters for future use
+        self.ati_channels = ati_channels
+        self.ati_rate = ati_rate
+        self.mark10_ports = mark10_ports
+        self.mark10_rate = mark10_rate
+        self.vicon_host = vicon_host
+        self.vicon_port = vicon_port
+        self.motor1_id = motor1_id
+        self.motor2_id = motor2_id
+        
+        # Initialize sensors
         self.ati_sensor = None
         self.mark10_sensors = []
-        self.vicon_sensor = None
+        self.vicon_client = None
         self.motor_controller = None
         
-        self.vicon_host = "192.168.10.2" # CONTROLLA
-        self.vicon_port = 8080 # CONTROLLA
-        print("Synchronized Data Acquisition System initialized")
+        # ATI sensor initialization
+        try:
+            self.ati_sensor = ATI_FTSensor(
+                device_channels=ati_channels,
+                sampling_rate=ati_rate,
+                name="ATI_Main"
+            )
+            print("✅ ATI F/T sensor ready")
+        except Exception as e:
+            self.ati_sensor = None
+            print(f"❌ ATI setup failed: {e}")
+        
+        # Mark-10 sensors initialization
+        
+        
+        # Motor controller initialization (PLACEHOLDER)
+        # TODO: Uncomment when ready
+        # try:
+        #     from simple_motor_position import DualMotorController
+        #     self.motor_controller = DualMotorController(motor1_id, motor2_id)
+        #     print("✅ Motor controller ready")
+        # except Exception as e:
+        #     print(f"❌ Motor setup failed: {e}")        
 
-    def setup_experiment_folder(self, experiment_name):
-        """Create experiment folder with timestamp"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        folder_name = f"{experiment_name}_{timestamp}"
-        self.experiment_dir = os.path.join(self.output_base_dir, folder_name)
-        os.makedirs(self.experiment_dir, exist_ok=True)
-        print(f"Experiment folder created: {self.experiment_dir}")
-        return self.experiment_dir
+        # Vicon client initialization
+        try:
+            from simple_vicon_client import SimpleViconClient
+            self.vicon_client = SimpleViconClient(vicon_host, vicon_port)
+            print("✅ Vicon client ready")
+        except Exception as e:
+            print(f"❌ Vicon setup failed: {e}")
+        
 
     def create_readME(self):
         #temporary
         pass
 
-    def run_acquisition(self, experiment_name, duration):
+    def run_acquisition(self, duration):
         """Run synchronized data acquisition"""
-         # Setup experiment folder
-        self.setup_experiment_folder(experiment_name)
-                
+        
         self.create_readME()
         
-        print(f"\n🎬 All systems ready. Press ENTER to start synchronized acquisition...")
+        print(f"\n🎬 ATI sensor ready. Press ENTER to start acquisition...")
         input()
         
-        print(f"🚀 Starting synchronized acquisition in 3 seconds...")
+        print(f"🚀 Starting acquisition in 3 seconds...")
         time.sleep(1)
         print("3...")
         time.sleep(1)
@@ -60,13 +90,13 @@ class SynchronizedDataAcquisition:
         time.sleep(1)
         print("GO!")
         
-        # Start all sensors simultaneously
+        # Start all active sensors
         start_time = time.time()
         
         # Start ATI sensor
         if self.ati_sensor:
             ati_thread = threading.Thread(
-                target=self.ati_sensor.threaded_acquire,
+                target=self.ati_sensor.acquire_data,
                 args=(duration, os.path.join(self.experiment_dir, "ati_data.csv"))
             )
             ati_thread.start()
@@ -84,49 +114,25 @@ class SynchronizedDataAcquisition:
         #temporary
         pass
 
-def sensorsInit(acquisition, ati_channels, ati_rate, mark10_ports, mark10_rate, 
-                vicon_host, vicon_port, motor1_id, motor2_id, duration):
-    """Initialize all sensors"""
-    
-    # Setup ATI sensor
-    try:
-        acquisition.ati_sensor = ThreadableATI_FT(
-            device_channels=ati_channels,
-            sampling_rate=ati_rate,
-        )
-        print("✅ ATI F/T sensor ready")
-    except Exception as e:
-        acquisition.ati_sensor = None
-        print(f"❌ ATI setup failed: {e}")
-    
-    # # # # Setup Mark-10 sensors
-    # # # try:
-    # # #     acquisition.setup_mark10_sensors(mark10_ports, mark10_rate)
-    # # # except Exception as e:
-    # # #     print(f"❌ Mark-10 setup failed: {e}")
-    
-    # # # # Setup Motor controller
-    # # # try:
-    # # #     acquisition.setup_motor_controller(motor1_id, motor2_id)
-    # # # except Exception as e:
-    # # #     print(f"❌ Motor setup failed: {e}")
-    
-    # # # # Setup Vicon sensor
-    # # # try:
-    # # #     acquisition.setup_vicon_sensor(duration, vicon_host, vicon_port)
-    # # # except Exception as e:
-    # # #     print(f"❌ Vicon setup failed: {e}")
-
+def setup_experiment_folder(experiment_name, output_base_dir):
+        """Create experiment folder with timestamp"""
+        experiment_dir=None
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        folder_name = f"{experiment_name}_{timestamp}"
+        experiment_dir = os.path.join(output_base_dir, folder_name)
+        os.makedirs(experiment_dir, exist_ok=True)
+        print(f"Experiment folder created: {experiment_dir}")
+        return experiment_dir
 
 def main():
     """Main"""
     print("="*60)
-    print("SYNCHRONIZED DATA ACQUISITION SYSTEM")
+    print("MULTI-SENSOR DATA ACQUISITION SYSTEM")
     print("="*60)
-    
+
     # Configuration
     EXPERIMENT_NAME = "test_experiment"
-    DURATION = 10  # seconds (increased for more motor turns)
+    DURATION = 10  # seconds 
     OUTPUT_DIR = "data"
     
     # ATI config
@@ -144,15 +150,12 @@ def main():
     # Motor config
     MOTOR1_ID = 3
     MOTOR2_ID = 4
+    
+    EXPERIMENT_DIR = setup_experiment_folder(EXPERIMENT_NAME, OUTPUT_DIR)
 
-    # Create acquisition system
-    acquisition = SynchronizedDataAcquisition(output_base_dir=OUTPUT_DIR)
-
-    print("Setting up sensors and actuators...")
-        
-    # Setup all systems using the centralized function
-    sensorsInit(
-        acquisition=acquisition,
+    # Initialize acquisition system with all parameters
+    sensor_container = SensorContainer(
+        experiment_dir=EXPERIMENT_DIR,
         ati_channels=ATI_CHANNELS,
         ati_rate=ATI_RATE,
         mark10_ports=MARK10_PORTS,
@@ -160,12 +163,11 @@ def main():
         vicon_host=VICON_HOST,
         vicon_port=VICON_PORT,
         motor1_id=MOTOR1_ID,
-        motor2_id=MOTOR2_ID,
-        duration=DURATION
+        motor2_id=MOTOR2_ID
     )
 
     # Call the real acquisition
-    acquisition.run_acquisition(EXPERIMENT_NAME, DURATION)
+    sensor_container.run_acquisition(DURATION)
 
         # # # # OPTION 1: Run synchronized acquisition with tension control
         # # # acquisition.run_tension_controlled_acquisition(
