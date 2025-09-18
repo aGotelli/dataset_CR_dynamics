@@ -37,11 +37,24 @@ class SimpleMark10:
         self.is_running = False
         self.serial_connection = None
         
-        print(f"Mark-10 initialized - {sampling_rate} Hz on {com_port}")
+        # Establish serial connection in constructor
+        try:
+            self.serial_connection = serial.Serial(
+                self.com_port, 
+                baudrate=115200, 
+                timeout=self.timeout
+            )
+
+            timing = measure_timing()
+            print(f"Mark-10 initialized with {timing['data_rate']:.1f} Hz (desired {sampling_rate} Hz) on {com_port} ✅")
+        except Exception as e:
+            print(f"❌ Failed to connect to Mark-10 on {com_port}: {e}")
+            self.serial_connection = None
+            raise  # Re-raise exception so setup fails properly
     
     def measure_timing(self, num_samples=1000):
         """
-        Measure timing performance (from testMark10.py functionality)
+        Measure timing performance using existing connection
         
         Args:
             num_samples: Number of samples to measure
@@ -51,16 +64,19 @@ class SimpleMark10:
         """
         print(f"Measuring timing for {num_samples} data fetches...")
         
+        if not self.serial_connection or not self.serial_connection.is_open:
+            print("❌ Serial connection not available")
+            return None
+        
         timing_data = np.zeros(num_samples)
         
-        with serial.Serial(self.com_port, baudrate=115200, timeout=1) as ser:
-            for i in range(num_samples):
-                start_time = time.perf_counter()
-                ser.write("?\r".encode())
-                response = ser.readline().decode().strip()
-                end_time = time.perf_counter()
-                
-                timing_data[i] = (end_time - start_time) * 1000  # Convert to ms
+        for i in range(num_samples):
+            start_time = time.perf_counter()
+            self.serial_connection.write("?\r".encode())
+            response = self.serial_connection.readline().decode().strip()
+            end_time = time.perf_counter()
+            
+            timing_data[i] = (end_time - start_time) * 1000  # Convert to ms
         
         # Calculate statistics
         stats = {
@@ -79,112 +95,137 @@ class SimpleMark10:
         
         return stats
     
-    def acquire_data(self, duration, output_file="mark10_data.csv"):
-        """
-        Acquire data for specified duration
+
+    def get_tension():
+
+        self.serial_connection.write("?\r".encode())
+        response = self.serial_connection.readline().decode('utf-8', errors='ignore').strip()
         
-        Args:
-            duration: Acquisition time in seconds
-            output_file: Output CSV filename
+        force_value = 0
+        if response:
+           
+            # Parse force value
+            force_str = response.replace('N', '').replace('lbF', '').replace('lb', '').strip()
+            force_value = float(force_str)
+
+        return force_value
+
+    
+    # def acquire_data(self, duration, output_file="mark10_data.csv"):
+    #     """
+    #     Acquire data for specified duration using existing connection
+        
+    #     Args:
+    #         duration: Acquisition time in seconds
+    #         output_file: Output CSV filename
             
-        Returns:
-            success: True if acquisition completed successfully
-        """
-        print(f"Starting Mark-10 acquisition for {duration} seconds...")
-        print(f"Output file: {output_file}")
+    #     Returns:
+    #         success: True if acquisition completed successfully
+    #     """
+    #     print(f"Starting Mark-10 acquisition for {duration} seconds...")
+    #     print(f"Output file: {output_file}")
         
-        samples = int(duration * self.sampling_rate)
-        data = np.zeros((samples, 2))  # timestamp, force
+    #     if not self.serial_connection or not self.serial_connection.is_open:
+    #         print("❌ Serial connection not available")
+    #         return False
         
-        try:
-            with serial.Serial(self.com_port, baudrate=115200, timeout=self.timeout) as ser:
-                self.serial_connection = ser
-                
-                start_time = time.time()
-                sample_count = 0
-                target_interval = 1.0 / self.sampling_rate
-                next_sample_time = start_time
-                
-                print("Starting data collection...")
-                self.is_running = True
-                
-                # Main acquisition loop
-                while self.is_running and (time.time() - start_time) < duration and sample_count < samples:
-                    if time.time() >= next_sample_time:
-                        ser.write("?\r".encode())
-                        response = ser.readline().decode('utf-8', errors='ignore').strip()
-                        
-                        if response:
-                            try:
-                                # Parse force value
-                                force_str = response.replace('N', '').replace('lbF', '').replace('lb', '').strip()
-                                force_value = float(force_str)
-                                
-                                # Store data
-                                data[sample_count, 0] = time.time()
-                                data[sample_count, 1] = force_value
-                                sample_count += 1
-                            except:
-                                pass  # Skip invalid readings
-                        
-                        next_sample_time += target_interval
+    #     try:
+    #         # Prepare data storage
+    #         expected_samples = int(self.sampling_rate * duration) + 100  # Buffer
+    #         data = np.zeros((expected_samples, 2))  # [timestamp, force]
+            
+    #         start_time = time.time()
+    #         sample_count = 0
+    #         target_interval = 1.0 / self.sampling_rate
+    #         next_sample_time = start_time
+            
+    #         self.is_running = True
+            
+    #         # Main acquisition loop using existing connection
+    #         while self.is_running and (time.time() - start_time) < duration and sample_count < expected_samples:
+    #             if time.time() >= next_sample_time:
+    #                 self.serial_connection.write("?\r".encode())
+    #                 response = self.serial_connection.readline().decode('utf-8', errors='ignore').strip()
                     
-                    # # Progress update
-                    # if sample_count % self.sampling_rate == 0 and sample_count > 0:
-                    #     elapsed = time.time() - start_time
-                    #     remaining = duration - elapsed
-                    #     print(f"  Remaining: {remaining:.1f}s")
+    #                 if response:
+    #                     try:
+    #                         # Parse force value
+    #                         force_str = response.replace('N', '').replace('lbF', '').replace('lb', '').strip()
+    #                         force_value = float(force_str)
+                            
+    #                         # Store data
+    #                         data[sample_count, 0] = time.time()
+    #                         data[sample_count, 1] = force_value
+    #                         sample_count += 1
+    #                     except:
+    #                         pass  # Skip invalid readings
+                    
+    #                 next_sample_time += target_interval
+            
+    #         self.is_running = False
+    #         actual_duration = time.time() - start_time
+            
+    #         # Trim data to actual samples
+    #         actual_data = data[:sample_count, :]
+            
+    #         print(f"Mark-10 acquisition completed:")
+    #         print(f"  Samples: {sample_count}")
+    #         print(f"  Duration: {actual_duration:.2f} seconds")
+    #         print(f"  Actual rate: {sample_count/actual_duration:.1f} Hz")
+            
+    #         # Save data
+    #         return self.save_data(actual_data, output_file)
                 
-                self.is_running = False
-                actual_duration = time.time() - start_time
-                actual_rate = sample_count / actual_duration if actual_duration > 0 else 0
-                
-                print(f"Acquisition completed:")
-                print(f"  Total samples: {sample_count}")
-                print(f"  Actual duration: {actual_duration:.2f} seconds")
-                print(f"  Actual rate: {actual_rate:.1f} Hz")
-                
-                # Save data
-                actual_data = data[:sample_count]
-                self.save_data(actual_data, output_file)
-                
-                return True
-                
-        except Exception as e:
-            print(f"Error during acquisition on {self.com_port}: {e}")
-            return False
+    #     except Exception as e:
+    #         print(f"Error during acquisition on {self.com_port}: {e}")
+    #         return False
     
-    def save_data(self, data, filename):
-        """
-        Save data to CSV file
+    # def save_data(self, data, filename):
+    #     """
+    #     Save data to CSV file
         
-        Args:
-            data: numpy array of data rows [timestamp, force]
-            filename: Output filename
-        """
-        if len(data) == 0:
-            print("No data to save")
-            return False
+    #     Args:
+    #         data: numpy array of data rows [timestamp, force]
+    #         filename: Output filename
+    #     """
+    #     if len(data) == 0:
+    #         print("No data to save")
+    #         return False
         
-        try:
-            with open(filename, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(['timestamp', 'force'])
-                writer.writerows(data)
+    #     try:
+    #         with open(filename, 'w', newline='') as f:
+    #             writer = csv.writer(f)
+    #             writer.writerow(['timestamp', 'force'])
+    #             writer.writerows(data)
             
-            print(f"Data saved to {filename}")
-            print(f"  Rows: {len(data)}")
+    #         print(f"Data saved to {filename}")
+    #         print(f"  Rows: {len(data)}")
             
-            return True
+    #         return True
             
-        except Exception as e:
-            print(f"Error saving data: {e}")
-            return False
+    #     except Exception as e:
+    #         print(f"Error saving data: {e}")
+    #         return False
     
-    def stop(self):
-        """Stop data acquisition"""
-        self.is_running = False
-        print("Stop signal sent")
+   
+    
+    def close(self):
+        """Close serial connection"""
+        if self.serial_connection and self.serial_connection.is_open:
+            self.serial_connection.close()
+            print(f"Serial connection to {self.com_port} closed")
+    
+    def __del__(self):
+        """Destructor - ensure connection is closed"""
+        self.close()
+    
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensure connection is closed"""
+        self.close()
 
 class MultiMark10:
     """
