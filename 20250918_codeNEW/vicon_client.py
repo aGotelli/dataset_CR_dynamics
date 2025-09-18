@@ -8,23 +8,17 @@ Date: 2024-06-20
 import socket
 import json
 import numpy as np
-from datetime import datetime
+import csv
 
 
 class ViconClient:
-    def __init__(self, host="192.168.10.2", port=8080):
-        """Connect to the Vicon TCP server in constructor"""
+    def __init__(self, host, port):
         self.host = host
         self.port = port
         self.socket = None
-        self.duration = 0
-        self.connect()
-    
-    def connect(self):
-        """Connect to the TCP server"""
+        """Try to connect to the TCP server"""
         try:
             self.socket = socket.socket()
-            print(f"Connecting to {self.host}:{self.port}...")
             self.socket.connect((self.host, self.port))
             print(f"Connected to {self.host}:{self.port}")
         except ConnectionRefusedError:
@@ -61,7 +55,7 @@ class ViconClient:
             print(f"Start recording error: {e}")
             return False
     
-    def get_data(self):
+    def get_data(self, csv_filename=None):
         """Get data from server and save to files"""
         try:
             print("Requesting data...")
@@ -78,7 +72,7 @@ class ViconClient:
             cols = int.from_bytes(self.socket.recv(4), 'big')
             header_size = int.from_bytes(self.socket.recv(4), 'big')
             
-            print(f"Receiving matrix of size {rows}x{cols} ({data_size} bytes)")
+            # print(f"Receiving matrix of size {rows}x{cols} ({data_size} bytes)")
             
             # Receive column headers
             column_headers = json.loads(self.socket.recv(header_size).decode())
@@ -93,10 +87,10 @@ class ViconClient:
             matrix = np.frombuffer(data, dtype=np.float64).reshape(rows, cols)
             
             print(f"Successfully received Vicon data:")
-            print(f"Matrix shape: {matrix.shape}")
-            print(f"Columns: {column_headers}")
-            print(f"First 5 rows:")
-            print(matrix[:5] if len(matrix) > 5 else matrix)
+            # print(f"Matrix shape: {matrix.shape}")
+            # print(f"Columns: {column_headers}")
+            # print(f"First 5 rows:")
+            # print(matrix[:5] if len(matrix) > 5 else matrix)
             
             # Save data
             filename = f"vicon_data_{rows}x{cols}.npy"
@@ -109,11 +103,38 @@ class ViconClient:
                 json.dump(column_headers, f, indent=2)
             print(f"Headers saved to {headers_filename}")
             
+            # Save as CSV if filename provided
+            if csv_filename:
+                self.save_as_csv(matrix, column_headers, csv_filename)
+            
             return matrix, column_headers
             
         except Exception as e:
             print(f"Get data error: {e}")
             return None, None
+    
+    def save_as_csv(self, matrix, headers, csv_filename):
+        """Save Vicon data as CSV file with proper headers and optimized writing"""
+        if matrix is None or matrix.size == 0:
+            print("❌ No Vicon data to save")
+            return False
+            
+        num_samples, num_cols = matrix.shape
+            
+        # Validate headers match data dimensions
+        if len(headers) != num_cols:
+            print(f"⚠️ Header count ({len(headers)}) doesn't match data columns ({num_cols})")
+            # Create generic headers if mismatch
+            headers = [f"col_{i}" for i in range(num_cols)]
+            headers[0] = "timestamp"  # First column should be timestamp
+            
+        # Write CSV with optimized approach
+        with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(headers)
+            writer.writerows(matrix)
+        print(f"💾 Vicon CSV saved: {csv_filename}")            
+        return True
     
     def close(self):
         """Close the connection"""

@@ -8,6 +8,7 @@ from datetime import datetime
 import threading
 # Import all sensor classes
 from sensor_ati_ft import ATI_FTSensor
+from vicon_client import ViconClient
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
@@ -61,8 +62,7 @@ class SensorContainer:
 
         # Vicon client initialization
         try:
-            from simple_vicon_client import SimpleViconClient
-            self.vicon_client = SimpleViconClient(vicon_host, vicon_port)
+            self.vicon_client = ViconClient(vicon_host, vicon_port)
             print("✅ Vicon client ready")
         except Exception as e:
             print(f"❌ Vicon setup failed: {e}")
@@ -72,10 +72,40 @@ class SensorContainer:
         #temporary
         pass
 
+
+    def vicon_thread(self,duration):
+        try:
+            if self.vicon_client:
+                print("📡 Starting Vicon recording...")
+                self.vicon_client.send_setup(duration)
+                self.vicon_client.start_recording()                    
+                # Wait for recording to complete
+                time.sleep(duration + 2)  # Extra time for completion
+                   
+                # Get data and save it
+                csv_filename = os.path.join(self.experiment_dir, "vicon_data.csv")
+                matrix, headers = self.vicon_client.get_data(csv_filename)
+                if matrix is not None:
+                    # Move the original .npy and .json files to experiment directory if they exist
+                    import glob
+                    for file_pattern in ["vicon_data_*.npy", "vicon_headers_*.json"]:
+                        for file_path in glob.glob(file_pattern):
+                            import shutil
+                            dest_path = os.path.join(self.experiment_dir, os.path.basename(file_path))
+                            shutil.move(file_path, dest_path)
+                            print(f"📁 Moved {file_path} to {dest_path}")
+                    print("✅ Vicon data acquisition completed")
+                else:
+                    print("❌ Failed to get Vicon data")
+        except Exception as e:
+            print(f"❌ Vicon acquisition error: {e}") 
+
     def run_acquisition(self, duration):
         """Run synchronized data acquisition"""
         
         self.create_readME()
+        #prepare vicon to receive data
+
         
         print(f"\n🎬 ATI sensor ready. Press ENTER to start acquisition...")
         input()
@@ -102,6 +132,14 @@ class SensorContainer:
             ati_thread.start()
             self.threads.append(ati_thread)
         
+        if self.vicon_client:
+            vicon_thread = threading.Thread(
+                target=self.vicon_thread,
+                args=(duration,)
+            )
+            vicon_thread.start()
+            self.threads.append(vicon_thread)
+            
         for thread in self.threads:
             thread.join()
 
@@ -109,6 +147,8 @@ class SensorContainer:
         print(f"✅ All acquisitions completed in {elapsed_time:.1f} seconds")
         print(f"📁 All data saved to: {self.experiment_dir}")
 
+
+        
 
     def cleanup(self):
         #temporary
