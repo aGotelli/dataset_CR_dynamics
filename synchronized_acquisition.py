@@ -16,6 +16,8 @@ import math
 from simple_ati_ft import ThreadableATI_FT
 from simple_mark10_clean import SimpleMark10
 from simple_motor_position import DualMotorController
+from simple_pretension import run_embedded_pretensioning
+from tension_controlled_trajectories import create_tension_trajectories, cleanup_trajectories
 
 class SimpleViconClient:
     def __init__(self, host="192.168.10.2", port=8080):
@@ -140,6 +142,10 @@ class SynchronizedDataAcquisition:
         self.vicon_client = None
         self.motor_controller = None
         
+        # Trajectory instances (for cleanup)
+        self.motor3_trajectory = None
+        self.motor4_trajectory = None
+        
         # Threading
         self.threads = []
         self.acquisition_started = False
@@ -211,6 +217,7 @@ class SynchronizedDataAcquisition:
             print(f"❌ Vicon setup failed: {e}")
             self.vicon_client = None
             return False
+  
     def run_vicon_acquisition(self, duration):
         """Run Vicon data acquisition in a separate thread"""
         def vicon_thread():
@@ -283,8 +290,8 @@ class SynchronizedDataAcquisition:
             import traceback
             traceback.print_exc()
             return False
-    
-    def create_readme(self, experiment_name, duration, trajectory_func1, trajectory_func2):
+
+    def create_readme(self, experiment_name, duration, trajectory_func1, trajectory_func2, pretensioning_summary):
         """Create README file with experiment details"""
         readme_path = os.path.join(self.experiment_dir, "README.md")
         
@@ -306,9 +313,11 @@ class SynchronizedDataAcquisition:
                 f.write("- Vicon Motion Capture\n")
             if self.motor_controller:
                 f.write("- Dual Motor Controller\n")
-            # if additional_info:
-            #     f.write(f"\n## Additional Information\n\n{additional_info}\n")
-        
+            
+            # Add pretensioning results if available
+            if pretensioning_summary:
+                f.write(f"\n{pretensioning_summary}\n")
+            
         print(f"README created: {readme_path}")
 
     def run_synchronized_acquisition(self, experiment_name, duration, trajectory_func1, trajectory_func2, additional_info=""):
@@ -317,8 +326,14 @@ class SynchronizedDataAcquisition:
         # Setup experiment folder
         self.setup_experiment_folder(experiment_name)
         
-        # Create README
-        self.create_readme(experiment_name, duration, trajectory_func1, trajectory_func2)
+        # Run pretensioning if motors and Mark10 sensors are available
+        pretensioning_summary = None
+        if self.motor_controller and self.mark10_sensors:
+            print("\n🔧 Starting motor pretensioning...")
+            pretensioning_summary, _ = run_embedded_pretensioning(self.motor_controller, self.mark10_sensors)
+        
+        # Create README with pretensioning results
+        self.create_readme(experiment_name, duration, trajectory_func1, trajectory_func2, pretensioning_summary)
         
         print(f"\n🎬 All systems ready. Press ENTER to start synchronized acquisition...")
         input()
@@ -379,8 +394,100 @@ class SynchronizedDataAcquisition:
         print(f"✅ All acquisitions completed in {elapsed_time:.1f} seconds")
         print(f"📁 All data saved to: {self.experiment_dir}")
     
+    def run_tension_controlled_acquisition(self, experiment_name, duration, additional_info=""):
+        """Run synchronized data acquisition with tension-controlled trajectories"""
+        
+        # Setup experiment folder
+        self.setup_experiment_folder(experiment_name)
+        
+        # Run pretensioning if motors and Mark10 sensors are available
+        pretensioning_summary = None
+        pretension_data = None
+        if self.motor_controller and self.mark10_sensors:
+            print("\n🔧 Starting motor pretensioning...")
+            pretensioning_summary, pretension_data = run_embedded_pretensioning(self.motor_controller, self.mark10_sensors)
+        
+        # Create tension-controlled trajectories
+        if pretension_data:
+            print("\n🎯 Creating tension-controlled trajectories...")
+            self.motor3_trajectory, self.motor4_trajectory = create_tension_trajectories(pretension_data)
+            trajectory_func1 = self.motor3_trajectory
+            trajectory_func2 = self.motor4_trajectory
+            print("📈 Using: Tension-controlled trajectories")
+            print("  - Motor 3: Ramp to 6N in 3s, then constant")
+            print("  - Motor 4: Constant 3s, then sine wave")
+        else:
+            print("❌ No pretension data available, cannot create tension trajectories")
+            return
+        
+        # Create README with pretensioning results and trajectory description
+        self.create_readme(experiment_name, duration, trajectory_func1, trajectory_func2, pretensioning_summary)
+        
+        print(f"\n🎬 All systems ready. Press ENTER to start tension-controlled acquisition...")
+        input()
+        
+        print(f"🚀 Starting tension-controlled acquisition in 3 seconds...")
+        time.sleep(1)
+        print("3...")
+        time.sleep(1)
+        print("2...")
+        time.sleep(1)
+        print("1...")
+        time.sleep(1)
+        print("GO!")
+        
+        # Start all sensors simultaneously
+        start_time = time.time()
+        
+        # Start Vicon acquisition
+        if self.vicon_client:
+            vicon_thread = self.run_vicon_acquisition(duration)
+            vicon_thread.start()
+            self.threads.append(vicon_thread)
+
+        # Start ATI sensor
+        if self.ati_sensor:
+            ati_thread = threading.Thread(
+                target=self.ati_sensor.threaded_acquire,
+                args=(duration, os.path.join(self.experiment_dir, "ati_data.csv"))
+            )
+            ati_thread.start()
+            self.threads.append(ati_thread)
+        
+        # Start Mark-10 sensors
+        for i, sensor in enumerate(self.mark10_sensors):
+            mark10_thread = threading.Thread(
+                target=sensor.acquire_data,
+                args=(duration, os.path.join(self.experiment_dir, f"mark10_{i+1}.csv"))
+            )
+            mark10_thread.start()
+            self.threads.append(mark10_thread)
+
+        # Start motor trajectory execution with tension control
+        if self.motor_controller:
+            motor_thread = threading.Thread(
+                target=self.motor_controller.execute_synchronized_trajectories,
+                args=(trajectory_func1, trajectory_func2, duration, 50.0, 50, True, os.path.join(self.experiment_dir, "motor_data.csv"))
+            )
+            motor_thread.start()
+            self.threads.append(motor_thread)
+        
+        # Wait for all threads to complete
+        print(f"⏳ Tension-controlled acquisition running for {duration} seconds...")
+        
+        for thread in self.threads:
+            thread.join()
+
+        elapsed_time = time.time() - start_time
+        print(f"✅ All tension-controlled acquisitions completed in {elapsed_time:.1f} seconds")
+        print(f"📁 All data saved to: {self.experiment_dir}")
+    
     def cleanup(self):
         """Cleanup all sensors and actuators"""
+        # Cleanup tension trajectories first
+        if self.motor3_trajectory or self.motor4_trajectory:
+            cleanup_trajectories(self.motor3_trajectory, self.motor4_trajectory)
+        
         if self.motor_controller:
             self.motor_controller.cleanup()
         
@@ -490,14 +597,21 @@ def main():
                 print("Experiment cancelled.")
                 return
         
-        # Run synchronized acquisition
-        acquisition.run_synchronized_acquisition(
+        # OPTION 1: Run synchronized acquisition with tension control
+        acquisition.run_tension_controlled_acquisition(
             experiment_name=EXPERIMENT_NAME,
             duration=DURATION,
-            trajectory_func1=slow_sine,  # sine_trajectory_motor1,
-            trajectory_func2=fast_cosine,  # cosine_trajectory_motor2,
-            additional_info="Test experiment with sine/cosine trajectories",
+            additional_info="Test experiment with tension-controlled trajectories",
         )
+        
+        # # # # OPTION 2: Run synchronized acquisition with classic trajectories (DEFAULT)
+        # # # acquisition.run_synchronized_acquisition(
+        # # #     experiment_name=EXPERIMENT_NAME,
+        # # #     duration=DURATION,
+        # # #     trajectory_func1=slow_sine,  # sine_trajectory_motor1,
+        # # #     trajectory_func2=fast_cosine,  # cosine_trajectory_motor2,
+        # # #     additional_info="Test experiment with sine/cosine trajectories",
+        # # # )
         
         print("🎉 Experiment completed successfully!")
         
