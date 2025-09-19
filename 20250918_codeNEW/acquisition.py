@@ -3,12 +3,15 @@ Synchronized Data Acquisition System
 Single file with all sensor interfaces and coordination logic
 """
 import os
+import sys
 import time
 from datetime import datetime
 import threading
+
 # Import all sensor classes
 from sensor_ati_ft import ATI_FTSensor
 from vicon_client import ViconClient
+from sparkfun_ism330dhcx_interface.python_minimal.test_optimized import IMUSensor
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
@@ -35,6 +38,7 @@ class SensorContainer:
         self.mark10_sensors = []
         self.vicon_client = None
         self.motor_controller = None
+        self.imu_sensor = None
         
         # ATI sensor initialization
         try:
@@ -60,6 +64,14 @@ class SensorContainer:
         except Exception as e:
             print(f"❌ Vicon setup failed: {e}")
         
+        # IMU sensor initialization  
+        try:
+            self.imu_sensor = IMUSensor()
+            print("✅ IMU sensor ready")
+        except Exception as e:
+            self.imu_sensor = None
+            print(f"❌ IMU setup failed: {e}")
+        
 
     def create_readME(self):
         #temporary
@@ -69,7 +81,7 @@ class SensorContainer:
     def vicon_thread(self,duration):
         try:
             if self.vicon_client:
-                print("📡 Starting Vicon recording...")
+                print("Vicon - Starting recording...")
                 self.vicon_client.send_setup(duration)
                 self.vicon_client.start_recording()                    
                 # Wait for recording to complete
@@ -77,9 +89,10 @@ class SensorContainer:
                    
                 # Get data and save it
                 csv_filename = os.path.join(self.experiment_dir, "vicon_data.csv")
+                self.vicon_client.get_data(csv_filename)
                 matrix, headers = self.vicon_client.get_data(csv_filename)
-                if matrix is not None:
-                    # Move the original .npy and .json files to experiment directory if they exist
+                if matrix is not None: #---- !! no longer needed npy and json formats
+                    # No longer moving .npy and .json files since they're not created
                     import glob
                     for file_pattern in ["vicon_data_*.npy", "vicon_headers_*.json"]:
                         for file_path in glob.glob(file_pattern):
@@ -112,11 +125,8 @@ class SensorContainer:
         print("1...")
         time.sleep(1)
         print("GO!")
-        
-        # Start all active sensors
-        start_time = time.time()
-        
-        # Start ATI sensor
+                
+        # ATI sensor thread
         if self.ati_sensor:
             ati_thread = threading.Thread(
                 target=self.ati_sensor.acquire_data,
@@ -125,6 +135,15 @@ class SensorContainer:
             ati_thread.start()
             self.threads.append(ati_thread)
         
+        # gyro sensor thread
+        if self.imu_sensor:
+            gyro_thread = threading.Thread(
+                target=self.imu_sensor.acquire_data,
+                args=(duration, os.path.join(self.experiment_dir, "imu_data.csv"))
+            )
+            gyro_thread.start()
+            self.threads.append(gyro_thread)
+        # Vicon thread
         if self.vicon_client:
             vicon_thread = threading.Thread(
                 target=self.vicon_thread,
@@ -135,18 +154,12 @@ class SensorContainer:
             
         for thread in self.threads:
             thread.join()
-
-        # elapsed_time = time.time() - start_time # VALUTA DI STMAPARE TUTTI I TEMPI NELLE FUNZIONI STACCATE COSI VEDI COME FUNZIA LA RUNTIME
-        # print(f"✅ All acquisitions completed in {elapsed_time:.1f} seconds")
-        # print(f"📁 All data saved to: {self.experiment_dir}")
-
-        # self.cleanup()
         
+        # Cleanup sensors
+        if self.imu_sensor:
+            self.imu_sensor.cleanup()
 
-    # def cleanup(self):
-    #     # No need to manually close task - context manager handles it
-    #     print("🧹 Resources cleaned up")
-
+        
 def setup_experiment_folder(experiment_name, output_base_dir):
         """Create experiment folder with timestamp"""
         experiment_dir=None
@@ -165,7 +178,7 @@ def main():
 
     # Configuration
     EXPERIMENT_NAME = "test_experiment"
-    DURATION = 10  # seconds 
+    DURATION = 5  # seconds 
     OUTPUT_DIR = "data"
     
     # ATI config

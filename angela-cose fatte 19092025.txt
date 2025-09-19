@@ -1,0 +1,8 @@
+in sensor_ati_ft non posso mettere tute le line del with nel costruttore e non metterle in acquire data perche altrimenti non mi gestisce bene il buffer e la chisuura del sensore
+ho ottimizzato gli accessi in memoria per avere il timestamp di fianco ai dati
+
+
+girosco[pio
+ho copiato cartella di spencer in new
+ho cambiato test optimized, cosi ha una classe, el costruttore inizializzo e poi ho la funzione acquire data dove prendo dati giroscopio e accelerometro e li salvo 
+

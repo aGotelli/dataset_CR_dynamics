@@ -98,7 +98,7 @@ class ATI_FTSensor:
             duration: Acquisition time in seconds
             output_file: Output CSV filename
         """        
-        print(f"Starting data acquisition for {duration} seconds...")
+        print(f"ATI - Starting data acquisition for {duration} seconds...")
         
         try:
             # Create a fresh task for acquisition (like the original)
@@ -125,7 +125,7 @@ class ATI_FTSensor:
                 start_time = time.time()
                 sample_count = 0
                 
-                print("Starting data collection...")
+                print("ATI - Starting data collection...")
                 
                 # Main acquisition loop
                 while (time.time() - start_time) < duration:
@@ -154,7 +154,7 @@ class ATI_FTSensor:
                         if sample_count % self.sampling_rate == 0:
                             elapsed = time.time() - start_time
                             remaining = duration - elapsed
-                            print(f"  Remaining: {remaining:.1f}s")
+                            print(f"  ATI -Remaining: {remaining:.1f}s")
                             
                     except Exception as e:
                         print(f"Error in acquisition loop: {e}")
@@ -183,14 +183,13 @@ class ATI_FTSensor:
             print(f"Unexpected error: {e}")
             return False
     
-    def save_data(self, data, filename, include_raw_voltages=False): ############## CHECK SE USIAMO O NO QUETA PARTE!
+    def save_data(self, data, filename):
         """
         Save data to CSV file
         
         Args:
             data: numpy array or list of data rows 
             filename: Output filename
-            include_raw_voltages: Whether data includes raw voltage columns
         """
         # Check if data is empty (works for both numpy arrays and lists)
         if data is None or len(data) == 0:
@@ -205,6 +204,8 @@ class ATI_FTSensor:
                 
             # Write data
             writer.writerows(data)
+
+        print(f"📁 ATIFT data saved to: {filename}")
             
 
 # # def main():

@@ -33,11 +33,11 @@ class ViconClient:
         """Send setup message with specified duration"""
         try:
             self.duration = duration
-            print(f"Setting up recording for {duration} seconds...")
+            print(f"Vicon - Setting up recording for {duration} seconds...")
             setup_cmd = {"command": "setup", "duration": duration}
             self.socket.sendall(json.dumps(setup_cmd).encode())
             response = self.socket.recv(1024).decode()
-            print(f"Server response: {response}")
+            # print(f"Server response: {response}")
             return True
         except Exception as e:
             print(f"Setup error: {e}")
@@ -49,8 +49,8 @@ class ViconClient:
             start_cmd = {"command": "start"}
             self.socket.sendall(json.dumps(start_cmd).encode())
             response = self.socket.recv(1024).decode()
-            print(f"Server response: {response}")
-            print(f"Recording started! Duration: {self.duration} seconds")
+            # print(f"Server response: {response}")
+            print(f"Vicon - Recording started! Duration: {self.duration} seconds")
             return True
         except Exception as e:
             print(f"Start recording error: {e}")
@@ -63,9 +63,9 @@ class ViconClient:
             get_data_cmd = {"command": "get_data"}
             self.socket.sendall(json.dumps(get_data_cmd).encode())
             
-            # Receive status message
-            status_response = self.socket.recv(1024).decode()
-            print(f"Server status: {status_response}")
+            # Receive status message - double check connection
+            # status_response = self.socket.recv(1024).decode()
+            # print(f"Server status: {status_response}")
             
             # Receive data size and shape information
             data_size = int.from_bytes(self.socket.recv(4), 'big')
@@ -73,7 +73,7 @@ class ViconClient:
             cols = int.from_bytes(self.socket.recv(4), 'big')
             header_size = int.from_bytes(self.socket.recv(4), 'big')
             
-            # print(f"Receiving matrix of size {rows}x{cols} ({data_size} bytes)")
+            print(f"Receiving matrix of size {rows}x{cols} ({data_size} bytes)")
             
             # Receive column headers
             column_headers = json.loads(self.socket.recv(header_size).decode())
@@ -88,20 +88,19 @@ class ViconClient:
             matrix = np.frombuffer(data, dtype=np.float64).reshape(rows, cols)
             
             print(f"Successfully received Vicon data:")
-            # print(f"Matrix shape: {matrix.shape}")
-            # print(f"Columns: {column_headers}")
-            # print(f"First 5 rows:")
-            # print(matrix[:5] if len(matrix) > 5 else matrix)
+            print(f"Matrix shape: {matrix.shape}")
+            print(f"Columns: {column_headers}")
+            print(f"First 5 rows:")
+            print(matrix[:5] if len(matrix) > 5 else matrix)
             
-            # Save data
+            # ------ Save data in npy and json format
             filename = f"vicon_data_{rows}x{cols}.npy"
-            np.save(filename, matrix)
-            print(f"Data saved to {filename}")
+            np.save(filename, matrix)  # Commented: CSV is sufficient
             
-            # Also save column headers
+            # ------ Also save column headers
             headers_filename = f"vicon_headers_{rows}x{cols}.json"
             with open(headers_filename, 'w') as f:
-                json.dump(column_headers, f, indent=2)
+                json.dump(column_headers, f, indent=2)  # Commented: CSV is sufficient
             print(f"Headers saved to {headers_filename}")
             
             # Save as CSV if filename provided
@@ -134,7 +133,7 @@ class ViconClient:
             writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(headers)
             writer.writerows(matrix)
-        print(f"💾 Vicon CSV saved: {csv_filename}")            
+        print(f"📁 Vicon CSV saved: {csv_filename}")            
         return True
     
     def close(self):
