@@ -143,7 +143,9 @@ class ViconV2:
 
         print(f"Matrix shape: {self.data_matrix.shape}")
         print(f"Columns: {len(self.column_info)}")
-
+        print(f"First 5 rows:")
+        print(np.matrix[:5] if len(self.data_matrix) > 5 else self.data_matrix)
+            
 
 def main():
     # Initialize without duration
