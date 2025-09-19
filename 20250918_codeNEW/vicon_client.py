@@ -13,6 +13,7 @@ import csv
 
 class ViconClient:
     def __init__(self, host, port):
+        print(f"🔧 Creating ViconClient instance for {host}:{port}")
         self.host = host
         self.port = port
         self.socket = None

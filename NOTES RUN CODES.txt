@@ -1,0 +1,4 @@
+NOTE RUN CODES:
+libraries are installed in C:/Users/crladmin/AppData/Local/Microsoft/WindowsApps/python3.13.exe 
+compiler in vs code must be C:/Users/crladmin/AppData/Local/Microsoft/WindowsApps/python3.13.exe 
+otherwise the default one il : Pylance - Python 3.9 (C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\python.exe)

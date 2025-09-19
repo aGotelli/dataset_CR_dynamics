@@ -38,7 +38,7 @@ class MotorWithMark10:
         self.motor.enable()
 
         #   Otherwise it throws an error...
-        self.motor.set_motor_position_control(limit_spd=0, loc_ref=0)
+        self.motor.set_motor_position_control(limit_spd=self.speed_limit, loc_ref=0)
             
         
         self.home_position = 0
@@ -152,7 +152,7 @@ def main():
      # Define trajectory functions
     def sine_trajectory(t):
         """Sine wave trajectory."""
-        amplitude = 1.0
+        amplitude = 0.5
         frequency = 0.5
         return amplitude * math.sin(2 * math.pi * frequency * t)
     
@@ -166,6 +166,8 @@ def main():
     motor_mk10_1 = [3, "COM5", sine_trajectory]  # Lista - accesso per indice
     motor_mk10_2 = [4, "COM4", sine_trajectory]  # Lista - accesso per indice
     controller = MotorController(motor_mk10_1, motor_mk10_2, 10, 50)
+
+    controller.motor2.run()
     
 if __name__ == "__main__":
     main()

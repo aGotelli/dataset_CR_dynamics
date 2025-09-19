@@ -41,7 +41,6 @@ class SensorContainer:
             self.ati_sensor = ATI_FTSensor(
                 device_channels=ati_channels,
                 sampling_rate=ati_rate,
-                name="ATI_Main"
             )
             print("✅ ATI F/T sensor ready")
         except Exception as e:
@@ -52,13 +51,7 @@ class SensorContainer:
         
         
         # Motor controller initialization (PLACEHOLDER)
-        # TODO: Uncomment when ready
-        # try:
-        #     from simple_motor_position import DualMotorController
-        #     self.motor_controller = DualMotorController(motor1_id, motor2_id)
-        #     print("✅ Motor controller ready")
-        # except Exception as e:
-        #     print(f"❌ Motor setup failed: {e}")        
+              
 
         # Vicon client initialization
         try:
@@ -143,16 +136,16 @@ class SensorContainer:
         for thread in self.threads:
             thread.join()
 
-        elapsed_time = time.time() - start_time
-        print(f"✅ All acquisitions completed in {elapsed_time:.1f} seconds")
-        print(f"📁 All data saved to: {self.experiment_dir}")
+        # elapsed_time = time.time() - start_time # VALUTA DI STMAPARE TUTTI I TEMPI NELLE FUNZIONI STACCATE COSI VEDI COME FUNZIA LA RUNTIME
+        # print(f"✅ All acquisitions completed in {elapsed_time:.1f} seconds")
+        # print(f"📁 All data saved to: {self.experiment_dir}")
 
-
+        # self.cleanup()
         
 
-    def cleanup(self):
-        #temporary
-        pass
+    # def cleanup(self):
+    #     # No need to manually close task - context manager handles it
+    #     print("🧹 Resources cleaned up")
 
 def setup_experiment_folder(experiment_name, output_base_dir):
         """Create experiment folder with timestamp"""
