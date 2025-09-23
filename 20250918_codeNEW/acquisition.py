@@ -9,9 +9,9 @@ from datetime import datetime
 import threading
 
 # Import all sensor classes
-from sensor_ati_ft import ATI_FTSensor
-from vicon_client import ViconClient
-from sparkfun_ism330dhcx_interface.python_minimal.simple_gyro import GYROSensor
+from sensors.sensor_ati_ft import ATI_FTSensor
+from sensors.vicon_client import ViconClient
+from sensors.gyros.simple_gyro import GYROSensor
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
@@ -57,12 +57,12 @@ class SensorContainer:
         # Motor controller initialization (PLACEHOLDER)
               
 
-        # Vicon client initialization
-        try:
-            self.vicon_client = ViconClient(vicon_host, vicon_port)
-            print("✅ Vicon client ready")
-        except Exception as e:
-            print(f"❌ Vicon setup failed: {e}")
+        # # Vicon client initialization
+        # try:
+        #     self.vicon_client = ViconClient(vicon_host, vicon_port)
+        #     print("✅ Vicon client ready")
+        # except Exception as e:
+        #     print(f"❌ Vicon setup failed: {e}")
         
         # IMU sensor initialization  
         try:
@@ -113,7 +113,7 @@ class SensorContainer:
         #prepare vicon to receive data
 
         
-        print(f"\n🎬 ATI sensor ready. Press ENTER to start acquisition...")
+        print(f"\n🎬Press ENTER to start acquisition...")
         input()
         
         print(f"🚀 Starting acquisition in 3 seconds...")
@@ -143,17 +143,17 @@ class SensorContainer:
             )
             gyro_thread.start()
             self.threads.append(gyro_thread)
-        # Vicon thread
-        if self.vicon_client:
-            vicon_thread = threading.Thread(
-                target=self.vicon_thread,
-                args=(duration)
-            )
-            vicon_thread.start()
-            self.threads.append(vicon_thread)
+        # # Vicon thread
+        # if self.vicon_client:
+        #     vicon_thread = threading.Thread(
+        #         target=self.vicon_thread,
+        #         args=(duration)
+        #     )
+        #     vicon_thread.start()
+        #     self.threads.append(vicon_thread)
             
-        for thread in self.threads:
-            thread.join()
+        # for thread in self.threads:
+        #     thread.join()
         
         # Cleanup sensors
         if self.imu_sensor:

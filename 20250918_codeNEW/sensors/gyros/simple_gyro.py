@@ -2,7 +2,7 @@
 Optimized real-time streaming for ISM330DHCX sensor
 Focus: Maximum performance with clean, simple code
 """
-from sparkfun_ism330dhcx_interface.python_minimal.wire import TwoWire
+from sensors.gyros.wire import TwoWire
 import time
 import sys
 import csv
