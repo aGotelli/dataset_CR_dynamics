@@ -59,7 +59,7 @@ class SensorContainer:
         # Motor controller initialization
         try:
             self.controller = MotorController(
-                motor1_cfg, motor2_cfg, duration, motor_frequency
+                motor1_cfg, motor2_cfg, duration, motor_frequency, experiment_dir
             )
             print("✅ Motors ready")
         except Exception as e:
