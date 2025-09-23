@@ -11,7 +11,7 @@ import threading
 # Import all sensor classes
 from sensor_ati_ft import ATI_FTSensor
 from vicon_client import ViconClient
-from sparkfun_ism330dhcx_interface.python_minimal.test_optimized import IMUSensor
+from sparkfun_ism330dhcx_interface.python_minimal.test_optimized import GYROSensor
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
@@ -66,7 +66,7 @@ class SensorContainer:
         
         # IMU sensor initialization  
         try:
-            self.imu_sensor = IMUSensor()
+            self.imu_sensor = GYROSensor()
             print("✅ IMU sensor ready")
         except Exception as e:
             self.imu_sensor = None
@@ -147,7 +147,7 @@ class SensorContainer:
         if self.vicon_client:
             vicon_thread = threading.Thread(
                 target=self.vicon_thread,
-                args=(duration,)
+                args=(duration)
             )
             vicon_thread.start()
             self.threads.append(vicon_thread)
@@ -178,7 +178,7 @@ def main():
 
     # Configuration
     EXPERIMENT_NAME = "test_experiment"
-    DURATION = 5  # seconds 
+    DURATION = 10  # seconds 
     OUTPUT_DIR = "data"
     
     # ATI config
