@@ -7,17 +7,19 @@ import sys
 import time
 from datetime import datetime
 import threading
+import math
 
 # Import all sensor classes
 from sensors.sensor_ati_ft import ATI_FTSensor
 from sensors.vicon_client import ViconClient
 from sensors.gyros.simple_gyro import GYROSensor
+from sensors.simple_motor_tension_measure import MotorController
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
         initialization of sensors
         run acquisition"""
-    def __init__(self, experiment_dir, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, motor1_id, motor2_id):
+    def __init__(self, experiment_dir, duration, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, motor1_cfg, motor2_cfg, motor_frequency):
         
         # Basic setup
         self.experiment_dir = experiment_dir
@@ -30,8 +32,8 @@ class SensorContainer:
         self.mark10_rate = mark10_rate
         self.vicon_host = vicon_host
         self.vicon_port = vicon_port
-        self.motor1_id = motor1_id
-        self.motor2_id = motor2_id
+        # self.motor1_id = motor1_id
+        # self.motor2_id = motor2_id
         
         # Initialize sensors
         self.ati_sensor = None
@@ -54,7 +56,16 @@ class SensorContainer:
         # Mark-10 sensors initialization
         
         
-        # Motor controller initialization (PLACEHOLDER)
+        # Motor controller initialization
+        try:
+            self.controller = MotorController(
+                motor1_cfg, motor2_cfg, duration, motor_frequency
+            )
+            print("✅ Motors ready")
+        except Exception as e:
+            self.ati_sensor = None
+            print(f"❌ Motors setup failed: {e}")
+        
               
 
         # # Vicon client initialization
@@ -192,24 +203,46 @@ def main():
     # Vicon config
     VICON_HOST = "192.168.10.2"
     VICON_PORT = 8080
+
+
+
+    # Define trajectory functions
+    def sine_trajectory(t):
+        """Sine wave trajectory."""
+        amplitude = 0.5
+        frequency = 0.5
+        return amplitude * math.sin(2 * math.pi * frequency * t)
     
-    # Motor config
-    MOTOR1_ID = 3
-    MOTOR2_ID = 4
+    def cosine_trajectory(t):
+        """Cosine wave trajectory (90 degrees out of phase)."""
+        amplitude = 1.0
+        frequency = 0.5
+        return amplitude * math.cos(2 * math.pi * frequency * t)
+    
+    # Create dual motor controller
+    MOTOR1_CFG = [3, "COM5", sine_trajectory]  # Lista - accesso per indice
+    MOTOR2_CFG = [4, "COM4", sine_trajectory]  # Lista - accesso per indice
+
+    MOTOR_FREQUENCY = 50 # Hz
+    
+
     
     EXPERIMENT_DIR = setup_experiment_folder(EXPERIMENT_NAME, OUTPUT_DIR)
+    
 
     # Initialize acquisition system with all parameters
     sensor_container = SensorContainer(
         experiment_dir=EXPERIMENT_DIR,
+        duration=DURATION,
         ati_channels=ATI_CHANNELS,
         ati_rate=ATI_RATE,
         mark10_ports=MARK10_PORTS,
         mark10_rate=MARK10_RATE,
         vicon_host=VICON_HOST,
         vicon_port=VICON_PORT,
-        motor1_id=MOTOR1_ID,
-        motor2_id=MOTOR2_ID
+        motor1_cfg=MOTOR1_CFG,
+        motor2_cfg=MOTOR2_CFG,
+        motors_frequency=MOTOR_FREQUENCY
     )
 
     # Call the real acquisition

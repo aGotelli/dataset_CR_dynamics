@@ -25,6 +25,8 @@ class MotorWithMark10:
         cols = 4
         self.data = np.zeros((rows, cols))
 
+        self.it_t = 0
+
         self.speed_limit = 50
         
         print(f"Initializing motor ID: {self.motor_id}, COM: {com_port}, CAN ID: {main_can_id}")
@@ -77,7 +79,25 @@ class MotorWithMark10:
             self.data[it_t] = [current_time, cable_tension, current_angle, desired_angle]
             it_t = it_t + 1
 
-        
+
+    def step(self, current_time):
+        cable_tension = self.mark10.get_tension() 
+        desired_angle = self.home_position + self.function(current_time)
+
+        self.motor.set_motor_position_control(limit_spd=self.speed_limit, loc_ref=desired_angle)
+
+        motor_feedback = self.motor.send_motor_control_command(
+            torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
+        )
+
+        current_angle = 0
+        if motor_feedback and len(motor_feedback) > 1:
+            current_angle = motor_feedback[1]  # position is second element
+
+        self.data[it_t] = [current_time, cable_tension, current_angle, desired_angle]
+        it_t = it_t + 1
+
+    
     
 
     def cleanup(self):
@@ -149,7 +169,7 @@ class MotorController:
 
 def main():
 
-     # Define trajectory functions
+    # Define trajectory functions
     def sine_trajectory(t):
         """Sine wave trajectory."""
         amplitude = 0.5
