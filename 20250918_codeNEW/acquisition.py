@@ -139,12 +139,8 @@ class SensorContainer:
                 
         # ATI sensor thread
         if self.ati_sensor:
-            ati_thread = threading.Thread(
-                target=self.ati_sensor.acquire_data,
-                args=(duration, os.path.join(self.experiment_dir, "ati_data.csv"))
-            )
-            ati_thread.start()
-            self.threads.append(ati_thread)
+            self.ati_sensor.ATI_thread.start()
+            self.threads.append(self.ati_sensor.ATI_thread)
         
         # gyro sensor thread
         if self.imu_sensor:
@@ -163,8 +159,9 @@ class SensorContainer:
         #     vicon_thread.start()
         #     self.threads.append(vicon_thread)
             
-        # for thread in self.threads:
-        #     thread.join()
+        # Wait for all threads to complete
+        for thread in self.threads:
+            thread.join()
         
         # Cleanup sensors
         if self.imu_sensor:
