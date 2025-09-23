@@ -26,7 +26,7 @@ class MotorWithMark10:
 
         extra_buffer = 1.3
         rows = int(extra_buffer*duration*frequency)
-        cols = 4
+        cols = 5
         self.data = np.zeros((rows, cols))
 
         self.it_t = 0
@@ -41,54 +41,156 @@ class MotorWithMark10:
         # Setup motor
         self.motor = CANMotorController(bus, motor_id=self.motor_id, main_can_id=main_can_id)
 
-        self.motor.set_run_mode(self.motor.RunModes.POSITION_MODE)
-        self.motor.enable()
-
-        #   Otherwise it throws an error...
-        self.motor.set_motor_position_control(limit_spd=0, loc_ref=0)
-        time.sleep(0.5)
-            
+        # Proper motor initialization sequence
+        print(f"🔧 Initializing motor {self.motor_id}...")
         
-        self.home_position = 0
-        feedback = self.motor.send_motor_control_command(
-            torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
-        )
-
-
+        # Try CONTROL_MODE first, then set zero, then switch to POSITION_MODE
+        self.motor.set_run_mode(self.motor.RunModes.CONTROL_MODE)
+        self._enable_motor_safe()
+        
+        # Set mechanical zero - this is crucial for getting real position data!
+        print(f"🔧 Setting mechanical zero for motor {self.motor_id}...")
+        self._set_mechanical_zero_safe()
+        time.sleep(1.0)  # Wait for zero setting to complete
+        
+        # Now switch to position mode
+        self.motor.set_run_mode(self.motor.RunModes.POSITION_MODE)
+        
+        # Try sending a simple control command to "wake up" the motor
+        print(f"🔧 Sending initial control command to motor {self.motor_id}...")
+        try:
+            # Try position control first
+            self.motor.set_motor_position_control(limit_spd=1.0, loc_ref=0.0)
+            time.sleep(0.5)
             
-        if feedback and len(feedback) > 1:
-            self.home_position = feedback[1]
-            input("Press Enter to continue...")
-
-            #   Make sure motor is stable at home position
-            for i in range(10):
-
-                feedback = self.motor.send_motor_control_command(
-                    torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
-                )
-                current_angle = feedback[1]
-
-                self.motor.set_motor_position_control(limit_spd=5, loc_ref=self.home_position)
-
-                print(f"Current angle: {current_angle}, Home position: {self.home_position}")
-                input("Press Enter to continue...")
-                time.sleep(0.1)
-
-
+            # Also try direct motor control command (this might activate feedback)
+            result = self.motor.send_motor_control_command(
+                torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=10.0, Kd=1.0
+            )
+            print(f"🔍 Motor control command result: {result}")
+            time.sleep(0.5)
+            
+        except Exception as e:
+            print(f"⚠️ Initial control command failed: {e}")
+        
+        # Get home position with retry logic
+        self.home_position = self._get_home_position()
+        print(f"Home position: {self.home_position}")
+        
+        if self.home_position is not None:
             print(f"✅Motor {self.motor_id} initialized and enabled")
         else:
-            print("⚠️⚠️⚠️\tWarning: Could not read motor position")
+            print("⚠️⚠️⚠️\tWarning: Could not read motor position - using 0.0 as default")
+            self.home_position = 0.0
+
+    def _enable_motor_safe(self):
+        """Safe motor enable with proper 8-byte data"""
+        try:
+            self.motor.clear_can_rx(0)
+            data, arb_id = self.motor.send_receive_can_message(
+                self.motor.CmdModes.MOTOR_ENABLE, self.motor.MAIN_CAN_ID, [0]*8
+            )
+            return self.motor.parse_received_msg(data, arb_id)
+        except Exception as e:
+            print(f"⚠️ Safe enable failed: {e}")
+            return None
+
+    def _set_mechanical_zero_safe(self):
+        """Safe mechanical zero with proper 8-byte data"""
+        try:
+            self.motor.clear_can_rx()
+            data, arb_id = self.motor.send_receive_can_message(
+                self.motor.CmdModes.SET_MECHANICAL_ZERO, self.motor.MAIN_CAN_ID, [1, 0, 0, 0, 0, 0, 0, 0]
+            )
+            print(f"🔍 Mechanical zero response: data={data}, arb_id={hex(arb_id) if arb_id else None}")
+            result = self.motor.parse_received_msg(data, arb_id)
+            print(f"🔍 Mechanical zero parsed: {result}")
+            return result
+        except Exception as e:
+            print(f"⚠️ Safe mechanical zero failed: {e}")
+            return None
+
+    def _get_home_position(self):
+        """Get home position with retry and validation"""
+        time.sleep(0.5)  # Wait for motor stabilization
+        for attempt in range(3):
+            pos = self.get_motor_angle()
+            if pos is not None:
+                return pos
+            time.sleep(0.2)
+        return None
 
         
 
+    def get_motor_angle(self):
+        """
+        Get current motor angle without affecting motor operation.
+        Returns: float - current motor angle in radians, or None if failed
+        """
+        try:
+            self.motor.clear_can_rx()
+            data, arb_id = self.motor.send_receive_can_message(
+                self.motor.CmdModes.MOTOR_FEEDBACK, self.motor.MAIN_CAN_ID, [0]*8
+            )
+            
+            print(f"🔍 Motor {self.motor_id} feedback: data={data}, arb_id={hex(arb_id) if arb_id else None}")
+            
+            if data is not None and arb_id is not None:
+                # Parse the message to get position
+                _, position, velocity, torque, temperature = self.motor.parse_received_msg(data, arb_id)
+                
+                print(f"🔍 Motor {self.motor_id} parsed: pos={position}, vel={velocity}, torque={torque}, temp={temperature}")
+                
+                # If ALL values are at their minimum limits, motor likely not initialized
+                if (abs(position + 12.5) < 0.001 and 
+                    abs(velocity + 30.0) < 0.001 and 
+                    abs(torque + 12.0) < 0.001 and 
+                    temperature == 0.0):
+                    print(f"🔍 Motor {self.motor_id} still at default limits - not initialized")
+                    return None  # Motor not properly initialized
+                    
+                return position
+            return None
+            
+        except Exception as e:
+            print(f"Error reading motor {self.motor_id} angle: {e}")
+            return None
+
+    def get_motor_state(self):
+        """
+        Get complete motor state as dictionary.
+        Returns: dict with motor_id, position, velocity, torque, temperature
+        """
+        self.motor.clear_can_rx()
+        data, arb_id = self.motor.send_receive_can_message(
+            self.motor.CmdModes.MOTOR_FEEDBACK, self.motor.MAIN_CAN_ID, [0]*8
+        )
+        motor_id, position, velocity, torque, temperature = self.motor.parse_received_msg(data, arb_id)
+        
+        if motor_id is not None:
+            return {
+                'motor_id': motor_id,
+                'position': position,      # radians
+                'velocity': velocity,      # rad/s  
+                'torque': torque,         # Nm
+                'temperature': temperature # °C
+            }
+        return None
 
     def run(self):
 
         it_t = 0
-        start_time = time.perf_counter()
+        
         time_elapsed = 0
+
+        current_angle = self.home_position
+
+        start_time = time.perf_counter()
         while time_elapsed <= self.duration:
             current_time = time.perf_counter()
+            time_elapsed = current_time - start_time
+
+
             cable_tension = self.mark10.get_tension() 
 
             if cable_tension >= self.tension_threshold:
@@ -96,20 +198,20 @@ class MotorWithMark10:
                 print(f"❌❌❌ MOTOR {self.motor_id} STOPPED FOR SAFETY LIMITS")
                 break
 
-            desired_angle = self.home_position + self.function(current_time)
-            self.motor.set_motor_position_control(limit_spd=self.speed_limit, loc_ref=desired_angle)
-            motor_feedback = self.motor.send_motor_control_command(
-                torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
-            )
+            desired_angle = self.home_position + self.function(time_elapsed)
+            #self.motor.set_motor_position_control(limit_spd=self.speed_limit, loc_ref=desired_angle)
+            # motor_feedback = self.motor.send_motor_control_command(
+            #     torque=0.0, target_angle=0.0, target_velocity=0.0, Kp=0.0, Kd=0.0
+            # )
+            motor_feedback = self.get_motor_angle()
+
+            if motor_feedback:
+                current_angle = motor_feedback  # position is second element
+
+            self.data[it_t] = [current_time, time_elapsed, cable_tension, current_angle, desired_angle]
+            it_t = it_t + 1
 
             time_elapsed = current_time - start_time
-
-            current_angle = 0
-            if motor_feedback and len(motor_feedback) > 1:
-                current_angle = motor_feedback[1]  # position is second element
-
-            self.data[it_t] = [current_time, cable_tension, current_angle, desired_angle]
-            it_t = it_t + 1
 
             
     def save_data(self, filename):
@@ -129,13 +231,15 @@ class MotorWithMark10:
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
 
-            header = ['timestamp', 'cable_tension', 'current_angle', 'desired_angle']
+            header = ['timestamp', 'time_elapsed', 'cable_tension', 'current_angle', 'desired_angle']
             writer.writerow(header)
                 
             # Write data
             writer.writerows(self.data)
 
         print(f"📁 Motor {self.motor_id} data saved to: {filename}")
+    
+    
     
     
 
@@ -236,13 +340,13 @@ def main():
         """Sine wave trajectory."""
         amplitude = 0.5
         frequency = 0.5
-        return amplitude * math.sin(2 * math.pi * frequency * t)
+        return 0*amplitude * math.sin(2 * math.pi * frequency * t)
     
     def msine_trajectory(t):
         """Sine wave trajectory."""
         amplitude = 0.5
         frequency = 0.5
-        return -0*amplitude * math.sin(2 * math.pi * frequency * t)
+        return 0*amplitude * math.sin(2 * math.pi * frequency * t)
     
     def cosine_trajectory(t):
         """Cosine wave trajectory (90 degrees out of phase)."""

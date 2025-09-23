@@ -239,7 +239,7 @@ def main():
         vicon_port=VICON_PORT,
         motor1_cfg=MOTOR1_CFG,
         motor2_cfg=MOTOR2_CFG,
-        motors_frequency=MOTOR_FREQUENCY
+        motor_frequency=MOTOR_FREQUENCY
     )
 
     # Call the real acquisition
