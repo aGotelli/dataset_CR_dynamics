@@ -1,0 +1,10 @@
+# No external dependencies required for basic functionality
+# The implementation uses only Python standard library modules:
+# - ctypes (Windows CH341 DLL interface)
+# - os (Linux I2C file operations)  
+# - fcntl (Linux I2C ioctl calls)
+# - platform (OS detection)
+
+# Optional for enhanced functionality:
+# numpy>=1.19.0  # For advanced data processing
+# matplotlib>=3.3.0  # For data visualization

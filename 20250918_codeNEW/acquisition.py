@@ -11,7 +11,7 @@ import threading
 # Import all sensor classes
 from sensor_ati_ft import ATI_FTSensor
 from vicon_client import ViconClient
-from sparkfun_ism330dhcx_interface.python_minimal.test_optimized import GYROSensor
+from sparkfun_ism330dhcx_interface.python_minimal.simple_gyro import GYROSensor
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
