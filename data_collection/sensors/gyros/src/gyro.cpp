@@ -170,6 +170,10 @@ void GyroAPI::stopUpdateLoop()
   }
 }
 
+
+
+
+
 void GyroAPI::gyro_thread()
 {
   while (m_run_thread)
@@ -198,10 +202,10 @@ void GyroAPI::gyro_thread()
 
           // std::cout << "[GYRO] Data: X=" << gyroData.xData << " Y=" << gyroData.yData << " Z=" << gyroData.zData << std::endl;
 
-          // *m_file_streams[index] << now_time
-          //                        << "," << gyroData.xData
-          //                        << "," << gyroData.yData
-          //                        << "," << gyroData.zData << "," << std::endl;
+          *m_file_streams[index] << now_time
+                                 << "," << gyroData.xData
+                                 << "," << gyroData.yData
+                                 << "," << gyroData.zData << "," << std::endl;
 
           // TODO: Log accelerometer if wanted 
           // sfe_ism_data_t accelData;

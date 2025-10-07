@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\tests\test_dll_functions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\tests\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1AFD6438-0257-3D0D-81BF-7DD5364B6BE3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

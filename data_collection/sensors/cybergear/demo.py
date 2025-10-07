@@ -32,11 +32,19 @@ def main():
         motor.enable()
         
         # Move to different positions
-        positions = [0, 3.14, -3.14, 0, 17]
-        for pos in positions:
-            logging.info(f"Moving to position: {pos:.2f} rad")
+        positions = [0, 3.14, -3.14, 0, 5]
+        for i, pos in enumerate(positions):
+            logging.info(f"Moving to position {i+1}/{len(positions)}: {pos:.2f} rad")
             motor.set_motor_position_control(limit_spd=6, loc_ref=pos)
-            time.sleep(3)
+            
+            # Get motor status during movement
+            for j in range(3):  # Check status 3 times during each movement
+                time.sleep(1)
+                status = motor.get_motor_status()
+                if status[0] is not None:
+                    logging.info(f"  → pos: {status[1]:.2f} rad, vel: {status[2]:.2f} rad/s, torque: {status[3]:.2f} Nm, temp: {status[4]:.1f}°C")
+                else:
+                    logging.info(f"  → No status update")
         
         motor.disable()
         wait_for_user("\nPosition mode demo completed. Press Enter to continue...")
@@ -55,10 +63,18 @@ def main():
         
         # Test different speeds
         speeds = [2, -2, 4, -4, 0]
-        for speed in speeds:
-            logging.info(f"\nSetting speed to: {speed} rad/s")
+        for i, speed in enumerate(speeds):
+            logging.info(f"Setting speed {i+1}/{len(speeds)}: {speed} rad/s")
             motor.write_single_param("spd_ref", value=speed)
-            time.sleep(2)
+            
+            # Get motor status during speed changes
+            for j in range(2):  # Check status 2 times during each speed
+                time.sleep(1)
+                status = motor.get_motor_status()
+                if status[0] is not None:
+                    logging.info(f"  → pos: {status[1]:.2f} rad, vel: {status[2]:.2f} rad/s, torque: {status[3]:.2f} Nm, temp: {status[4]:.1f}°C")
+                else:
+                    logging.info(f"  → No status update")
         
         motor.disable()
         motor2.disable()
@@ -74,10 +90,18 @@ def main():
         
         # Test different currents
         currents = [0.5, -0.5, 1.0, -1.0, 0.0]
-        for current in currents:
-            logging.info(f"\nSetting current to: {current} A")
+        for i, current in enumerate(currents):
+            logging.info(f"Setting current {i+1}/{len(currents)}: {current} A")
             motor.write_single_param("iq_ref", value=current)
-            time.sleep(2)
+            
+            # Get motor status during current changes
+            for j in range(2):  # Check status 2 times during each current
+                time.sleep(1)
+                status = motor.get_motor_status()
+                if status[0] is not None:
+                    logging.info(f"  → pos: {status[1]:.2f} rad, vel: {status[2]:.2f} rad/s, torque: {status[3]:.2f} Nm, temp: {status[4]:.1f}°C")
+                else:
+                    logging.info(f"  → No status update")
         
         motor.disable()
         wait_for_user("\nCurrent mode demo completed. Press Enter to continue...")
@@ -92,7 +116,8 @@ def main():
         
         # Test motion control with different parameters
         for i in range(3):
-            logging.info(f"\nMotion control cycle {i+1}/3")
+            logging.info(f"Motion control cycle {i+1}/3")
+            logging.info(f"  Moving to +10°...")
             motor.send_motor_control_command(
                 torque=0.0,
                 target_angle=10.0,
@@ -100,8 +125,17 @@ def main():
                 Kp=0.01,
                 Kd=0.2
             )
-            time.sleep(5)
             
+            # Get motor status during motion control
+            for j in range(3):  # Check status 3 times during each motion
+                time.sleep(1.5)
+                status = motor.get_motor_status()
+                if status[0] is not None:
+                    logging.info(f"    → pos: {status[1]:.2f} rad, vel: {status[2]:.2f} rad/s, torque: {status[3]:.2f} Nm, temp: {status[4]:.1f}°C")
+                else:
+                    logging.info(f"    → No status update")
+            
+            logging.info(f"  Moving to -10°...")
             motor.send_motor_control_command(
                 torque=0.0,
                 target_angle=-10.0,
@@ -109,7 +143,15 @@ def main():
                 Kp=0.01,
                 Kd=0.2
             )
-            time.sleep(5)
+            
+            # Get motor status during motion control
+            for j in range(3):  # Check status 3 times during each motion
+                time.sleep(1.5)
+                status = motor.get_motor_status()
+                if status[0] is not None:
+                    logging.info(f"    → pos: {status[1]:.2f} rad, vel: {status[2]:.2f} rad/s, torque: {status[3]:.2f} Nm, temp: {status[4]:.1f}°C")
+                else:
+                    logging.info(f"    → No status update")
         
         motor.disable()
         wait_for_user("\nMotion control mode demo completed. Press Enter to continue...")

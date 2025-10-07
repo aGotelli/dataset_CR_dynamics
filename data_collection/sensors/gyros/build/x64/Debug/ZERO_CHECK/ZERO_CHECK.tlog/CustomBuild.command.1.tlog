@@ -1,0 +1,10 @@
+^C:\USERS\CRLADMIN\DESKTOP\DATASET_CR_DYNAMICS\DATA_COLLECTION\SENSORS\GYROS\BUILD\CMAKEFILES\0258A9C1F35BA1A4251DEBC36FF6272A\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros -BC:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/sparkfun_ism330dhcx_interface.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

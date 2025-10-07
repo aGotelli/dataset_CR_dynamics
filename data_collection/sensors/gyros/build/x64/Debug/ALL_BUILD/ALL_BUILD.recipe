@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectOutputs>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\x64\Debug\ZERO_CHECK</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\Debug\sparkfun_ism330dhcx.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\Debug\sparkfun_tcp_server.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\tests\Debug\test_ch341.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\tests\Debug\test_dll_functions.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\tests\Debug\test_simple_unified.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\tests\Debug\test_unified_api.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build\x64\Debug\ALL_BUILD</FullPath>
+    </ProjectOutput>
+  </ProjectOutputs>
+  <ContentFiles />
+  <SatelliteDlls />
+  <NonRecipeFileRefs />
+</Project>

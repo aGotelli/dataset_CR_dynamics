@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\gyro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\sfe_bus.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\sfe_ism330dhcx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\sfe_ism_shim.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\st_src\ism330dhcx_reg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\Wire.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\gyro.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\sensor_api\SparkFun_ISM330DHCX.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\sensor_api\sfe_bus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\sensor_api\sfe_ism330dhcx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\sensor_api\sfe_ism330dhcx_defs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\sensor_api\sfe_ism_shim.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\include\sensor_api\st_src\ism330dhcx_reg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{6DC5C808-8767-3F23-A28A-FE869D598F74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1AFD6438-0257-3D0D-81BF-7DD5364B6BE3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

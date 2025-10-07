@@ -1,0 +1,8 @@
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/CMakeFiles/sparkfun_ism330dhcx.dir
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/CMakeFiles/sparkfun_tcp_server.dir
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/tests/CMakeFiles/test_ch341.dir
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/tests/CMakeFiles/test_unified_api.dir
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/tests/CMakeFiles/test_dll_functions.dir
+C:/Users/crladmin/Desktop/dataset_CR_dynamics/data_collection/sensors/gyros/build/tests/CMakeFiles/test_simple_unified.dir

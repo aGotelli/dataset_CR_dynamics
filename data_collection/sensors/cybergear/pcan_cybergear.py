@@ -38,10 +38,10 @@ class CANMotorController:
         """
         Initialize CAN motor controller.
 
-        Args:
-            bus: CAN bus object
-            motor_id: Motor's CAN ID
-            main_can_id: Main CAN ID
+        Parameters:
+        bus: CAN bus object.
+        motor_id: Motor's CAN ID.
+        main_can_id: Main CAN ID.
         """
         self.bus = bus
         self.MOTOR_ID = motor_id
@@ -71,23 +71,23 @@ class CANMotorController:
     
     # Control modes
     class RunModes(enum.Enum):
-        CONTROL_MODE = 0  # Motion control mode
-        POSITION_MODE = 1  # Position mode
-        SPEED_MODE = 2    # Speed mode
-        CURRENT_MODE = 3  # Current mode
+        CONTROL_MODE = 0 # Motion control mode
+        POSITION_MODE = 1 # Position mode
+        SPEED_MODE = 2 # Speed mode
+        CURRENT_MODE = 3 # Current mode
 
     def _float_to_uint(self, x, x_min, x_max, bits):
         """
         Convert float to unsigned integer.
 
-        Args:
-            x: Input float
-            x_min: Minimum acceptable float value
-            x_max: Maximum acceptable float value
-            bits: Number of bits for output unsigned integer
+        Parameters:
+        x: Input float value.
+        x_min: Minimum acceptable float value.
+        x_max: Maximum acceptable float value.
+        bits: Number of bits for output unsigned integer.
 
         Returns:
-            Converted unsigned integer
+        Converted unsigned integer.
         """
         span = x_max - x_min
         offset = x_min
@@ -98,36 +98,39 @@ class CANMotorController:
         """
         Convert unsigned integer to float.
 
-        Args:
-            x: Input unsigned integer
-            x_min: Minimum acceptable float value
-            x_max: Maximum acceptable float value
-            bits: Number of bits for input unsigned integer
+        Parameters:
+        x: Input unsigned integer.
+        x_min: Minimum acceptable float value.
+        x_max: Maximum acceptable float value.
+        bits: Number of bits for input unsigned integer.
 
         Returns:
-            Converted float value
+        Converted float value.
         """
         span = (1 << bits) - 1
         offset = x_max - x_min
         x = max(min(x, span), 0)  # Clamp x to the range [0, span]
         return offset * x / span + x_min
 
-    def _linear_mapping(self, value, value_min, value_max, target_min=0, target_max=65535):
+    def _linear_mapping(
+        self, value, value_min, value_max, target_min=0, target_max=65535
+    ):
         """
-        Perform linear mapping of input value.
+        Perform linear mapping on input value.
 
-        Args:
-            value: Input value
-            value_min: Minimum input value
-            value_max: Maximum input value
-            target_min: Minimum target value
-            target_max: Maximum target value
+        Parameters:
+        value: Input value.
+        value_min: Minimum bound for input value.
+        value_max: Maximum bound for input value.
+        target_min: Minimum bound for output value.
+        target_max: Maximum bound for output value.
 
         Returns:
-            Mapped value
+        Mapped value.
         """
         return int(
-            (value - value_min) / (value_max - value_min) * (target_max - target_min)
+            (value - value_min) / (value_max -
+                                   value_min) * (target_max - target_min)
             + target_min
         )
 
@@ -135,13 +138,13 @@ class CANMotorController:
         """
         Encode or decode data.
 
-        Args:
-            data: Input data list
-            format: Data format
-            type: "encode" or "decode"
+        Parameters:
+        data: Input data list.
+        format: Data format.
+        type: "encode" or "decode", indicating whether to encode or decode.
 
         Returns:
-            Encoded or decoded data
+        Encoded or decoded data.
         """
         format_list = format.split()
         rdata = []
@@ -207,18 +210,18 @@ class CANMotorController:
 
     def pack_to_8bytes(self, target_angle, target_velocity, Kp, Kd):
         """
-        Pack control parameters into 8 bytes of data.
+        Pack control parameters into 8-byte data.
 
-        Args:
-            target_angle: Target angle
-            target_velocity: Target velocity
-            Kp: Proportional gain
-            Kd: Derivative gain
+        Parameters:
+        target_angle: Target angle.
+        target_velocity: Target velocity.
+        Kp: Proportional gain.
+        Kd: Derivative gain.
 
         Returns:
-            8 bytes of data
+        8-byte data.
         """
-        # 对输入变量进行线性映射
+        # Linear mapping of input variables
         target_angle_mapped = self._linear_mapping(
             target_angle, self.P_MIN, self.P_MAX)
         target_velocity_mapped = self._linear_mapping(
@@ -227,8 +230,8 @@ class CANMotorController:
         Kp_mapped = self._linear_mapping(Kp, self.KP_MIN, self.KP_MAX)
         Kd_mapped = self._linear_mapping(Kd, self.KD_MIN, self.KD_MAX)
 
-        # 使用Python的struct库进行打包
-        # 使用H表示无符号短整数(2字节), 共需要8字节
+        # Use Python's struct library for packing
+        # Use H for unsigned short integer (2 bytes), total 8 bytes needed
         data1_bytes = struct.pack(
             "HHHH", target_angle_mapped, target_velocity_mapped, Kp_mapped, Kd_mapped
         )
@@ -239,14 +242,14 @@ class CANMotorController:
         """
         Send CAN message and receive response.
 
-        Args:
-            cmd_mode: Command mode
-            data2: Data area 2
-            data1: Data bytes to send
-            timeout: Message timeout in ms (default: 200ms)
+        Parameters:
+        cmd_mode: Command mode.
+        data2: Data area 2.
+        data1: Data bytes to send.
+        timeout: Timeout for sending message (default 200ms).
 
         Returns:
-            Tuple containing received message data and arbitration ID
+        A tuple containing received message data and received message arbitration ID (if any).
         """
         # Calculate the arbitration ID
         arbitration_id = (cmd_mode << 24) | (data2 << 8) | self.MOTOR_ID
@@ -277,17 +280,23 @@ class CANMotorController:
         """
         Parse received CAN message.
 
-        Args:
-            data: Received data
-            arbitration_id: Message arbitration ID
+        Parameters:
+        data: Received data.
+        arbitration_id: Arbitration ID of received message.
 
         Returns:
-            Tuple containing motor CAN ID, position (rad), velocity (rad/s), torque (Nm), temperature (°C)
+        A tuple containing motor CAN ID, position (rad), velocity (rad/s), torque (Nm), temperature (Celsius).
         """
-        if data is not None:
+        if data is not None and len(data) >= 8:
             logging.debug(f"Received message with ID {hex(arbitration_id)}")
-            print(f"Received message with ID {hex(arbitration_id & 0xFF)}") # debug comm issue
-            # 解析电机CAN ID
+            
+            # Check if this is a motor feedback message (CMD mode 2)
+            cmd_mode = (arbitration_id >> 24) & 0xFF
+            if cmd_mode != 2:  # Only parse motor feedback messages
+                logging.debug(f"Skipping non-feedback message (CMD mode: {cmd_mode})")
+                return None, None, None, None, None
+            
+            # Parse motor CAN ID
             motor_can_id = (arbitration_id >> 8) & 0xFF
 
             pos = self._uint_to_float(
@@ -299,52 +308,69 @@ class CANMotorController:
             torque = self._uint_to_float(
                 (data[4] << 8) + data[5], self.T_MIN, self.T_MAX, self.TWO_BYTES_BITS
             )
-            # 解析温度数据
+            # Parse temperature data
             temperature_raw = (data[6] << 8) + data[7]
             temperature_celsius = temperature_raw / 10.0
             
-            logging.info(
+            # Only log motor status in debug mode to reduce clutter
+            logging.debug(
                 f"Motor CAN ID: {motor_can_id}, pos: {pos:.2f} rad, vel: {vel:.2f} rad/s, "
                 f"torque: {torque:.2f} Nm, temperature: {temperature_celsius:.1f} °C"
             )
             
             return motor_can_id, pos, vel, torque, temperature_celsius
+        elif data is not None:
+            # Only warn about insufficient data in debug mode
+            logging.debug(f"Received message with insufficient data length: {len(data)} bytes (expected 8)")
+            logging.debug(f"Data: {list(data)}")
+            return None, None, None, None, None
         else:
             logging.info("No message received within the timeout period.")
             return None, None, None, None, None
 
     def clear_can_rx(self, timeout=10):
         """
-        Clear all existing messages from receive buffer.
+        Clear all existing messages in the receive buffer.
 
-        Args:
-            timeout: Time to wait for clear operation in ms
+        Parameters:
+        timeout: Time to wait for clear operation (in milliseconds).
         """
         timeout_seconds = timeout / 1000.0  # Convert to seconds
         while True:
             received_msg = self.bus.recv(timeout=timeout_seconds)
             if received_msg is None:
                 break
-            logging.info(
-                f"Cleared message with ID {hex(received_msg.arbitration_id)}")
+            
+            # Only clear command response messages, not motor feedback
+            cmd_mode = (received_msg.arbitration_id >> 24) & 0xFF
+            if cmd_mode != 2:  # Don't clear motor feedback messages (CMD mode 2)
+                logging.info(
+                    f"Cleared message with ID {hex(received_msg.arbitration_id)}")
+            else:
+                # Parse motor feedback silently (don't log to reduce clutter)
+                try:
+                    result = self.parse_received_msg(received_msg.data, received_msg.arbitration_id)
+                    # Don't log here - let the calling function decide what to log
+                except Exception as e:
+                    logging.debug(f"Error parsing motor feedback: {e}")
 
     def _write_single_param(self, index, value, format="u32"):
         """
         Write single parameter.
 
-        Args:
-            index: Parameter index
-            value: Value to set
-            format: Data format
+        Parameters:
+        index: Parameter index.
+        value: Value to set.
+        format: Data format.
 
         Returns:
-            Parsed received message
+        Parsed received message.
         """
         encoded_data = self.format_data(
             data=[value], format=format, type="encode")
         data1 = [b for b in struct.pack("<I", index)] + encoded_data
 
-        self.clear_can_rx()  # 空CAN接收缓存, 避免读到老数据
+        self.clear_can_rx()  # Clear CAN receive buffer to avoid reading old data
 
         received_msg_data, received_msg_arbitration_id = self.send_receive_can_message(
             cmd_mode=self.CmdModes.SINGLE_PARAM_WRITE,
@@ -355,14 +381,14 @@ class CANMotorController:
 
     def write_single_param(self, param_name, value):
         """
-        Write single parameter by name.
+        Write single parameter by parameter name.
 
-        Args:
-            param_name: Parameter name
-            value: Value to set
+        Parameters:
+        param_name: Parameter name.
+        value: Value to set.
 
         Returns:
-            Write operation result
+        Result of write operation.
         """
         param_info = self.PARAMETERS.get(param_name)
         if param_info is None:
@@ -378,12 +404,12 @@ class CANMotorController:
         """
         Write parameter table.
 
-        Args:
-            param_name: Parameter name
-            value: Value to set
+        Parameters:
+        param_name: Parameter name.
+        value: Value to set.
 
         Returns:
-            Received message data and arbitration ID
+        Received message data and arbitration ID.
         """
         # Get the parameter info from PARAM_TABLE
         param_info = self.PARAM_TABLE.get(param_name)
@@ -440,9 +466,9 @@ class CANMotorController:
         Set motor mechanical zero point.
 
         Returns:
-            Parsed received message
+        Parsed received message.
         """
-        self.clear_can_rx()  # 清空CAN接收缓存, 避免读到老数据
+        self.clear_can_rx()  # Clear CAN receive buffer to avoid reading old data
 
         received_msg_data, received_msg_arbitration_id = self.send_receive_can_message(
             cmd_mode=self.CmdModes.SET_MECHANICAL_ZERO,
@@ -457,9 +483,9 @@ class CANMotorController:
         Enable motor operation.
 
         Returns:
-            Parsed received message
+        Parsed received message.
         """
-        self.clear_can_rx(0)  # 清空CAN接收缓存, 避免读到老数据
+        self.clear_can_rx(0)  # Clear CAN receive buffer to avoid reading old data
 
         received_msg_data, received_msg_arbitration_id = self.send_receive_can_message(
             cmd_mode=self.CmdModes.MOTOR_ENABLE, data2=self.MAIN_CAN_ID, data1=[]
@@ -471,9 +497,9 @@ class CANMotorController:
         Stop motor operation.
 
         Returns:
-            Parsed received message
+        Parsed received message.
         """
-        self.clear_can_rx(0)  # 空CAN接收缓存, 避免读到老数据
+        self.clear_can_rx(0)  # Clear CAN receive buffer to avoid reading old data
 
         received_msg_data, received_msg_arbitration_id = self.send_receive_can_message(
             cmd_mode=self.CmdModes.MOTOR_STOP,
@@ -484,13 +510,13 @@ class CANMotorController:
 
     def set_run_mode(self, mode):
         """
-        Set operation mode.
+        Set run mode.
 
-        Args:
-            mode: Operation mode (must be an instance of RunModes enum)
+        Parameters:
+        mode: Run mode, should be an instance of RunModes enum.
 
         Returns:
-            Write operation result
+        Result of write operation.
         """
         if not isinstance(mode, self.RunModes):
             raise ValueError(
@@ -501,37 +527,42 @@ class CANMotorController:
         """
         Set motor position control parameters in position mode.
 
-        Args:
-            limit_spd: Maximum motor speed
-            loc_ref: Target motor position
+        Parameters:
+        limit_spd: Maximum speed of the motor.
+        loc_ref: Target position of the motor.
+
+        Returns:
+        None.
         """
-        # 设置电机最大速度
+        # Set motor maximum speed
         self.write_single_param(param_name="limit_spd", value=limit_spd)
-        # 设置电机目标位置
+        # Set motor target position
         self.write_single_param(param_name="loc_ref", value=loc_ref)
 
-    def send_motor_control_command(self, torque, target_angle, target_velocity, Kp, Kd):
+    def send_motor_control_command(
+        self, torque, target_angle, target_velocity, Kp, Kd
+    ):
         """
         Send motor control command in motion control mode.
 
-        Args:
-            torque: Torque
-            target_angle: Target angle
-            target_velocity: Target velocity
-            Kp: Proportional gain
-            Kd: Derivative gain
+        Parameters:
+        torque: Torque.
+        target_angle: Target angle.
+        target_velocity: Target velocity.
+        Kp: Proportional gain.
+        Kd: Derivative gain.
 
         Returns:
-            Parsed received message
+        Parsed received message.
         """
 
-        # 生成29位的仲裁ID的组成部分
+        # Generate components of 29-bit arbitration ID
         cmd_mode = self.CmdModes.MOTOR_CONTROL
         torque_mapped = self._linear_mapping(
             torque, -12.0, 12.0, target_min=0, target_max=65535)
         data2 = torque_mapped
 
-        # 将实际值映射到消息值
+        # Map actual values to message values
         target_angle_mapped = self._linear_mapping(
             target_angle, -4 * math.pi, 4 * math.pi)
         target_velocity_mapped = self._linear_mapping(
@@ -539,17 +570,31 @@ class CANMotorController:
         Kp_mapped = self._linear_mapping(Kp, 0.0, 500.0)
         Kd_mapped = self._linear_mapping(Kd, 0.0, 5.0)
 
-        # 创建8字节的数据区
+        # Create 8-byte data area
         data1_bytes = struct.pack(
-            "HHHH", target_angle_mapped, target_velocity_mapped, Kp_mapped, Kd_mapped
+            ">HHHH", target_angle_mapped, target_velocity_mapped, Kp_mapped, Kd_mapped
         )
         data1 = [b for b in data1_bytes]
 
-        # 使用send_receive_can_message方法发送消息并接收响应
+        # Use send_receive_can_message method to send message and receive response
         received_msg_data, received_msg_arbitration_id = self.send_receive_can_message(
             cmd_mode=cmd_mode,
             data2=data2,
             data1=data1
         )
 
+        return self.parse_received_msg(received_msg_data, received_msg_arbitration_id)
+
+    def get_motor_status(self):
+        """
+        Actively request motor status feedback.
+
+        Returns:
+        Parsed received message.
+        """
+        received_msg_data, received_msg_arbitration_id = self.send_receive_can_message(
+            cmd_mode=self.CmdModes.MOTOR_FEEDBACK,
+            data2=self.MAIN_CAN_ID,
+            data1=[]
+        )
         return self.parse_received_msg(received_msg_data, received_msg_arbitration_id)
