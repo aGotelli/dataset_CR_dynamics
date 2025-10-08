@@ -9,25 +9,54 @@ import socket
 import json
 import numpy as np
 import csv
+import time
 
 
 class ViconClient:
-    def __init__(self, host, port):
+    def __init__(self, host, port, duration, output_file):
         print(f"🔧 Creating ViconClient instance for {host}:{port}")
         self.host = host
         self.port = port
+        self.duration = duration
+        self.output_file = output_file
         self.socket = None
-        """Try to connect to the TCP server"""
+
+        
+        # Try to connect to the TCP server
         try:
             self.socket = socket.socket()
             self.socket.connect((self.host, self.port))
-            print(f"Connected to {self.host}:{self.port}")
+            print(f"✅ Connected to {self.host}:{self.port}")
         except ConnectionRefusedError:
             print(f"Could not connect to {self.host}:{self.port}. Make sure the Vicon TCP server is running.")
             raise
         except Exception as e:
             print(f"Connection error: {e}")
             raise
+            
+        # Send setup immediately in constructor
+        if not self.send_setup(duration):
+            raise Exception("Failed to setup Vicon recording")
+            
+       
+        print(f"✅ Vicon client setup complete and thread ready to start")
+    
+    def acquire_data(self):
+        """        
+        1. Start recording
+        2. Wait for session completion
+        3. Get and save data
+        """
+
+        print(f"Vicon - Starting recording now...")
+        
+        # Start recording
+        self.start_recording()
+        # Wait for recording to complete
+        time.sleep(self.duration + 2)  # Extra time for completion
+            
+        # Get data and save it
+        self.get_data(self.output_file)
     
     def send_setup(self, duration=10):
         """Send setup message with specified duration"""
@@ -56,7 +85,7 @@ class ViconClient:
             print(f"Start recording error: {e}")
             return False
     
-    def get_data(self, csv_filename=None):
+    def get_data(self, csv_filename):
         """Get data from server and save to files"""
         try:
             print("Requesting data...")
@@ -64,8 +93,8 @@ class ViconClient:
             self.socket.sendall(json.dumps(get_data_cmd).encode())
             
             # Receive status message - double check connection
-            # status_response = self.socket.recv(1024).decode()
-            # print(f"Server status: {status_response}")
+            status_response = self.socket.recv(1024).decode()
+            print(f"Server status: {status_response}")
             
             # Receive data size and shape information
             data_size = int.from_bytes(self.socket.recv(4), 'big')
@@ -77,7 +106,7 @@ class ViconClient:
             
             # Receive column headers
             column_headers = json.loads(self.socket.recv(header_size).decode())
-            
+            [print(f"Column {i}: {col}") for i, col in enumerate(column_headers)]
             # Receive data
             data = b''
             while len(data) < data_size:
@@ -141,3 +170,20 @@ class ViconClient:
         if self.socket:
             self.socket.close()
             print("Connection closed")
+
+
+if __name__ == "__main__":
+    HOST = "127.0.0.1"      # Change to your Vicon server IP
+    PORT = 8080             # Change to your Vicon server port
+    DURATION = 10           # Duration in seconds
+    OUTPUT_FILE = "vicon_output.csv"
+
+    try:
+        client = ViconClient(HOST, PORT, DURATION, OUTPUT_FILE)
+        client.acquire_data()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        if 'client' in locals():
+            client.close()
+

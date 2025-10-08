@@ -11,7 +11,7 @@ class ATI_FTSensor:
     Simple ATI Force/Torque sensor data acquisition with threading support
     """
 
-    def __init__(self, device_channels, sampling_rate, name, duration, output_file):
+    def __init__(self, device_channels, sampling_rate, duration, output_file):
         """
         Initialize the sensor and configure DAQ task
         Pre-allocate memory and setup everything needed for acquisition
@@ -27,7 +27,6 @@ class ATI_FTSensor:
 
         self.device_channels = device_channels
         self.sampling_rate = sampling_rate
-        self.name = name
         self.duration = duration
         self.output_file = output_file
         
@@ -50,7 +49,7 @@ class ATI_FTSensor:
         
         # Pre-allocate memory 
         expected_samples = int(self.sampling_rate * duration)
-        buffer_samples = int(expected_samples * 1.2)  # Add 20% buffer to prevent overflow
+        buffer_samples = int(expected_samples * 3.0) 
         self.all_data = np.zeros((buffer_samples, self.num_channels + 1))  # +1 for timestamp
         
         # Create and configure DAQ task
@@ -67,14 +66,8 @@ class ATI_FTSensor:
         # Calculate initial bias (tare) using the configured task
         self.bias_voltages = self.calculate_bias(self.task)
             
-        # Create the acquisition thread
-        self.ATI_thread = threading.Thread(
-            target=self.acquire_data,
-            args=(duration, output_file),
-            name=f"ATI_{name}_Thread"
-        )        
-        print(f"✅ ATI F/T Sensor '{name}' initialized - {sampling_rate} Hz on {device_channels}")
-    
+        print(f"✅ ATI F/T Sensor initialized - {sampling_rate} Hz on {device_channels}")
+
     def calculate_bias(self, task, num_samples=100):
         """
         Calculate bias (tare) values by averaging multiple samples
@@ -111,28 +104,25 @@ class ATI_FTSensor:
         
         return bias_voltages
     
-    def acquire_data(self, duration, output_file="ati_data.csv"):
+    def acquire_data(self):
         """
         Acquire data for specified duration
         
         Args:
             duration: Acquisition time in seconds
             output_file: Output CSV filename
-        """        
-        print(f"ATI - Starting data acquisition for {duration} seconds...")
-        
+        """                
         try:
             # Use pre-allocated memory and pre-configured task
             all_data = self.all_data
-            print("✅ ATI: Using pre-allocated memory and configured task")
-            
-            start_time = time.time()
+           
             sample_count = 0
-            
+             
             print("ATI - Starting data collection...")
-            
+            start_time = time.time()
+
             # Main acquisition loop - direct use of persistent task
-            while (time.time() - start_time) < duration:
+            while (time.time() - start_time) < self.duration:
                 try:
                     # Read one sample from all channels using persistent task
                     raw_voltages = self.task.read(number_of_samples_per_channel=1)
@@ -151,7 +141,7 @@ class ATI_FTSensor:
 
                     # Check if we've reached the buffer limit
                     if sample_count >= all_data.shape[0]:
-                        print("Warning: ATI data buffer full, stopping acquisition early")
+                        print(f"Warning: ATI data buffer full, stopping acquisition early - buffer size {all_data.shape[0]} - samples collected {sample_count}")
                         break
                         
                     # # DEBUG --- Progress update every sampling_rate samples
@@ -176,7 +166,7 @@ class ATI_FTSensor:
             actual_data = all_data[:sample_count, :]
             
             # Save data to CSV
-            self.save_data(actual_data, output_file)
+            self.save_data(actual_data, self.output_file)
             
             return True
             
@@ -210,27 +200,41 @@ class ATI_FTSensor:
             writer.writerows(data)
 
         print(f"📁 ATIFT data saved to: {filename}")
-            
 
-# # def main():
-# #     """Main function - simple ATI data acquisition"""
-# #     print("=" * 60)
-# #     print("Simple ATI Force/Torque Sensor Data Acquisition")
-# #     print("=" * 60)
-   
-# #     duration = 10
-# #     rate = 2000
-# #     output = "data/test_data.csv"
-
-# #     sensor = ATI_FTSensor(sampling_rate=rate)
-# #     success = sensor.acquire_data(duration, output)
+    def cleanup(self):
+        """
+        Clean up resources - close DAQ task
+        """
+        if self.task:
+            try:
+                self.task.close()
+                print("✅ ATI DAQ task closed successfully")
+            except Exception as e:
+                print(f"⚠️ Error closing ATI DAQ task: {e}")
+            finally:
+                self.task = None
     
-# #     if success:
-# #         print(f"✅ Data acquisition completed successfully!")
-# #         print(f"📁 Data saved to: {output}")
-# #     else:
-# #         print("❌ Data acquisition failed!")
+
+def main():
+    """Main function - simple ATI data acquisition"""
+    print("=" * 60)
+    print("Simple ATI Force/Torque Sensor Data Acquisition")
+    print("=" * 60)
+    ATI_CHANNELS = "Dev1/ai0:5"
+    ATI_RATE = 1000
+    duration = 10
+    # rate = 2000
+    output = "data/test_data.csv"
+
+    sensor = ATI_FTSensor(ATI_CHANNELS, ATI_RATE, duration, output)
+    success = sensor.acquire_data()
+    
+    if success:
+        print(f"✅ Data acquisition completed successfully!")
+        print(f"📁 Data saved to: {output}")
+    else:
+        print("❌ Data acquisition failed!")
 
 
-# # if __name__ == "__main__":
-# #     main()
+if __name__ == "__main__":
+    main()

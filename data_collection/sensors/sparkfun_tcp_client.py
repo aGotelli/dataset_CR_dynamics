@@ -1,6 +1,7 @@
 import socket
 import json
 import sys
+import time
 
 class SparkfunClient:
 
@@ -49,6 +50,22 @@ class SparkfunClient:
             print(f"Start recording error: {e}")
             return False
     
+    def acquire_data(self):
+        """
+        Complete acquisition workflow:
+        1. Start recording
+        2. Wait for completion 
+        3. Server handles file saving automatically
+        """
+        print(f"Sparkfun - Starting recording now...")
+        
+        # Start recording
+        self.start_recording()
+        # Wait for recording to complete (server saves files automatically)
+        time.sleep(self.duration + 1)  # Extra time for completion
+        
+        print(f"Sparkfun - Recording completed!")
+    
     def close(self):
         """Close the connection"""
         if self.socket:
@@ -57,7 +74,7 @@ class SparkfunClient:
 
 def main():
     """Example usage of the SparkfunClient"""
-    folder = "test"
+    folder = "test5"
     duration = 5
     
     try:

@@ -36,35 +36,32 @@ public:
         WSAStartup(MAKEWORD(2,2), &wsa);
 #endif
 
+        // Initialize once at startup; setup_gyro configures recording on success
         setup_gyro();
-        if(m_gyro_api) {
-            m_gyro_api->setRecord(true, m_frequency);
-        }
     }
 
-
-    
     bool setup_gyro() 
     {
-        // Setup will be called when client sends setup command   
+        // Recreate the device cleanly
+        m_gyro_api.reset();
 #ifdef __linux__
         std::cout << "Using Linux I2C interface" << std::endl;
-        GyroAPI gyro_api = GyroAPI(); // Default Linux path: /dev/i2c-16
+        m_gyro_api = std::make_unique<GyroAPI>();
 #elif defined(_WIN32)
         std::cout << "Using Windows CH341 USB-to-I2C interface" << std::endl;
-        m_gyro_api = std::make_unique<GyroAPI>(); // Default Windows device: CH341
+        m_gyro_api = std::make_unique<GyroAPI>();
 #endif
 
         // Try both possible addresses
-        m_gyro_api->add_device(ISM330DHCX_ADDRESS_LOW); // Soldered address (0x6A) End effector right now
-        m_gyro_api->add_device(ISM330DHCX_ADDRESS_HIGH); // Default (unsoldered) address (0x6B) Middle one right now 
+        m_gyro_api->add_device(ISM330DHCX_ADDRESS_LOW);
+        m_gyro_api->add_device(ISM330DHCX_ADDRESS_HIGH);
 
-        // Check if any devices were successfully detected
         if (!m_gyro_api->statusCheck()) 
             return false;
-        
-        return true;
 
+        // Configure recording frequency after a healthy init
+        m_gyro_api->setRecord(true, m_frequency);
+        return true;
     }
     
     void start() {
@@ -106,17 +103,14 @@ public:
             }
             
             std::cout << "\tClient connected!" << std::endl;
-            
-            // Set timeout for client socket
-// #ifdef _WIN32
-//             DWORD timeout = 1000; // 1 second
-//             setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-// #else
-//             struct timeval tv;
-//             tv.tv_sec = 1;
-//             tv.tv_usec = 0;
-//             setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-// #endif
+
+            // Only re-init if device is unhealthy
+            std::cout << "\t\tCheck sensor status:" << std::endl;
+            if(!m_gyro_api || !m_gyro_api->statusCheck()) {
+                std::cout << "\t\t\tReset connection..." << std::endl;
+                setup_gyro();
+            } else
+                std::cout << "\t\t\tSensor ready" << std::endl;
             
             while(true) {
                 char buf[256];
@@ -157,11 +151,13 @@ public:
                     
                     std::cout << "\t\tFolder received: '" << m_folder_path << "'" << std::endl;
                     std::cout << "\t\tDuration received: " << m_duration << " seconds\n\n" << std::endl;
-                    send(client, "{\"status\": \"ready\"}", 19, 0);
+                    const std::string ready = "{\"status\": \"ready\"}";
+                    send(client, ready.c_str(), (int)ready.size(), 0);
                 } 
                 if(cmd.find("start") != std::string::npos) {
                     std::cout << "\tReceived START command" << std::endl;
-                    send(client, "{\"status\": \"Recording started\"}", 32, 0);
+                    const std::string started = "{\"status\": \"Recording started\"}";
+                    send(client, started.c_str(), (int)started.size(), 0);
                     
                     if(m_gyro_api && !m_folder_path.empty()) {
                         // Record start time
@@ -177,7 +173,7 @@ public:
                         
                         auto end_time = std::chrono::steady_clock::now();
                         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-                        std::cout << "\t🛑 Recording stopped after " << elapsed.count() << " ms" << std::endl;
+                        std::cout << "\t Recording stopped after " << elapsed.count() << " ms" << std::endl;
                     } else {
                         std::cout << "\t❌ Cannot start recording: gyro not initialized or folder not set" << std::endl;
                     }
@@ -187,7 +183,7 @@ public:
             }
             
             closesocket(client);
-            //std::cout << "Client disconnected" << std::endl;
+            std::cout << "Client disconnected" << std::endl;
         }
     }
 };

@@ -4,6 +4,7 @@ import numpy as np
 import signal
 import sys
 import time
+import csv
 
 from Vicon_py_v2 import ViconV2
 
@@ -56,6 +57,9 @@ class ViconTCPServer:
                                 data = self.vicon.data_matrix
                                 header = self.vicon.column_names
 
+
+                                
+
                                 data_bytes = data.tobytes()
                                 column_bytes = json.dumps(header).encode()
 
@@ -66,8 +70,33 @@ class ViconTCPServer:
                                 conn.sendall(column_bytes)
                                 conn.sendall(data_bytes)
                                 print("Data sent")
+                                self.save_as_csv(data, header, "prova.csv")
                 except socket.timeout:
                     continue  # Check for Ctrl+C and continue listening
+
+
+    def save_as_csv(self, matrix, headers, csv_filename):
+        """Save Vicon data as CSV file with proper headers and optimized writing"""
+        if matrix is None or matrix.size == 0:
+            print("❌ No Vicon data to save")
+            return False
+            
+        num_samples, num_cols = matrix.shape
+            
+        # Validate headers match data dimensions
+        if len(headers) != num_cols:
+            print(f"⚠️ Header count ({len(headers)}) doesn't match data columns ({num_cols})")
+            # Create generic headers if mismatch
+            headers = [f"col_{i}" for i in range(num_cols)]
+            headers[0] = "timestamp"  # First column should be timestamp
+            
+        # Write CSV with optimized approach
+        with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(headers)
+            writer.writerows(matrix)
+        print(f"📁 Vicon CSV saved: {csv_filename}")            
+        return True
 
 def signal_handler(sig, frame):
     print("\nStopping server...")

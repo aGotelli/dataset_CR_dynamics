@@ -15,7 +15,7 @@ void GyroAPI::startUpdateLoop(char *folder_name)
     std::ofstream *file_stream = new std::ofstream();
     file_stream->open(log_file_path);
     m_file_streams.emplace_back(file_stream);
-    *m_file_streams.back() << "time (us),x (mdps),y (mdps),z(mdps)\n";
+    *m_file_streams.back() << "time (us),x(mdps),y(mdps),z(mdps)\n";
 
     m_last_times.push_back(0);
   }
@@ -121,8 +121,8 @@ void GyroAPI::add_device(uint8_t address)
 
   // If successful
   m_devices.push_back(new_device);
-  std::cout << "✓ Added device with address 0x" << std::hex << (int)address << std::dec << std::endl;
-  std::cout << "  Device will log to sensor" << m_devices.size() - 1 << ".csv" << std::endl;
+  std::cout << "\tAdded device with address 0x" << std::hex << (int)address << std::dec << std::endl;
+  std::cout << "\t\tDevice will log to sensor" << m_devices.size() - 1 << ".csv" << std::endl;
 }
 
 void GyroAPI::flush()
@@ -176,6 +176,7 @@ void GyroAPI::stopUpdateLoop()
 
 void GyroAPI::gyro_thread()
 {
+
   while (m_run_thread)
   {
     for (int index = 0; index < m_devices.size(); index++)
@@ -190,18 +191,22 @@ void GyroAPI::gyro_thread()
       if ((1000000000.0 / (now_time - m_last_times[index]) <= m_frequency) && m_record)
       {
         double current_rate = 1000000000.0 / (now_time - m_last_times[index]);
-        std::cout << "\rCurrent rate: " << current_rate << " Hz     " << std::flush;
+        std::cout << "\rCurrent rate: " << current_rate << " Hz     " << std::endl; //std::flush;
         m_last_times[index] = now_time;
 
+        std::cout << "checkGyroStatus" << std::endl;
         // Test: bypass status check and try to read gyro data directly
         if (m_devices[index]->checkGyroStatus())
         {
+
+          std::cout << "gyroData" << std::endl;
           sfe_ism_data_t gyroData;
           m_devices[index]->getGyro(&gyroData);
-          now_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+          //now_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
           // std::cout << "[GYRO] Data: X=" << gyroData.xData << " Y=" << gyroData.yData << " Z=" << gyroData.zData << std::endl;
 
+          std::cout << "*m_file_streams[index]" << std::endl;
           *m_file_streams[index] << now_time
                                  << "," << gyroData.xData
                                  << "," << gyroData.yData
@@ -219,7 +224,7 @@ void GyroAPI::gyro_thread()
         }
         else
         {
-          std::cout << "[GYRO] Status check: Gyro data not ready for device " << index << ". Data will not be logged.\n";
+          std::cout << "[GYRO] Status check: Gyro data not ready for device " << index << ". Data will not be logged.\n" << std::endl;
         }
       }
     }

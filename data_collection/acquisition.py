@@ -12,14 +12,14 @@ import math
 # Import all sensor classes
 from sensors.sensor_ati_ft import ATI_FTSensor
 from sensors.vicon_client import ViconClient
-from sensors.gyros.simple_gyro import GYROSensor
-from sensors.simple_motor_tension_measure import MotorController
+from sensors.sparkfun_tcp_client import SparkfunClient
+# from sensors.simple_motor_tension_measure import MotorController
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
         initialization of sensors
         run acquisition"""
-    def __init__(self, experiment_dir, duration, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, motor1_cfg, motor2_cfg, motor_frequency):
+    def __init__(self, experiment_dir, duration, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, sparkfun_host, sparkfun_port, motor1_cfg, motor2_cfg, motors_frequency):
         
         # Basic setup
         self.experiment_dir = experiment_dir
@@ -32,6 +32,8 @@ class SensorContainer:
         self.mark10_rate = mark10_rate
         self.vicon_host = vicon_host
         self.vicon_port = vicon_port
+        self.sparkfun_host = sparkfun_host
+        self.sparkfun_port = sparkfun_port
         # self.motor1_id = motor1_id
         # self.motor2_id = motor2_id
         
@@ -39,90 +41,93 @@ class SensorContainer:
         self.ati_sensor = None
         self.mark10_sensors = []
         self.vicon_client = None
+        self.sparkfun_client = None
         self.motor_controller = None
-        self.imu_sensor = None
         
         # ATI sensor initialization
         try:
             self.ati_sensor = ATI_FTSensor(
                 device_channels=ati_channels,
                 sampling_rate=ati_rate,
+                duration=duration,
+                output_file=os.path.join(self.experiment_dir, "ati_data.csv")
             )
             print("✅ ATI F/T sensor ready")
         except Exception as e:
             self.ati_sensor = None
             print(f"❌ ATI setup failed: {e}")
         
-        # Mark-10 sensors initialization
+        # # Mark-10 sensors initialization
         
         
-        # Motor controller initialization
-        try:
-            self.controller = MotorController(
-                motor1_cfg, motor2_cfg, duration, motor_frequency, experiment_dir
-            )
-            print("✅ Motors ready")
-        except Exception as e:
-            self.ati_sensor = None
-            print(f"❌ Motors setup failed: {e}")
+        # # Motor controller initialization
+        # try:
+        #     self.controller = MotorController(
+        #         motor1_cfg, motor2_cfg, duration, motor_frequency, experiment_dir
+        #     )
+        #     print("✅ Motors ready")
+        # except Exception as e:
+        #     self.ati_sensor = None
+        #     print(f"❌ Motors setup failed: {e}")
         
               
+        # Vicon client initialization
+        # # try:
+        # #     self.vicon_client = ViconClient(
+        # #         host=vicon_host,
+        # #         port=vicon_port,
+        # #         duration=duration,
+        # #         output_file=os.path.join(self.experiment_dir, "vicon_data.csv")
+        # #     )
+        # #     print("✅ Vicon client ready")
+        # # except Exception as e:
+        # #     self.vicon_client = None
+        # #     print(f"❌ Vicon setup failed: {e}")
 
-        # # Vicon client initialization
-        # try:
-        #     self.vicon_client = ViconClient(vicon_host, vicon_port)
-        #     print("✅ Vicon client ready")
-        # except Exception as e:
-        #     print(f"❌ Vicon setup failed: {e}")
-        
-        # IMU sensor initialization  
+        # Sparkfun IMU client initialization
         try:
-            self.imu_sensor = GYROSensor()
-            print("✅ IMU sensor ready")
+            self.sparkfun_client = SparkfunClient()
+            # Setup with experiment folder and duration
+            self.sparkfun_client.send_setup(self.experiment_dir, duration)
+            print("✅ Sparkfun IMU client ready")
         except Exception as e:
-            self.imu_sensor = None
-            print(f"❌ IMU setup failed: {e}")
+            self.sparkfun_client = None
+            print(f"❌ Sparkfun IMU setup failed: {e}")
         
 
     def create_readME(self):
         #temporary
         pass
 
-
-    def vicon_thread(self,duration):
-        try:
-            if self.vicon_client:
-                print("Vicon - Starting recording...")
-                self.vicon_client.send_setup(duration)
-                self.vicon_client.start_recording()                    
-                # Wait for recording to complete
-                time.sleep(duration + 2)  # Extra time for completion
-                   
-                # Get data and save it
-                csv_filename = os.path.join(self.experiment_dir, "vicon_data.csv")
-                self.vicon_client.get_data(csv_filename)
-                matrix, headers = self.vicon_client.get_data(csv_filename)
-                if matrix is not None: #---- !! no longer needed npy and json formats
-                    # No longer moving .npy and .json files since they're not created
-                    import glob
-                    for file_pattern in ["vicon_data_*.npy", "vicon_headers_*.json"]:
-                        for file_path in glob.glob(file_pattern):
-                            import shutil
-                            dest_path = os.path.join(self.experiment_dir, os.path.basename(file_path))
-                            shutil.move(file_path, dest_path)
-                            print(f"📁 Moved {file_path} to {dest_path}")
-                    print("✅ Vicon data acquisition completed")
-                else:
-                    print("❌ Failed to get Vicon data")
-        except Exception as e:
-            print(f"❌ Vicon acquisition error: {e}") 
-
     def run_acquisition(self, duration):
         """Run synchronized data acquisition"""
         
         self.create_readME()
-        #prepare vicon to receive data
 
+        # ATI sensor thread
+        if self.ati_sensor:
+            ati_thread = threading.Thread(
+                target=self.ati_sensor.acquire_data,
+                name="ATI_Thread"
+            )
+            self.threads.append(ati_thread)
+        
+        # # # # Vicon sensor thread
+        # # # if self.vicon_client:
+        # # #     vicon_thread = threading.Thread(
+        # # #         target=self.vicon_client.acquire_data,
+        # # #         name="ViconThread"
+        # # #     )
+        # # #     self.threads.append(vicon_thread)
+        
+        # Sparkfun IMU sensor thread
+        if self.sparkfun_client:
+            sparkfun_thread = threading.Thread(
+                target=self.sparkfun_client.acquire_data,
+                name="SparkfunThread"
+            )
+            self.threads.append(sparkfun_thread)
+        
         
         print(f"\n🎬Press ENTER to start acquisition...")
         input()
@@ -136,38 +141,24 @@ class SensorContainer:
         print("1...")
         time.sleep(1)
         print("GO!")
-                
-        # ATI sensor thread
-        if self.ati_sensor:
-            self.ati_sensor.ATI_thread.start()
-            self.threads.append(self.ati_sensor.ATI_thread)
-        
-        # gyro sensor thread
-        if self.imu_sensor:
-            gyro_thread = threading.Thread(
-                target=self.imu_sensor.acquire_data,
-                args=(duration, os.path.join(self.experiment_dir, "imu_data.csv"))
-            )
-            gyro_thread.start()
-            self.threads.append(gyro_thread)
-        # # Vicon thread
-        # if self.vicon_client:
-        #     vicon_thread = threading.Thread(
-        #         target=self.vicon_thread,
-        #         args=(duration)
-        #     )
-        #     vicon_thread.start()
-        #     self.threads.append(vicon_thread)
-            
-        # Wait for all threads to complete
 
-        time.sleep(duration)
+        # Start all sensor threads simultaneously
+        for thread in self.threads:
+            thread.start()
+
+        # Wait for all threads to complete
         for thread in self.threads:
             thread.join()
-        
+
         # Cleanup sensors
-        if self.imu_sensor:
-            self.imu_sensor.cleanup()
+        if self.ati_sensor:
+            self.ati_sensor.cleanup()
+        if self.sparkfun_client:
+            self.sparkfun_client.close()
+        if self.vicon_client:
+            self.vicon_client.close()
+
+        print("🧹 All sensors cleaned up successfully")
 
         
 def setup_experiment_folder(experiment_name, output_base_dir):
@@ -188,8 +179,8 @@ def main():
 
     # Configuration
     EXPERIMENT_NAME = "test_experiment"
-    DURATION = 10  # seconds 
-    OUTPUT_DIR = "data"
+    DURATION = 5  # seconds 
+    OUTPUT_DIR = os.path.abspath("data")  # absolute path
     
     # ATI config
     ATI_CHANNELS = "Dev1/ai0:5"
@@ -202,6 +193,10 @@ def main():
     # Vicon config
     VICON_HOST = "192.168.10.2"
     VICON_PORT = 8080
+    
+    # Sparkfun IMU config
+    SPARKFUN_HOST = "localhost"
+    SPARKFUN_PORT = 9999
 
 
 
@@ -239,9 +234,11 @@ def main():
         mark10_rate=MARK10_RATE,
         vicon_host=VICON_HOST,
         vicon_port=VICON_PORT,
+        sparkfun_host=SPARKFUN_HOST,
+        sparkfun_port=SPARKFUN_PORT,
         motor1_cfg=MOTOR1_CFG,
         motor2_cfg=MOTOR2_CFG,
-        motor_frequency=MOTOR_FREQUENCY
+        motors_frequency=MOTOR_FREQUENCY
     )
 
     # Call the real acquisition

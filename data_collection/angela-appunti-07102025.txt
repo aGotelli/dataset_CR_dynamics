@@ -1,0 +1,13 @@
+copiato acquisition.py da vicon room
+messo thread per vicon perhce altrimenti acquire data blocca per tutto il tempo di acquisizione +2
+
+messo la costruzione dei thread nello script acquisition.py perhce allora sono riutilizzabili, senz memoria di stato
+
+
+ati - alzato buffer e aggiunto cleaning 
+gyro - funziona - quick plot .py per capire dati
+
+
+TODO
+
+vedi perche server gyro crash
