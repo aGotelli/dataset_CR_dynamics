@@ -127,8 +127,8 @@ def main():
     
     
     # Example 2: Multiple sensors with synchronized acquisition and plotting
-    # com_ports = ["COM4", "COM5"]  # Add "COM6", "COM7" for 4 sensors
-    com_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1"]  # For Linux
+    com_ports = ["COM4", "COM5"]  # Add "COM6", "COM7" for 4 sensors
+    # com_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1"]  # For Linux
     
     sensor = SimpleMark10(com_ports[1])
 
