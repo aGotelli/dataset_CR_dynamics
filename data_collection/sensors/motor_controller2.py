@@ -33,7 +33,8 @@ def get_current_angle(motor, max_retries=5, retry_delay=0.2):
 def sinusoidal_trajectory_offset(base_angle_deg, amplitude_deg=30, frequency=0.5, duration=10, sample_rate=10):
     """Generate sinusoidal trajectory starting from base angle"""
     t = np.linspace(0, duration, int(duration * sample_rate))
-    angles_deg =np.ones(len(t))*base_angle_deg #+ amplitude_deg * np.sin(2 * np.pi * frequency * t)
+    # angles_deg =np.ones(len(t))*base_angle_deg #+ amplitude_deg * np.sin(2 * np.pi * frequency * t)
+    angles_deg = base_angle_deg + amplitude_deg * np.sin(2 * np.pi * frequency * t)
     print(f"base angle: {base_angle_deg}")
     return t, angles_deg
 

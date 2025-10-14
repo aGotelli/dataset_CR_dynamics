@@ -3,6 +3,7 @@ import can
 import logging
 import enum
 import math
+import time
 
 
 class CANMotorController:
@@ -256,7 +257,7 @@ class CANMotorController:
         message = can.Message(
             arbitration_id=arbitration_id, data=data1, is_extended_id=True
         )
-
+        self.clear_can_rx(0)
         # Send the CAN message
         try:
             self.bus.send(message)
@@ -271,10 +272,12 @@ class CANMotorController:
         # Receive a CAN message with a 1-second timeout
         # 1-second timeout for receiving
         received_msg = self.bus.recv(timeout=1)
-        if received_msg:
+        if received_msg and received_msg.data != b'': 
             return received_msg.data, received_msg.arbitration_id
         else:
-            return None, None
+            # somehow enable and status commands sends an extra b'' message, so we read again if that happens
+            received_msg = self.bus.recv(0.01)
+            return received_msg.data, received_msg.arbitration_id
 
     def parse_received_msg(self, data, arbitration_id):
         """
@@ -289,13 +292,7 @@ class CANMotorController:
         """
         if data is not None and len(data) >= 8:
             logging.debug(f"Received message with ID {hex(arbitration_id)}")
-            
-            # Check if this is a motor feedback message (CMD mode 2)
-            cmd_mode = (arbitration_id >> 24) & 0xFF
-            if cmd_mode != 2:  # Only parse motor feedback messages
-                logging.debug(f"Skipping non-feedback message (CMD mode: {cmd_mode})")
-                return None, None, None, None, None
-            
+
             # Parse motor CAN ID
             motor_can_id = (arbitration_id >> 8) & 0xFF
 
