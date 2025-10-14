@@ -11,3 +11,28 @@ gyro - funziona - quick plot .py per capire dati
 TODO
 
 vedi perche server gyro crash
+vedi ati buffer
+motori funzionano
+
+controlla dove dargli traiettoria
+
+
+
+motorcontroller 
+problem
+1) tensione non e stabile, anche se ci arriva poi decade. lettura tensione - angoli non va bene
+2) non riesci a far andare la lettura, non cpaisco perche
+
+motorcontroller2
+ho provato con solo un motore. se non spengo i motori ma lascio acceso, e  giro il motore, non mi legge lo stato
+
+allora succeed che 1) se giro a motore acceso, mi segna sempre angolo iniziale, scatto, anche se giro il motore
+2) se spengo a riaccendo il coso bianco, allora mi fa scatto
+
+OKAAAY
+allora se accendo due motori, mi va in conflitto
+mi fa sempre il coso strano
+mnentre se accendo solo 1 no
+bus in conflitto???
+
+tbd

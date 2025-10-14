@@ -13,7 +13,7 @@ import math
 from sensors.sensor_ati_ft import ATI_FTSensor
 from sensors.vicon_client import ViconClient
 from sensors.sparkfun_tcp_client import SparkfunClient
-# from sensors.simple_motor_tension_measure import MotorController
+from sensors.motor_controller import MotorControl
 
 class SensorContainer:
     """Main coordinator for all sensors and actuators 
@@ -24,7 +24,8 @@ class SensorContainer:
         # Basic setup
         self.experiment_dir = experiment_dir
         self.threads = []
-        
+        self.duration=duration
+
         # Store all parameters for future use
         self.ati_channels = ati_channels
         self.ati_rate = ati_rate
@@ -34,22 +35,24 @@ class SensorContainer:
         self.vicon_port = vicon_port
         self.sparkfun_host = sparkfun_host
         self.sparkfun_port = sparkfun_port
+        self.motor1_cfg=motor1_cfg
+        self.motor2_cfg=motor2_cfg
+        self.motors_frequency=motors_frequency
         # self.motor1_id = motor1_id
         # self.motor2_id = motor2_id
         
         # Initialize sensors
         self.ati_sensor = None
-        self.mark10_sensors = []
         self.vicon_client = None
         self.sparkfun_client = None
-        self.motor_controller = None
+        self.motor_control = None
         
         # ATI sensor initialization
         try:
             self.ati_sensor = ATI_FTSensor(
-                device_channels=ati_channels,
-                sampling_rate=ati_rate,
-                duration=duration,
+                device_channels=self.ati_channels,
+                sampling_rate=self.ati_rate,
+                duration=self.duration,
                 output_file=os.path.join(self.experiment_dir, "ati_data.csv")
             )
             print("✅ ATI F/T sensor ready")
@@ -59,16 +62,22 @@ class SensorContainer:
         
         # # Mark-10 sensors initialization
         
-        
-        # # Motor controller initialization
-        # try:
-        #     self.controller = MotorController(
-        #         motor1_cfg, motor2_cfg, duration, motor_frequency, experiment_dir
-        #     )
-        #     print("✅ Motors ready")
-        # except Exception as e:
-        #     self.ati_sensor = None
-        #     print(f"❌ Motors setup failed: {e}")
+
+        # Motor controller with integrated Mark10 initialization
+        try:
+            self.motor_control = MotorControl(
+                motor1_id=self.motor1_cfg,
+                motor2_id=self.motor2_cfg, 
+                mark10_ports=self.mark10_ports,
+                mark10_rate=self.mark10_rate,
+                motors_frequency=self.motors_frequency,
+                experiment_dir=self.experiment_dir,
+                target_tension=50.0  # Configure as needed ???????????????????
+            )
+            print("✅ Motor controller with Mark10 sensors ready")
+        except Exception as e:
+            self.motor_control = None
+            print(f"❌ Motor controller setup failed: {e}")
         
               
         # Vicon client initialization
@@ -128,6 +137,14 @@ class SensorContainer:
             )
             self.threads.append(sparkfun_thread)
         
+        # Motor trajectory thread
+        if self.motor_control:
+            motor_thread = threading.Thread(
+                target=self.motor_control.run_trajectory_acquisition,
+                args=(duration, sine_trajectory, cosine_trajectory, 50),  # Use trajectory functions from main
+                name="MotorThread"
+            )
+            self.threads.append(motor_thread)
         
         print(f"\n🎬Press ENTER to start acquisition...")
         input()
@@ -157,6 +174,8 @@ class SensorContainer:
             self.sparkfun_client.close()
         if self.vicon_client:
             self.vicon_client.close()
+        if self.motor_control:
+            self.motor_control.cleanup()
 
         print("🧹 All sensors cleaned up successfully")
 
@@ -201,21 +220,21 @@ def main():
 
 
     # Define trajectory functions
-    def sine_trajectory(t):
+    def trajMotor1(t):
         """Sine wave trajectory."""
         amplitude = 0.5
         frequency = 0.5
         return amplitude * math.sin(2 * math.pi * frequency * t)
     
-    def cosine_trajectory(t):
+    def trajMotor2(t):
         """Cosine wave trajectory (90 degrees out of phase)."""
         amplitude = 1.0
         frequency = 0.5
         return amplitude * math.cos(2 * math.pi * frequency * t)
     
     # Create dual motor controller
-    MOTOR1_CFG = [3, "COM5", sine_trajectory]  # Lista - accesso per indice
-    MOTOR2_CFG = [4, "COM4", sine_trajectory]  # Lista - accesso per indice
+    MOTOR1_CFG = [3, "COM5", trajMotor1]  # [motor_id, com_port, trajectory_func]
+    MOTOR2_CFG = [4, "COM4", trajMotor2]  # [motor_id, com_port, trajectory_func]
 
     MOTOR_FREQUENCY = 50 # Hz
     
