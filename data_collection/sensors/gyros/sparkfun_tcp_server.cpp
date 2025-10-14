@@ -54,6 +54,7 @@ public:
 
         // Try both possible addresses
         m_gyro_api->add_device(ISM330DHCX_ADDRESS_LOW);
+        //std::this_thread::sleep_for(std::chrono::seconds(1));
         m_gyro_api->add_device(ISM330DHCX_ADDRESS_HIGH);
 
         if (!m_gyro_api->statusCheck()) 
@@ -105,12 +106,10 @@ public:
             std::cout << "\tClient connected!" << std::endl;
 
             // Only re-init if device is unhealthy
-            std::cout << "\t\tCheck sensor status:" << std::endl;
             if(!m_gyro_api || !m_gyro_api->statusCheck()) {
-                std::cout << "\t\t\tReset connection..." << std::endl;
+                std::cout << "\t\tReset Connection..." << std::endl;
                 setup_gyro();
-            } else
-                std::cout << "\t\t\tSensor ready" << std::endl;
+            }
             
             while(true) {
                 char buf[256];
@@ -206,4 +205,4 @@ int main(int argc, char **argv)
     
     return 0;
 }
-
+    
