@@ -19,7 +19,7 @@ class SensorContainer:
     """Main coordinator for all sensors and actuators 
         initialization of sensors
         run acquisition"""
-    def __init__(self, experiment_dir, duration, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, sparkfun_host, sparkfun_port, motor1_cfg, motor2_cfg, motors_frequency):
+    def __init__(self, experiment_dir, duration, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, sparkfun_host, sparkfun_port, motor1_cfg, motor2_cfg, motors_frequency, target_tension=None, motor_plan=None):
         
         # Basic setup
         self.experiment_dir = experiment_dir
@@ -38,6 +38,8 @@ class SensorContainer:
         self.motor1_cfg=motor1_cfg
         self.motor2_cfg=motor2_cfg
         self.motors_frequency=motors_frequency
+        self.target_tension = target_tension
+        self.motor_plan = motor_plan
         # self.motor1_id = motor1_id
         # self.motor2_id = motor2_id
         
@@ -60,19 +62,16 @@ class SensorContainer:
             self.ati_sensor = None
             print(f"❌ ATI setup failed: {e}")
         
-        # # Mark-10 sensors initialization
-        
-
-        # Motor controller with integrated Mark10 initialization
+        # Motor+Mark10 controller with integrated Mark10 initialization
         try:
             self.motor_control = MotorControl(
-                motor1_id=self.motor1_cfg,
-                motor2_id=self.motor2_cfg, 
+                motor1_cfg=self.motor1_cfg,
+                motor2_cfg=self.motor2_cfg, 
                 mark10_ports=self.mark10_ports,
                 mark10_rate=self.mark10_rate,
                 motors_frequency=self.motors_frequency,
                 experiment_dir=self.experiment_dir,
-                target_tension=50.0  # Configure as needed ???????????????????
+                target_tension=self.target_tension
             )
             print("✅ Motor controller with Mark10 sensors ready")
         except Exception as e:
@@ -113,6 +112,15 @@ class SensorContainer:
         
         self.create_readME()
 
+        # Run motor pretension before starting acquisition so tensions are ready
+        if self.motor_control:
+            print("ℹ️  Running motor pretension before acquisition...")
+            if not self.motor_control.pretension():
+                print("❌ Pretension failed; aborting acquisition.")
+                return
+            self.motor_control.configure_axis_trajectories(duration, self.motor_plan)
+            print("✅ Pretension completed. Proceeding with acquisition setup.")
+
         # ATI sensor thread
         if self.ati_sensor:
             ati_thread = threading.Thread(
@@ -121,13 +129,13 @@ class SensorContainer:
             )
             self.threads.append(ati_thread)
         
-        # # # # Vicon sensor thread
-        # # # if self.vicon_client:
-        # # #     vicon_thread = threading.Thread(
-        # # #         target=self.vicon_client.acquire_data,
-        # # #         name="ViconThread"
-        # # #     )
-        # # #     self.threads.append(vicon_thread)
+        # Vicon sensor thread
+        if self.vicon_client:
+            vicon_thread = threading.Thread(
+                target=self.vicon_client.acquire_data,
+                name="ViconThread"
+            )
+            self.threads.append(vicon_thread)
         
         # Sparkfun IMU sensor thread
         if self.sparkfun_client:
@@ -141,7 +149,7 @@ class SensorContainer:
         if self.motor_control:
             motor_thread = threading.Thread(
                 target=self.motor_control.run_trajectory_acquisition,
-                args=(duration, sine_trajectory, cosine_trajectory, 50),  # Use trajectory functions from main
+                args=(duration,),
                 name="MotorThread"
             )
             self.threads.append(motor_thread)
@@ -208,6 +216,7 @@ def main():
     # Mark10 config
     MARK10_PORTS = ["COM4", "COM5"]
     MARK10_RATE = 350
+    TARGET_TENSION = -5.0  # N
     
     # Vicon config
     VICON_HOST = "192.168.10.2"
@@ -237,9 +246,7 @@ def main():
     MOTOR2_CFG = [4, "COM4", trajMotor2]  # [motor_id, com_port, trajectory_func]
 
     MOTOR_FREQUENCY = 50 # Hz
-    
-
-    
+        
     EXPERIMENT_DIR = setup_experiment_folder(EXPERIMENT_NAME, OUTPUT_DIR)
     
 
@@ -257,27 +264,12 @@ def main():
         sparkfun_port=SPARKFUN_PORT,
         motor1_cfg=MOTOR1_CFG,
         motor2_cfg=MOTOR2_CFG,
-        motors_frequency=MOTOR_FREQUENCY
+        motors_frequency=MOTOR_FREQUENCY,
+        target_tension=TARGET_TENSION
     )
 
     # Call the real acquisition
     sensor_container.run_acquisition(DURATION)
-
-        # # # # OPTION 1: Run synchronized acquisition with tension control
-        # # # acquisition.run_tension_controlled_acquisition(
-        # # #     experiment_name=EXPERIMENT_NAME,
-        # # #     duration=DURATION,
-        # # #     additional_info="Test experiment with tension-controlled trajectories",
-        # # # )
-        
-        # # # # OPTION 2: Run synchronized acquisition with classic trajectories (DEFAULT)
-        # # # acquisition.run_synchronized_acquisition(
-        # # #     experiment_name=EXPERIMENT_NAME,
-        # # #     duration=DURATION,
-        # # #     trajectory_func1=slow_sine,  # sine_trajectory_motor1,
-        # # #     trajectory_func2=fast_cosine,  # cosine_trajectory_motor2,
-        # # #     additional_info="Test experiment with sine/cosine trajectories",
-        # # # )
         
     print("🎉 Experiment completed successfully!")
 
