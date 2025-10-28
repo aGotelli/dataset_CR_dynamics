@@ -10,26 +10,16 @@ import math
 import numpy as np
 
 def get_current_angle(motor, max_retries=5, retry_delay=0.2):
-    """Get current motor angle with more aggressive retry for critical operations"""
+    """Get current motor angle with retry mechanism"""
     for attempt in range(max_retries):
-        try:
-            status = motor.get_motor_status()
-            print(status)
-            if status and len(status) > 1 and status[0] is not None:
-                angle_rad = status[1]
-                angle_deg = math.degrees(angle_rad)
-                print(f"Successfully read angle: {angle_deg:.2f}° (attempt {attempt+1})")
-                return angle_rad, angle_deg
-            else:
-                logging.warning(f"Invalid status format or None data (attempt {attempt+1}/{max_retries})")
-        except Exception as e:
-            logging.warning(f"Exception reading status (attempt {attempt+1}/{max_retries}): {e}")
+        status = motor.get_motor_status()
+        print(f"Motor {status[0]} pos: {status[1] if status else None}")
+        if status and len(status) > 1:
+            return status[1], math.degrees(status[1]) #rad, deg
         
         if attempt < max_retries - 1:
             time.sleep(retry_delay)
-    
-    logging.error(f"CRITICAL: Failed to read motor position after {max_retries} attempts")
-    return None, None
+
 def sinusoidal_trajectory_offset(base_angle_deg, amplitude_deg=30, frequency=0.5, duration=10, sample_rate=10):
     """Generate sinusoidal trajectory starting from base angle"""
     t = np.linspace(0, duration, int(duration * sample_rate))
@@ -133,11 +123,11 @@ class Mark10Sensor:
         if self.serial_connection and self.serial_connection.is_open:
             self.serial_connection.close()
             print(f"Serial connection to {self.com_port} closed")
-def motorClean(motor1):#,motor2):
+def motorClean(motor1,motor2):
         motor1.disable()
         motor1.set_0_pos()
-        # motor2.disable()
-        # motor2.set_0_pos()
+        motor2.disable()
+        motor2.set_0_pos()
 
 
 def main():
@@ -188,7 +178,7 @@ def main():
         logging.info("Interrupted by user")
     finally:
         try:
-            motorClean(motor1)#,,motor2)
+            motorClean(motor1,motor2)
             bus.shutdown()
         except:
             pass

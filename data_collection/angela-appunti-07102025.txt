@@ -36,3 +36,97 @@ mnentre se accendo solo 1 no
 bus in conflitto???
 
 tbd
+
+21/10/2025
+
+
+- test motors 2 +4
+assemble robot
+test tensioning 
+
+trajectories bend on X - Y - circle - sin waves
+
+
+22/10
+motor_controller.py new function for motor functioning
+tiene traccia dell'utlim angolo memorizzato, cosi in caso non leggesse l'attuale ha l'ultimo, nel caso in cui non ha una lettura valida gia dall'inizio non va avanti.
+
+
+23/10
+motori non funzionano
+
+def pretension_single_motor(motor,mark10_sensor,target_tension,direction=1,max_angle_change=2.0,step_size=0.01,wait_time=0.2,tolerance=0.1):
+    # """Pretension a single motor using positive target tension-negative M10 readings are handled."""
+    """ Pretension a single motor. Tension of M10 is read as negative"""
+    angle_rad, _ = motor.get_current_angle()
+    current_angle = angle_rad
+
+    max_steps = int(max_angle_change / step_size)
+    tension = mark10_sensor.get_tension()
+
+    for step in range(max_steps):
+        abs_tension = abs(tension)
+        abs_target = abs(target_tension)# useless but be sure positive tensions are compared with positive tensions
+        error = abs_target - abs_tension
+
+        print(
+            f"Motor {motor.motor_id} pretension step {step + 1}: "
+            f"angle={current_angle:.4f} rad, tension={tension:.3f} N "
+            f"(abs {abs_tension:.3f} vs target {abs_target:.3f}, error {error:.3f})"
+        )
+
+        if abs(error) <= tolerance:
+            return True, current_angle, tension
+
+        if abs_tension < abs_target:
+            current_angle += direction * step_size
+        else:
+            current_angle -= direction * step_size
+        motor.command(current_angle)
+
+        time.sleep(wait_time)
+        tension = mark10_sensor.get_tension()
+
+    print(
+        f"⚠️  Motor {motor.motor_id}: pretension max steps reached "
+        f"(final tension {tension:.3f} N, abs {abs(tension):.3f} N)"
+    )
+    return False, current_angle, tension
+
+
+def run_pretensioning_thread(motor1,motor2,sensor1,sensor2,target_tension,direction1=1,direction2=-1):
+    """Run pretension on both motors in parallel."""
+
+    results = {"motor1": None, "motor2": None}
+
+    def pretension_motor(motor, sensor, direction, key):
+        try:
+            success, angle, tension = pretension_single_motor(
+                motor, sensor, target_tension, direction=direction
+            )
+            results[key] = (success, angle, tension)
+        except Exception as exc:
+            print(f"❌ Pretension motor {motor.motor_id} failed: {exc}")
+            results[key] = (False, None, None)
+
+    thread1 = threading.Thread(
+        target=pretension_motor, args=(motor1, sensor1, direction1, "motor1")
+    )
+    thread2 = threading.Thread(
+        target=pretension_motor, args=(motor2, sensor2, direction2, "motor2")
+    )
+
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
+
+    ok1 = results["motor1"][0] if results["motor1"] else False
+    ok2 = results["motor2"][0] if results["motor2"] else False
+    print(
+        f"ℹ️  Pretension results -> motor1: {results['motor1']}, motor2: {results['motor2']}"
+    )
+    return ok1 and ok2
+
+tolto questo blocco di codice da riga 124 di motor controller e sostituito con forza bruta fino a 300 iterazioni
+

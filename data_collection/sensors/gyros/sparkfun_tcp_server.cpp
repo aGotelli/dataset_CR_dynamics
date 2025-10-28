@@ -105,11 +105,11 @@ public:
             
             std::cout << "\tClient connected!" << std::endl;
 
-            // Only re-init if device is unhealthy
-            if(!m_gyro_api || !m_gyro_api->statusCheck()) {
-                std::cout << "\t\tReset Connection..." << std::endl;
-                setup_gyro();
-            }
+            // // Only re-init if device is unhealthy
+            // if(!m_gyro_api || !m_gyro_api->statusCheck()) {
+            //     std::cout << "\t\tReset Connection..." << std::endl;
+            //     setup_gyro();
+            // }
             
             while(true) {
                 char buf[256];

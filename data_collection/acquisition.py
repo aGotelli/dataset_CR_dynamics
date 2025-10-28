@@ -19,7 +19,7 @@ class SensorContainer:
     """Main coordinator for all sensors and actuators 
         initialization of sensors
         run acquisition"""
-    def __init__(self, experiment_dir, duration, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, sparkfun_host, sparkfun_port, motor1_cfg, motor2_cfg, motors_frequency, target_tension=None, motor_plan=None):
+    def __init__(self, experiment_dir, duration, ati_channels, ati_rate, mark10_ports, mark10_rate, vicon_host, vicon_port, sparkfun_host, sparkfun_port, motor1_cfg, motor2_cfg, motors_frequency, target_tension=None):
         
         # Basic setup
         self.experiment_dir = experiment_dir
@@ -39,7 +39,6 @@ class SensorContainer:
         self.motor2_cfg=motor2_cfg
         self.motors_frequency=motors_frequency
         self.target_tension = target_tension
-        self.motor_plan = motor_plan
         # self.motor1_id = motor1_id
         # self.motor2_id = motor2_id
         
@@ -49,18 +48,18 @@ class SensorContainer:
         self.sparkfun_client = None
         self.motor_control = None
         
-        # ATI sensor initialization
-        try:
-            self.ati_sensor = ATI_FTSensor(
-                device_channels=self.ati_channels,
-                sampling_rate=self.ati_rate,
-                duration=self.duration,
-                output_file=os.path.join(self.experiment_dir, "ati_data.csv")
-            )
-            print("✅ ATI F/T sensor ready")
-        except Exception as e:
-            self.ati_sensor = None
-            print(f"❌ ATI setup failed: {e}")
+        # # # ATI sensor initialization
+        # # try:
+        # #     self.ati_sensor = ATI_FTSensor(
+        # #         device_channels=self.ati_channels,
+        # #         sampling_rate=self.ati_rate,
+        # #         duration=self.duration,
+        # #         output_file=os.path.join(self.experiment_dir, "ati_data.csv")
+        # #     )
+        # #     print("✅ ATI F/T sensor ready")
+        # # except Exception as e:
+        # #     self.ati_sensor = None
+        # #     print(f"❌ ATI setup failed: {e}")
         
         # Motor+Mark10 controller with integrated Mark10 initialization
         try:
@@ -92,15 +91,15 @@ class SensorContainer:
         # #     self.vicon_client = None
         # #     print(f"❌ Vicon setup failed: {e}")
 
-        # Sparkfun IMU client initialization
-        try:
-            self.sparkfun_client = SparkfunClient()
-            # Setup with experiment folder and duration
-            self.sparkfun_client.send_setup(self.experiment_dir, duration)
-            print("✅ Sparkfun IMU client ready")
-        except Exception as e:
-            self.sparkfun_client = None
-            print(f"❌ Sparkfun IMU setup failed: {e}")
+        # # # Sparkfun IMU client initialization
+        # # try:
+        # #     self.sparkfun_client = SparkfunClient()
+        # #     # Setup with experiment folder and duration
+        # #     self.sparkfun_client.send_setup(self.experiment_dir, duration)
+        # #     print("✅ Sparkfun IMU client ready")
+        # # except Exception as e:
+        # #     self.sparkfun_client = None
+        # #     print(f"❌ Sparkfun IMU setup failed: {e}")
         
 
     def create_readME(self):
@@ -115,36 +114,48 @@ class SensorContainer:
         # Run motor pretension before starting acquisition so tensions are ready
         if self.motor_control:
             print("ℹ️  Running motor pretension before acquisition...")
-            if not self.motor_control.pretension():
-                print("❌ Pretension failed; aborting acquisition.")
-                return
-            self.motor_control.configure_axis_trajectories(duration, self.motor_plan)
-            print("✅ Pretension completed. Proceeding with acquisition setup.")
-
+            choice = input("Press 1 for running pretensioning, 2 to skip: ")
+            # default to False so `flag` is always defined
+            flag = False
+            if choice.strip() == "1":
+                flag = True
+            elif choice.strip() == "2":
+                flag = False
+            successm1, successm2 = self.motor_control.pretension(flag)
+            if successm1 and successm2:
+                self.motor_control._build_relative_trajectory()
+                print("✅ Pretension completed")
+            else:
+                print(f"❌ Pretension failed; Motor1: {successm1}, Motor2: {successm2}; aborting acquisition.")
+            
+        
         # ATI sensor thread
-        if self.ati_sensor:
-            ati_thread = threading.Thread(
-                target=self.ati_sensor.acquire_data,
-                name="ATI_Thread"
-            )
-            self.threads.append(ati_thread)
+        # if self.ati_sensor:
+        #     ati_thread = threading.Thread(
+        #         target=self.ati_sensor.acquire_data,
+        #         name="ATI_Thread"
+        #     )
+        #     self.threads.append(ati_thread)
         
         # Vicon sensor thread
-        if self.vicon_client:
-            vicon_thread = threading.Thread(
-                target=self.vicon_client.acquire_data,
-                name="ViconThread"
-            )
-            self.threads.append(vicon_thread)
+        # if self.vicon_client:
+        #     vicon_thread = threading.Thread(
+        #         target=self.vicon_client.acquire_data,
+        #         name="ViconThread"
+        #     )
+        #     self.threads.append(vicon_thread)
         
-        # Sparkfun IMU sensor thread
-        if self.sparkfun_client:
-            sparkfun_thread = threading.Thread(
-                target=self.sparkfun_client.acquire_data,
-                name="SparkfunThread"
-            )
-            self.threads.append(sparkfun_thread)
-        
+        # # Sparkfun IMU sensor thread
+        # if self.sparkfun_client:
+        #     sparkfun_thread = threading.Thread(
+        #         target=self.sparkfun_client.acquire_data,
+        #         name="SparkfunThread"
+        #     )
+        #     self.threads.append(sparkfun_thread)
+       
+       
+       
+
         # Motor trajectory thread
         if self.motor_control:
             motor_thread = threading.Thread(
@@ -153,7 +164,16 @@ class SensorContainer:
                 name="MotorThread"
             )
             self.threads.append(motor_thread)
+        #  #reading thread
+        # if self.motor_control:
+        #     motor_thread_read = threading.Thread(
+        #         target=self.motor_control.readVal,
+        #         args=(duration,),
+        #         name="Readhread"
+        #     )
+        #     self.threads.append(motor_thread_read)
         
+
         print(f"\n🎬Press ENTER to start acquisition...")
         input()
         
@@ -206,7 +226,7 @@ def main():
 
     # Configuration
     EXPERIMENT_NAME = "test_experiment"
-    DURATION = 5  # seconds 
+    DURATION = 2  # seconds 
     OUTPUT_DIR = os.path.abspath("data")  # absolute path
     
     # ATI config
@@ -216,7 +236,7 @@ def main():
     # Mark10 config
     MARK10_PORTS = ["COM4", "COM5"]
     MARK10_RATE = 350
-    TARGET_TENSION = -5.0  # N
+    TARGET_TENSION = 5.0  # N
     
     # Vicon config
     VICON_HOST = "192.168.10.2"
@@ -227,25 +247,44 @@ def main():
     SPARKFUN_PORT = 9999
 
 
-
-    # Define trajectory functions
-    def trajMotor1(t):
-        """Sine wave trajectory."""
-        amplitude = 0.5
-        frequency = 0.5
-        return amplitude * math.sin(2 * math.pi * frequency * t)
     
-    def trajMotor2(t):
-        """Cosine wave trajectory (90 degrees out of phase)."""
-        amplitude = 1.0
-        frequency = 0.5
-        return amplitude * math.cos(2 * math.pi * frequency * t)
-    
-    # Create dual motor controller
-    MOTOR1_CFG = [3, "COM5", trajMotor1]  # [motor_id, com_port, trajectory_func]
-    MOTOR2_CFG = [4, "COM4", trajMotor2]  # [motor_id, com_port, trajectory_func]
+    # Motor trajectories are described via dict; supported options:
+    #   - type: "ramp", "sine", "circle"
+    #   - axis: "x" / "y" (only for ramp/circle to select which motor moves)
+    #   - duration: seconds (used by ramp)
+    #   - max_deg: target angle in degrees (ramp)
+    #   - target_deg: alternative key for ramp absolute target
+    #   - amplitude_deg: amplitude of sine/cosine (degrees)
+    #   - frequency_hz: frequency for oscillatory/circular motion
+    #   - radius_deg: circle radius in degrees (circle)
+    # MotorControl builds absolute trajectories after pretension from these params.
+    MOTOR1_CFG = {
+        "id": 3,
+        "mark10_port": "COM5",
+        "trajectory": {
+            "type": "ramp",
+            "axis": "y",
+            "max_deg":1,# "type": "sine",
+            # "amplitude_deg": 60.0,
+            # "frequency_hz": 0.2,
+        },
+    }
 
-    MOTOR_FREQUENCY = 50 # Hz
+    MOTOR2_CFG = {
+        "id": 4,
+        "mark10_port": "COM4",
+        "trajectory": {
+            "type": "ramp",
+            "axis": "y",
+            "max_deg":-100,
+            # "type": "sine",
+            # "amplitude_deg": 20.0,
+            # "frequency_hz": 0.2,
+            # "start_delay": 0.5, #motor 2 needs to start after motor 1 
+        },
+    }
+
+    MOTOR_FREQUENCY = 60 # Hz
         
     EXPERIMENT_DIR = setup_experiment_folder(EXPERIMENT_NAME, OUTPUT_DIR)
     
@@ -269,9 +308,20 @@ def main():
     )
 
     # Call the real acquisition
-    sensor_container.run_acquisition(DURATION)
-        
-    print("🎉 Experiment completed successfully!")
+    try:
+        sensor_container.run_acquisition(DURATION)
+        print("🎉 Experiment completed successfully!")
+    except Exception as e:
+        # Cleanup sensors
+        if sensor_container.ati_sensor:
+            sensor_container.ati_sensor.cleanup()
+        if sensor_container.sparkfun_client:
+            sensor_container.sparkfun_client.close()
+        if sensor_container.vicon_client:
+            sensor_container.vicon_client.close()
+        if sensor_container.motor_control:
+            sensor_container.motor_control.cleanup()
+        print(f"❌ Acquisition failed: {e}")
 
 if __name__ == "__main__":
     main()

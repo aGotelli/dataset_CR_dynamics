@@ -8,6 +8,8 @@ import logging
 import time
 import math
 import numpy as np
+import csv
+from datetime import datetime
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -134,32 +136,66 @@ def main():
             print("q. Quit")
             
             choice = input("\nEnter your choice: ").strip()
-            
+            print(f"Initial angle: {initial_angle_deg}")
             if choice.lower() == 'q':
                 break
             elif choice == '1':
                 # Original manual control
                 try:
+                    dg,_=get_current_angle(motor)
                     increment = input(f"\nEnter angle increment in degrees: ")
                     increment_deg = float(increment)
                     target_angle_deg = initial_angle_deg + increment_deg
                     target_angle_rad = math.radians(target_angle_deg)
                     
-                    logging.info(f"Moving to {target_angle_deg:.2f}° (increment: {increment_deg:+.1f}°)")
+                    print(f"Current angle: {dg} -- Moving to {target_angle_deg:.2f}° - {target_angle_rad}rad (increment: {increment_deg:+.1f}°)")
                     
                     motor.set_motor_position_control(limit_spd=3, loc_ref=target_angle_rad)
-                    
+                    final_angle_rad =[]
+                    final_angle_deg=[]
+                    timestamp=[]
                     # Monitor for 5 seconds
-                    for i in range(10):
-                        time.sleep(0.5)
+                    start= time.time()
+                    while (time.time()-start)<2:
                         angle_rad, angle_deg = get_current_angle(motor)
+                        timestamp.append(time.time())
                         if angle_deg is not None:
+                            final_angle_rad.append(angle_rad)
+                            final_angle_deg.append(angle_deg)
+                            
                             error = target_angle_deg - angle_deg
-                            logging.info(f"  Current: {angle_deg:.2f}° | Target: {target_angle_deg:.1f}° | Error: {error:.2f}°")
+                            print(f"  Current: {angle_deg:.2f}° - {angle_rad}rad | Target: {target_angle_deg:.1f}° | Error: {error:.2f}°")
                     
+                    # Save the final position after monitoring (FUORI dal while)
+                    # Create absolute path to data directory
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    data_dir = os.path.join(script_dir, "data")
+                    os.makedirs(data_dir, exist_ok=True)
+                    csv_filename = os.path.join(data_dir, "VELmotor_positions.csv")
+                    print(f"Saving to: {csv_filename}")  # Debug: mostra dove salva
+                    
+                    # Check if file exists to write header
+                    file_exists = os.path.exists(csv_filename)
+                    
+                    with open(csv_filename, 'a', newline='') as csvfile:
+                        fieldnames = ['timestamp', 'angle_rad', 'angle_deg']
+                        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                        
+                        if not file_exists:
+                            writer.writeheader()
+                        
+                        # Scrivi ogni punto della traiettoria
+                        for ts, rad, deg in zip(timestamp, final_angle_rad, final_angle_deg):
+                            writer.writerow({
+                                'timestamp': ts,
+                                'angle_rad': rad,
+                                'angle_deg': deg,
+                            })
+                    
+                    print(f"Position data saved to {csv_filename}: {len(final_angle_deg)} points")
+                     
                 except ValueError:
-                    logging.error("Invalid input! Please enter a number.")
-                    
+                    logging.error("Invalid input! Please enter valid numbers.")  
             elif choice == '2':
                 # Simple sinusoidal trajectory
                 try:

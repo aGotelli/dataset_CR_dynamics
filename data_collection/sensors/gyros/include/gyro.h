@@ -24,6 +24,11 @@ public:
 #endif
     ~GyroAPI()
     {
+        for (auto &device : m_devices)
+        {
+            device->deviceReset(); 
+            delete device; 
+        }
         m_wire.end();
     }
 
