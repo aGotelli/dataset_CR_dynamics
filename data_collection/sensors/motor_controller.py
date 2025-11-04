@@ -18,7 +18,7 @@ class Motor:
 
     def __init__(self, motor_cfg, bus):
         self.motor_id = motor_cfg["id"]
-        self.max_speed = motor_cfg.get("max_speed", 6)
+        self.max_speed = motor_cfg.get("max_speed", 0.2)
         self.motor = CANMotorController(bus, motor_id=self.motor_id, main_can_id=254)
         self.motor.set_run_mode(self.motor.RunModes.POSITION_MODE)
         self.motor.enable()

@@ -30,12 +30,12 @@ def get_tension(m10):
 
 bus = can.interface.Bus(interface="candle", channel=0, bitrate=1000000)
 
-motor = CANMotorController(bus, motor_id=3, main_can_id=254)
+motor = CANMotorController(bus, motor_id=1, main_can_id=254)
 # Set to position mode
 motor.set_run_mode(motor.RunModes.POSITION_MODE)
 motor.enable()
 
-m10 = serial.Serial("COM5", baudrate=115200, timeout=0.1)
+# m10 = serial.Serial("COM5", baudrate=115200, timeout=0.1)
 
 
 status=motor.get_motor_status()
@@ -60,7 +60,7 @@ increment_deg = float(increment)
 increment_rad = math.radians(increment_deg)
 
 target_angle_rad=home_angle_rad+increment_rad
-motor.set_motor_position_control(limit_spd=1, loc_ref=target_angle_rad)
+motor.set_motor_position_control(limit_spd=1, loc_ref=target_angle_rad) 
 
 final_angle_rad =[]
 final_angle_deg=[]
@@ -71,7 +71,7 @@ cur_angle_rad=0.0
 cur_angle_deg=0.0
 # Monitor for 5 seconds
 start= time.time()
-while (time.time()-start)<2:
+while (time.time()-start)<5:
     try:
         status=motor.get_motor_status() # read angle
         cur_angle_rad=status[1]

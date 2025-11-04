@@ -13,7 +13,14 @@ parser = argparse.ArgumentParser(description="Read samples from ATI FT")
 parser.add_argument('duration', type=int, help="Duration to run the data collection (in seconds)")
 parser.add_argument('filename', type=str, help="Filename to save the data (CSV)")
 parser.add_argument('--channel', type=str, default='Dev1/ai0:5', help="NI-DAQ channel string (default: 'Dev1/ai0:5')")
+parser.add_argument('--start-time', type=float, default=None, help="Shared start timestamp (seconds)")
 args = parser.parse_args()
+
+if args.start_time is not None:
+    print(f"Using shared start time {args.start_time:.6f}")
+    start_time = args.start_time
+else:
+    start_time = time.time()
 
 channel = args.channel
 duration = args.duration

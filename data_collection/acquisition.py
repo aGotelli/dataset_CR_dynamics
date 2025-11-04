@@ -226,7 +226,7 @@ def main():
 
     # Configuration
     EXPERIMENT_NAME = "test_experiment"
-    DURATION = 2  # seconds 
+    DURATION = 10  # seconds 
     OUTPUT_DIR = os.path.abspath("data")  # absolute path
     
     # ATI config
@@ -276,7 +276,7 @@ def main():
         "trajectory": {
             "type": "ramp",
             "axis": "y",
-            "max_deg":-100,
+            "max_deg":-20,
             # "type": "sine",
             # "amplitude_deg": 20.0,
             # "frequency_hz": 0.2,

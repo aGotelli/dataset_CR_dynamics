@@ -19,7 +19,14 @@ parser = argparse.ArgumentParser(description="Read samples from Vicon")
 parser.add_argument('duration', type=int, help="Duration to run the data collection (in seconds)")
 parser.add_argument('filename', type=str, help="Filename to save the data")
 parser.add_argument('host', nargs='?', help="Host name, in the format of server:port", default="192.168.10.2:801")
+parser.add_argument('--start-time', type=float, default=None, help="Shared start timestamp (seconds)")
 args = parser.parse_args()
+
+if args.start_time is not None:
+    print(f"Using shared start time {args.start_time:.6f}")
+    start_time = args.start_time
+else:
+    start_time = time.time()
 
 duration = args.duration
 filename = args.filename
@@ -54,7 +61,6 @@ try:
     # print('Devices', client.IsDeviceDataEnabled())
     # print('Centroids', client.IsCentroidDataEnabled())
 
-    start_time = time.time()
     viconDataArray = np.zeros((duration * 110, 36))
     row_index = 0
 
