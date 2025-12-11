@@ -35,11 +35,14 @@ while time.time() - start_time < duration:
     ser.write("?\r".encode())
     response = ser.readline().decode().strip()
     try:
-        response_float = float(response)
+        # Extract only the numeric part (remove units like "lbF", "N", etc.)
+        # Split by space and take the first part (the number)
+        numeric_part = response.split()[0] if response.split() else response
+        response_float = float(numeric_part)
         if row_index < dataArray.shape[0]:
             dataArray[row_index] = [time.time(), response_float]
             row_index += 1
-    except ValueError:
+    except (ValueError, IndexError):
         print(f"Warning: Could not convert '{response}' to float")
     # print(response)
 

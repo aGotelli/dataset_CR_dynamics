@@ -1,0 +1,51 @@
+{
+	"backtrace" : 0,
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "sparkfun_ism330dhcx::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "sparkfun_tcp_server::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "test_dll_functions::@a44f0ac069e85531cdee"
+		},
+		{
+			"id" : "test_ch341::@a44f0ac069e85531cdee"
+		},
+		{
+			"id" : "test_unified_api::@a44f0ac069e85531cdee"
+		},
+		{
+			"id" : "test_simple_unified::@a44f0ac069e85531cdee"
+		},
+		{
+			"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "ALL_BUILD::@6890427a1f51a3e7e1df",
+	"isGeneratorProvided" : true,
+	"name" : "ALL_BUILD",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

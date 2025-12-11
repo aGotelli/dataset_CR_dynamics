@@ -74,7 +74,7 @@ class SparkfunClient:
 
 def main():
     """Example usage of the SparkfunClient"""
-    folder = "test5"
+    folder = "client_test_data_saving"
     duration = 5
     
     try:

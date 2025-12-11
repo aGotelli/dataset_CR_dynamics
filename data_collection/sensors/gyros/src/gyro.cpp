@@ -12,6 +12,7 @@ void GyroAPI::startUpdateLoop(char *folder_name)
   for (unsigned int i = 0; i < m_devices.size(); i++)
   {
     std::filesystem::path log_file_path = std::filesystem::path(folder_name) / std::filesystem::path("sensor" + std::to_string(i) + ".csv");
+    // std::filesystem::path log_file_path = std::filesystem::path("sensor" + std::to_string(i) + ".csv");
     std::ofstream *file_stream = new std::ofstream();
     file_stream->open(log_file_path);
     m_file_streams.emplace_back(file_stream);

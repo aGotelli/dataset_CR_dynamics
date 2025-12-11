@@ -28,7 +28,7 @@ parser.add_argument("--increment-deg", type=float, default=90.0, help="Ramp ampl
 parser.add_argument("--start-time", type=float, default=None, help="Shared start timestamp (seconds)")
 args = parser.parse_args()
 
-limit_speed = 0.2  # rad/s
+limit_speed = 0.25  # rad/s
 duration = args.duration
 increment_rad = math.radians(args.increment_deg)
 

@@ -191,14 +191,15 @@ int main(int argc, char **argv)
 {
 
 
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <frequency_hz>" << std::endl;
-        return 1;
-    }
+    // if (argc < 2) {
+    //     std::cout << "Usage: " << argv[0] << " <frequency_hz>" << std::endl;
+    //     return 1;
+    // }
 
     std::cout << "Starting Server" << std::endl;
 
-    int frequency = std::stoi(argv[1]); // Desired frequency in Hz
+
+    int frequency = 300;
 
     SparkFunTCPServer tcp_server(frequency);
     tcp_server.start();
@@ -206,3 +207,50 @@ int main(int argc, char **argv)
     return 0;
 }
     
+// #include <fstream> // Required for file stream operations
+// #include <iostream> // Required for console output (e.g., error messages)
+// #include <string>   // Required for using std::string
+
+// int main() {
+//     // Define the filename and content
+//     std::string filename = "my_output_file.txt";
+//     std::string file_content = "This is the content of the text file.\n";
+//     file_content += "You can add multiple lines of text.\n";
+//     file_content += "Hello from C++!";
+
+//     // Create an ofstream object and open the file
+//     // If the file doesn't exist, it will be created.
+//     // If it exists, its content will be overwritten by default.
+//     std::ofstream output_file(filename);
+
+//     // Check if the file was successfully opened
+//     if (output_file.is_open()) {
+//         // Write the content to the file
+//         output_file << file_content;
+
+//         // Close the file
+//         output_file.close();
+//         std::cout << "File '" << filename << "' created and saved successfully." << std::endl;
+//     } else {
+//         std::cerr << "Error: Unable to open file '" << filename << "'" << std::endl;
+//     }
+
+
+//     std::vector<std::ofstream *> m_file_streams;
+
+//     std::filesystem::path log_file_path = std::filesystem::path("sensor0.csv");
+
+//     // std::filesystem::path log_file_path = std::filesystem::path("sensor0.csv");
+//     std::ofstream *file_stream = new std::ofstream();
+//     file_stream->open(log_file_path);
+//     m_file_streams.emplace_back(file_stream);
+//     *m_file_streams.back() << "time (us),x(mdps),y(mdps),z(mdps)\n";
+
+//     for (auto &stream : m_file_streams)
+//     {
+//         stream->flush();
+//         stream->close();
+//     }
+
+//     return 0;
+// }

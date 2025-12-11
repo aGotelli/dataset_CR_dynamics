@@ -7,11 +7,13 @@
 int main(int argc, char **argv)
 {
     if (argc < 3) {
-        std::cout << "Usage: " << argv[0] << " <log_folder> <frequency_hz>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <log_folder> <frequency [Hz]> <duration [s]" << std::endl;
         return 1;
     }
 
+    
     std::filesystem::path log_folder_path = std::filesystem::path(argv[1]);
+
     if (!std::filesystem::exists(log_folder_path))
         std::filesystem::create_directory(log_folder_path);
     else
@@ -37,12 +39,18 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    int duration = std::stoi(argv[3]); // Desired frequency in Hz
+
     int frequency = std::stoi(argv[2]); // Desired frequency in Hz
     gyro_api.setRecord(true, frequency);
     gyro_api.startUpdateLoop(argv[1]);
     std::cout << "Started recording at " << frequency << " Hz. Press Enter to stop." << std::endl;
 
-    std::cin.get();  // Stop condition - currently set to ENTER
+    // std::cin.get();  // Stop condition - currently set to ENTER
+
+    // Wait for the specified duration
+    std::this_thread::sleep_for(std::chrono::duration<double>(duration));
+
     // TODO: Change stop condition if wanted 
     gyro_api.stopUpdateLoop(); 
     std::cout << "Recording stopped." << std::endl;
