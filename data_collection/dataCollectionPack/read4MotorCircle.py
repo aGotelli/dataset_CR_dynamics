@@ -36,9 +36,9 @@ else:
 
 
 ramp_rad = math.radians(args.radius)
-limit_speed = 0.2  # Much slower for smooth transitions
+limit_speed = 1  # Much slower for smooth transitions
 duration = args.duration
-angle_tol = math.radians(0.05)  # Very precise: 0.05 degrees
+angle_tol = math.radians(0.5)  # Very precise: 0.05 degrees
 vel_tol = 0.05  # Also tighten velocity tolerance
 name, ext = os.path.splitext(args.filename)
 if not ext:
@@ -96,19 +96,39 @@ print()
 
 # Define circle phases with antagonistic pairs: 1&3 antagonistic, 2&4 antagonistic
 # Phase logic: when motor moves +rad, its antagonist moves -rad automatically
-phases = [
-    # Phase 1: Motor 1 extends (+), Motor 3 compensates (-), others at home
-    (home1 + ramp_rad, home2, home3 - ramp_rad, home4),
+# # phases = [
+# #     # Phase 1: Motor 1 extends (+), Motor 3 compensates (-), others at home
+# #     (home1 + ramp_rad,  home2,              home3 - ramp_rad,   home4           ),
     
-    # Phase 2: Motor 2 extends (+), Motor 4 compensates (-), Motor 1&3 stay extended/retracted  
-    (home1 + ramp_rad, home2 + ramp_rad, home3 - ramp_rad, home4 - ramp_rad),
+# #     # Phase 2: Motor 2 extends (+), Motor 4 compensates (-), Motor 1&3 stay extended/retracted  
+# #     (home1 + ramp_rad,  home2 + ramp_rad,   home3 - ramp_rad,   home4 - ramp_rad),
     
-    # Phase 3: Motor 1 retracts (-), Motor 3 compensates (+), Motor 2&4 stay extended/retracted
-    (home1 - ramp_rad, home2 + ramp_rad, home3 + ramp_rad, home4 - ramp_rad),
+# #     # Phase 3: Motor 1 retracts (-), Motor 3 compensates (+), Motor 2&4 stay extended/retracted
+# #     (home1 - ramp_rad,  home2 + ramp_rad,   home3 + ramp_rad,   home4 - ramp_rad),
     
-    # Phase 4: Motor 2 retracts (-), Motor 4 compensates (+), all return towards home
-    (home1 - ramp_rad, home2 - ramp_rad, home3 + ramp_rad, home4 + ramp_rad)
+# #     # Phase 4: Motor 2 retracts (-), Motor 4 compensates (+), all return towards home
+# #     (home1 - ramp_rad,  home2 - ramp_rad,   home3 + ramp_rad,   home4 + ramp_rad)
+# # ]
+
+# Creat a pattern for circle
+sqrt_2 = math.sqrt(2)
+home_positions = np.array([home1, home2, home3, home4])
+
+# Define offset vectors for each phase
+# (+ push, + pull, + push, + pull)
+offset_vectors = [
+    np.array([ramp_rad*0.85, ramp_rad*0.1, -ramp_rad, ramp_rad*0.1]),
+    np.array([ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2, -ramp_rad/sqrt_2, -ramp_rad/sqrt_2*0.8]),
+    np.array([-ramp_rad*0.1, ramp_rad, -ramp_rad*0.1, -ramp_rad*0.85]),
+    np.array([-ramp_rad/sqrt_2, ramp_rad/sqrt_2, ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2*0.8]),
+    np.array([-ramp_rad, ramp_rad*0.1, ramp_rad*0.85, ramp_rad*0.1]),
+    np.array([-ramp_rad/sqrt_2, -ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2]),
+    np.array([-ramp_rad*0.1, -ramp_rad*0.85, -ramp_rad*0.1, ramp_rad]),
+    np.array([ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2, ramp_rad/sqrt_2]),
 ]
+
+# Generate phases using vector addition
+phases = [tuple(home_positions + offset) for offset in offset_vectors]
 
 samples = []
 phase_index = 0
@@ -222,10 +242,10 @@ while time.time() - start_time < duration:
         # print(f"{angle_rad1+home1} vs {target1}")
         print(f"m1: cur: {abs_angle_rad1} - tg: {target1} - m2: cur: {abs_angle_rad2} - tg: {target2} - m3: cur: {abs_angle_rad3} - tg: {target3} - m4: cur: {abs_angle_rad4} - tg: {target4}")
 
-        finish1 = abs(abs_angle_rad1 - target1) <= angle_tol and abs(velocity1) <= vel_tol
-        finish2 = abs(abs_angle_rad2 - target2) <= angle_tol and abs(velocity2) <= vel_tol
-        finish3 = abs(abs_angle_rad3 - target3) <= angle_tol and abs(velocity3) <= vel_tol
-        finish4 = abs(abs_angle_rad4 - target4) <= angle_tol and abs(velocity4) <= vel_tol
+        finish1 = abs(abs_angle_rad1 - target1) <= angle_tol #and abs(velocity1) <= vel_tol
+        finish2 = abs(abs_angle_rad2 - target2) <= angle_tol #and abs(velocity2) <= vel_tol
+        finish3 = abs(abs_angle_rad3 - target3) <= angle_tol #and abs(velocity3) <= vel_tol
+        finish4 = abs(abs_angle_rad4 - target4) <= angle_tol #and abs(velocity4) <= vel_tol
 
 
         if finish1 and finish2 and finish3 and finish4:
@@ -235,9 +255,17 @@ while time.time() - start_time < duration:
             break
             
         if time.time() - start_time >= duration:
+            
             print("STOPPED FOR TIME DURATION")
             break
+time.sleep(1)
 
+# Moving all motors back to home position
+motor1.set_motor_position_control(limit_spd=limit_speed, loc_ref=home1)
+motor2.set_motor_position_control(limit_spd=limit_speed, loc_ref=home2)
+motor3.set_motor_position_control(limit_spd=limit_speed, loc_ref=home3)
+motor4.set_motor_position_control(limit_spd=limit_speed, loc_ref=home4)
+time.sleep(5)
 motor1.disable()
 motor2.disable()
 motor3.disable()

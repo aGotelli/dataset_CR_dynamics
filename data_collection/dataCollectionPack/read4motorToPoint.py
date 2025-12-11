@@ -32,7 +32,7 @@ parser.add_argument("--increment-deg2", type=float, default=40.0, help="Ramp amp
 parser.add_argument("--start-time", type=float, default=None, help="Shared start timestamp (seconds)")
 args = parser.parse_args()
 
-limit_speed = 0.1  # rad/s
+limit_speed = 2 # rad/s
 duration = args.duration
 increment_rad1 = math.radians(args.increment_deg1)
 increment_rad2 = math.radians(args.increment_deg2)
@@ -84,6 +84,7 @@ home4 = status4[1]
 
 target1_rad = home1 + increment_rad1  # set target angle in rad for actuation for m1
 target2_rad = home2 + increment_rad2  # set target angle in rad for actuation for m2
+# antagonists follow opposite relative displacement
 target3_rad = home3 - increment_rad1
 target4_rad = home4 - increment_rad2
 # print(f"home1: {home1} - increment: {increment_rad1} - Target 1: {target1_rad} ; home2: {home2} - increment: {increment_rad2} - target2: {target2_rad}")
@@ -202,12 +203,20 @@ while time.time() - start_time < duration:
         ])
     
 
+time.sleep(1)
 
+# Moving all motors back to home position
+motor1.set_motor_position_control(limit_spd=limit_speed, loc_ref=home1)
+motor2.set_motor_position_control(limit_spd=limit_speed, loc_ref=home2)
+motor3.set_motor_position_control(limit_spd=limit_speed, loc_ref=home3)
+motor4.set_motor_position_control(limit_spd=limit_speed, loc_ref=home4)
+time.sleep(5)
 motor1.disable()
 motor2.disable()
 motor3.disable()
 motor4.disable()
 bus.shutdown()
+
 
 samples_arr = np.array(samples, dtype=float)
 with open(filename, "w", newline='') as fh:
@@ -276,7 +285,7 @@ with open(filename, "w", newline='') as fh:
 # #             ]
 # #         )
 
-print(f"Motor {args.motor1_id}: data saved to {filename} ({len(samples)} rows)")
+print(f"Motors {args.motor1_id},{args.motor2_id},{args.motor3_id},{args.motor4_id} data saved to {filename} ({len(samples)} rows)")
 
 try:
     import matplotlib.pyplot as plt
@@ -338,5 +347,4 @@ try:
     print(f"Plot saved to {plot_path}")
 except ImportError:
     print("matplotlib not installed; skipping plot generation.")
-
 
