@@ -36,7 +36,7 @@ else:
 
 
 ramp_rad = math.radians(args.radius)
-limit_speed = 1  # Much slower for smooth transitions
+limit_speed = 1  # rad/s -- 
 duration = args.duration
 angle_tol = math.radians(0.5)  # Very precise: 0.05 degrees
 vel_tol = 0.05  # Also tighten velocity tolerance
