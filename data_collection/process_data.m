@@ -1,122 +1,115 @@
+%% ====== PATHS / SETTINGS ======
+folder = "dataCollectionPack\circle_150_v_1_3rd\";
 
-close all; clear; clc
+cutoffHz    = 20;   % Butterworth cutoff
+butterOrder = 4;
 
-%% 0) Parameters (sync only)
-Fs_sync   = 200;    % common timeline + xcorr grid
-fc_sync   = 20;     % Hz low-pass for sync features
-filtOrder = 4;
+%% ====== LOAD DATA ======
+motor = readtable(folder + "datasequence__circle_radius_150p0.csv");
 
-% Map each Mark10 channel -> which motor derivative to use as reference
-% Order matches mk10_1..mk10_4 below; change later if needed
-forceMotorMap = [1 1 3 3];
+mk_1_negx = readtable(folder + "dataMark10_1_-x_.csv");
+mk_1_x    = readtable(folder + "dataMark10_1_x_.csv");
+mk_2_negy = readtable(folder + "dataMark10_2_-y_.csv");
+mk_2_y    = readtable(folder + "dataMark10_2_y_.csv");
 
-% Choose which motor derivative to align ATI to (edit later)
-atiMotorRef = 1;
+ati = readtable(folder + "dataATIFT_.csv");
 
-%% 1) Load data
-basePath = "dataCollectionPack\circle_150_v_1\";
+%   Da aggiungere in data processing
+% vicon_data = readtable(folder + "dataVicon_.csv");
+% 
+% time_vicon = vicon_data.timestamp - vicon_data.timestamp(1);
+% dt_vicon = diff(time_vicon);
+% f_vicon = 1 / median(dt_vicon)
 
-datasequence = readtable(basePath + "datasequence__circle_radius_150p0.csv");
+%% ====== EXTRACT MOTOR SIGNALS ======
+time_actuators = motor.timestamp;                      % epoch seconds
 
-mk10_1 = readtable(basePath + "dataMark10_1_-x_.csv"); % channel 1
-mk10_2 = readtable(basePath + "dataMark10_1_x_.csv");  % channel 2
-mk10_3 = readtable(basePath + "dataMark10_2_-y_.csv"); % channel 3
-mk10_4 = readtable(basePath + "dataMark10_2_y_.csv");  % channel 4
+target_angles = [motor.target1_rad, motor.target2_rad, motor.target3_rad, motor.target4_rad];
+meaured_angles   = [motor.rel_angle1_rad, motor.rel_angle2_rad, motor.rel_angle3_rad, motor.rel_angle4_rad];
 
-ATI = readtable(basePath + "dataATIFT_.csv");
+%% ====== EXTRACT FORCES (RAW TIME) ======
+% Your mapping:
+% motor1 -> Mark10 1_x
+% motor2 -> Mark10 2_y
+% motor3 -> Mark10 1_-x
+% motor4 -> Mark10 2_-y
+time_cables = cell(1,4);
+cable_tensions  = cell(1,4);
 
-%% 2) Global time base (same origin for all streams)
-t_act = datasequence.timestamp;
+time_cables{1} = mk_1_x.timestamp;       cable_tensions{1} = mk_1_x.tension_N_;
+time_cables{2} = mk_2_y.timestamp;       cable_tensions{2} = mk_2_y.tension_N_;
+time_cables{3} = mk_1_negx.timestamp;    cable_tensions{3} = mk_1_negx.tension_N_;
+time_cables{4} = mk_2_negy.timestamp;    cable_tensions{4} = mk_2_negy.tension_N_;
 
-t_m   = {mk10_1.timestamp, mk10_2.timestamp, mk10_3.timestamp, mk10_4.timestamp};
-t_ati = ATI.timestamp;
+%% ====== EXTRACT ATI FT (RAW TIME) ======
+tA = ati.timestamp;
+% tA_dt = datetime(tA, "ConvertFrom","posixtime");
 
-t0 = min([t_act(1), t_m{1}(1), t_m{2}(1), t_m{3}(1), t_m{4}(1), t_ati(1)]);
+ATI_F = [ati.Fx_N_, ati.Fy_N_, ati.Fz_N_];
+ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
 
-t_act = t_act - t0;
-for k = 1:4
-    t_m{k} = t_m{k} - t0;
-end
-t_ati = t_ati - t0;
-
-%% 3) Motor reference features: d(measured angle)/dt (filtered)
-ang = [datasequence.rel_angle1_rad, datasequence.rel_angle2_rad, datasequence.rel_angle3_rad, datasequence.rel_angle4_rad];
-
-ang_f = zeros(size(ang));
+%% ====== FILTER (BUTTER + FILTFILT) ======
+measured_angles_f   = zeros(size(meaured_angles));
+cable_tensions_f = cell(1,4);
 for i = 1:4
-    ang_f(:,i) = butter_filtfilt(t_act, ang(:,i), fc_sync, filtOrder);
+    measured_angles_f(:,i)   = butter_filtfilt(time_actuators, meaured_angles(:,i),   cutoffHz, butterOrder);
+
+    cable_tensions_f{i} = butter_filtfilt(time_cables{i}, cable_tensions{i}, cutoffHz, butterOrder);
 end
 
-d_ang = gradient(ang_f)./gradient(t_act);   % rad/s (feature for sync)
-
-%% 4) Mark10 forces (raw signals used for xcorr feature)
-T = {mk10_1.tension_N_, mk10_2.tension_N_, mk10_3.tension_N_, mk10_4.tension_N_};
-
-%% 5) Estimate offsets (dt) via cross-correlation and shift timestamps
-dt_force = zeros(1,4);
-t_m_sync = cell(1,4);
-
-for k = 1:4
-    refIdx = forceMotorMap(k);
-    dt_force(k) = delay_xcorr(t_act, d_ang(:,refIdx), t_m{k}, T{k}, Fs_sync);
-    t_m_sync{k} = t_m{k} + dt_force(k);
+ATI_F_f = zeros(size(ATI_F));
+ATI_T_f = zeros(size(ATI_T));
+for k = 1:3
+    ATI_F_f(:,k) = butter_filtfilt(tA, ATI_F(:,k), cutoffHz, butterOrder);
+    ATI_T_f(:,k) = butter_filtfilt(tA, ATI_T(:,k), cutoffHz, butterOrder);
 end
 
-% ATI reference feature: hypot(Tx,Ty) then derivative
-Tx = ATI.Tx_Nm_;
-Ty = ATI.Ty_Nm_;
-Txy = hypot(Tx, Ty);
 
-Txy_f = butter_filtfilt(t_ati, Txy, fc_sync, filtOrder);
-d_Txy = gradient(Txy_f)./gradient(t_ati);
+%% ====== PLOT: 4 SUBPLOTS (MOTOR TARGET/MEAS + FORCE) ======
+figure("Name","Motors + corresponding cable force (filtered)");
 
-dt_ati = delay_xcorr(t_act, d_ang(:,atiMotorRef), t_ati, d_Txy, Fs_sync);
-t_ati_sync = t_ati + dt_ati;
+for i = 1:4
+    subplot(4,1,i)
 
-fprintf("dt_force = [%.4f %.4f %.4f %.4f] s\n", dt_force);
-fprintf("dt_ati   = %.4f s (aligned to motor %d)\n", dt_ati, atiMotorRef);
+    yyaxis left
+    plot(time_actuators, measured_angles_f(:,i),   "b", "LineWidth", 2.0); hold on
+    plot(time_actuators, target_angles(:,i), "r","LineWidth", 2.0);
+    ylabel("Angle [rad]")
+    grid on
 
-%% 6) Resample onto common 200 Hz timeline (interp1)
-tStart = max([t_act(1), t_m_sync{1}(1), t_m_sync{2}(1), t_m_sync{3}(1), t_m_sync{4}(1), t_ati_sync(1)]);
-tEnd   = min([t_act(end), t_m_sync{1}(end), t_m_sync{2}(end), t_m_sync{3}(end), t_m_sync{4}(end), t_ati_sync(end)]);
-t_common = (tStart : 1/Fs_sync : tEnd)';
+    yyaxis right
+    plot(time_cables{i}, cable_tensions_f{i}, "g", "LineWidth", 2.0);
+    ylabel("Tension [N]")
 
-ang_sync = interp1(t_act, ang, t_common, 'pchip');
+    title("Motor " + i + " (meas/target) + mapped force")
+    if i == 4
+        xlabel("Time (raw timestamp)")
+    end
 
-T_sync = zeros(numel(t_common), 4);
-for k = 1:4
-    T_sync(:,k) = interp1(t_m_sync{k}, T{k}, t_common, 'pchip');
+    % Look for:
+    % - Do force changes occur at the same times as angle changes?
+    % - Is there a consistent lag between motion and tension response?
 end
+% 
+figure("Name","ATI FT (filtered)");
+subplot(2,1,1)
+plot(tA, ATI_T_f(:,1), "r"); hold on
+plot(tA, ATI_T_f(:,2), "g");
+plot(tA, ATI_T_f(:,3), "b");
+grid on; ylabel("Torque [Nm]"); legend("Tx","Ty","Tz")
+title("ATI Torques (filtered)")
 
-ATI_T = [ATI.Tx_Nm_, ATI.Ty_Nm_, ATI.Tz_Nm_];
-ATI_F = [ATI.Fx_N_,  ATI.Fy_N_,  ATI.Fz_N_];
+subplot(2,1,2)
+plot(tA, ATI_F_f(:,1), "r"); hold on
+plot(tA, ATI_F_f(:,2), "g");
+plot(tA, ATI_F_f(:,3), "b");
+grid on; ylabel("Force [N]"); xlabel("Time (raw timestamp)")
+legend("Fx","Fy","Fz")
+title("ATI Forces (filtered)")
 
-ATI_T_sync = interp1(t_ati_sync, ATI_T, t_common, 'pchip');
-ATI_F_sync = interp1(t_ati_sync, ATI_F, t_common, 'pchip');
-
-%% 7) Pack outputs
-sync.t      = t_common;
-sync.ang    = ang_sync;
-sync.force  = T_sync;      % channels in order mk10_1..mk10_4
-sync.ATI_T  = ATI_T_sync;
-sync.ATI_F  = ATI_F_sync;
-
-%% --- Local functions ---
+%% ====== HELPER FUNCTION ======
 function y = butter_filtfilt(t, x, fc, n)
-    Fs = 1/median(diff(t));
-    [b,a] = butter(n, fc/(Fs/2), 'low');   % Butterworth
-    y = filtfilt(b,a, detrend(x));
-end
-
-function dt = delay_xcorr(tA, xA, tB, xB, Fs)
-    t0 = max(tA(1), tB(1));
-    t1 = min(tA(end), tB(end));
-    tc = (t0 : 1/Fs : t1)';
-
-    a = interp1(tA, xA, tc, 'pchip'); a = a - mean(a);
-    b = interp1(tB, xB, tc, 'pchip'); b = b - mean(b);
-
-    [c,l] = xcorr(a,b);
-    [~,k] = max(c);
-    dt = l(k)/Fs;   % add to B to align with A
+    Fs = 1/median(diff(t));                 % estimate sampling rate from timestamps
+    [b,a] = butter(n, fc/(Fs/2), "low");    % Butterworth
+    y = filtfilt(b,a, x);                   % zero-phase filtering
 end
