@@ -1,0 +1,292 @@
+%   This file will be used to estimate the values of the robot used for the
+%   dataset project. The estimation will be done as an optmization problem
+close all;
+clear;
+clc
+
+addpath("Data\")
+%%  Plot the data 
+
+
+data = 'Data\statics_0'
+
+vicon = readtable("Data\""\dataVicon_.csv");
+tendon1 = readtable("Data\statics_xz_plane_1\dataMark10_1_-x_.csv");
+tendon2 = readtable("Data\statics_xz_plane_1\dataMark10_2_-y_.csv");
+
+
+% Extract X, Y, Z for each disk
+disk_names = {'disk_0', 'disk_1', 'disk_2', 'disk_3'};
+N_disks = length(disk_names);
+
+disk_pos_mean = zeros(3, 4);
+disk_pos_stdv = zeros(3, 4);
+
+disk_Rot_mean = zeros(3, 4);
+disk_Rot_stdv = zeros(3, 4);
+
+begin = 200;    %   first 200 samples not good for tendon elasticity
+
+for it = 1:N_disks
+    
+    index = N_disks + 1 - it; % invert order (frame 1 is at the end of the robot)
+
+    disk = disk_names{it};
+    
+    % Extract coordinates
+    x_data = vicon.([disk 'X_m_']);
+    y_data = vicon.([disk 'Y_m_']);
+    z_data = vicon.([disk 'Z_m_']);
+
+    x_mean = mean(x_data(begin:end));
+    y_mean = mean(y_data(begin:end));
+    z_mean = mean(z_data(begin:end));
+    disk_pos_mean(:, index) = [x_mean y_mean z_mean]';
+
+    x_stdv = std(x_data(begin:end));
+    y_stdv = std(y_data(begin:end));
+    z_stdv = std(z_data(begin:end));
+    disk_pos_stdv(:, index) = [x_stdv y_stdv z_stdv]';
+
+
+    Rot_X = vicon.([disk 'RotX_rad_']);
+    Rot_Y = vicon.([disk 'RotY_rad_']);
+    Rot_Z = vicon.([disk 'RotZ_rad_']);
+
+
+    Rot_X_mean = mean(Rot_X(begin:end));
+    Rot_Y_mean = mean(Rot_Y(begin:end));
+    Rot_Z_mean = mean(Rot_Z(begin:end));
+    disk_Rot_mean(:, index) = [Rot_X_mean Rot_Y_mean Rot_Z_mean]';
+
+    Rot_X_stdv = std(Rot_X(begin:end));
+    Rot_Y_stdv = std(Rot_Y(begin:end));
+    Rot_Z_stdv = std(Rot_Z(begin:end));
+    disk_Rot_stdv(:, index) = [Rot_X_stdv Rot_Y_stdv Rot_Z_stdv]';
+
+    
+    % % Create figure for each disk
+    % figure('Name', disk);
+    % 
+    % % X subplot
+    % subplot(3,1,1);
+    % plot(Rot_X);
+    % ylabel('X (m)');
+    % title([disk ' - roll']);
+    % grid on;
+    % 
+    % % Y subplot
+    % subplot(3,1,2);
+    % plot(Rot_Y);
+    % ylabel('Y (m)');
+    % title([disk ' - pitch']);
+    % grid on;
+    % 
+    % % Z subplot
+    % subplot(3,1,3);
+    % plot(Rot_Z);
+    % ylabel('Z (m)');
+    % xlabel('Sample');
+    % title([disk ' - yaw']);
+    % grid on;
+end
+
+
+tau_1_mean = mean(tendon1.tension_N_(begin:end));
+tau_1_stdv = std(tendon1.tension_N_(begin:end));
+
+tau_2_mean = mean(tendon2.tension_N_(begin:end));
+tau_2_stdv = std(tendon2.tension_N_(begin:end));
+% % Plot tendon data
+% figure('Name', 'Tendon Forces');
+% 
+% % Tendon 1 subplot
+% subplot(2,1,1);
+% plot(tendon1.tension_N_);
+% ylabel('Force (N)');
+% title('Tendon 1 (-x direction)');
+% grid on;
+% 
+% % Tendon 2 subplot
+% subplot(2,1,2);
+% plot(tendon2.tension_N_);
+% ylabel('Force (N)');
+% xlabel('Sample');
+% title('Tendon 2 (-y direction)');
+% grid on;
+
+
+
+%%  Express the poses wrt the one at the robot base
+
+R = eul2rotm(disk_Rot_mean', "XYZ");
+r = reshape(disk_pos_mean, [3, 1, 4]);
+g_abs = [
+    R   r
+    zeros(1, 3, 4) ones(1, 1, 4)
+];
+
+g_inv = [
+    R(:, :, 1)' -R(:, :, 1)'*r(:, :, 1)
+    0      0      0       1
+];
+
+g = pagemtimes(g_inv, g_abs);
+
+
+% Plot 3D frames
+hold on;
+axis equal;
+grid on;
+xlabel('X (m)');
+ylabel('Y (m)');
+zlabel('Z (m)');
+title('Frame Positions and Orientations');
+
+% Define axis length for visualization
+axis_length = 0.05;
+
+% Plot each frame
+for i = 1:4
+    % Extract position
+    pos = g(1:3, 4, i);
+    
+    % Extract rotation matrix
+    R_frame = g(1:3, 1:3, i);
+    
+    % Plot frame axes (x=red, y=green, z=blue)
+    quiver3(pos(1), pos(2), pos(3), R_frame(1,1)*axis_length, R_frame(2,1)*axis_length, R_frame(3,1)*axis_length, 'r', 'LineWidth', 2);
+    quiver3(pos(1), pos(2), pos(3), R_frame(1,2)*axis_length, R_frame(2,2)*axis_length, R_frame(3,2)*axis_length, 'g', 'LineWidth', 2);
+    quiver3(pos(1), pos(2), pos(3), R_frame(1,3)*axis_length, R_frame(2,3)*axis_length, R_frame(3,3)*axis_length, 'b', 'LineWidth', 2);
+    
+    % Add frame number label
+    text(pos(1), pos(2), pos(3), sprintf(' %d', i), 'FontSize', 12, 'FontWeight', 'bold');
+end
+
+view(3);
+
+
+
+
+%%  Find correct values
+addpath("Cosserat/ODEs/")
+addpath("Cosserat/ODEs/tendon/")
+addpath("Cosserat/utilities/")
+addpath("Cosserat/rod_properties/")
+addpath("Cosserat/implicit_integration/")
+
+clc
+
+%   Configurations for the simulation
+[Const, Config] = simulationConfigurations();
+
+%   Position of the rod base
+Const.r_X0 = [0;0;0];
+
+%   Quaternion of rod base [w x y z]
+Const.Q_X0 = [0.7071068 0 0.7071068 0]';
+% Const.Q_X0 = [1, 0, 0, 0]';
+
+
+%   Cosserat rod generalized coordinates
+q      = zeros(Const.dim_base, 1);
+dot_q  = zeros(Const.dim_base, 1);
+ddot_q = zeros(Const.dim_base, 1);
+
+Const.q = q;
+
+%   Remove dynamics from Jacobian
+Config.a = 0;
+Config.b = 0;
+
+
+
+%   Lenght of robot
+Const.L = .5;
+
+%   Positioning cable
+d = 37.5e-3;
+Const.D = [0 0 d]';
+Const.D_prime = zeros(3, 1);
+
+%   Apply tension from data
+Const.T = tau_1_mean;
+
+
+
+%   Initial guess
+EI = Const.EIyy;
+
+sol = fsolve(@(EI) findStiffness(EI, q, Const, Config), EI)
+
+
+function error_norm =findStiffness(EI, q, Const, Config)
+    time = 0;   %   Dummy variable
+
+    Const.EI = EI;
+
+    dot_q  = 0*q;
+    ddot_q = 0*q;
+    
+    %   Compute Hooke matrix (zero entries for inactive modes)
+    Const.H_cal = diag([0, Const.EI, Const.EI, 0, 0, 0]);
+    [Kee, Dee] = computeGeneralisedStiffnessDampingMatrices(Const, Config);
+    Const.Kee = Kee;
+    Const.Dee = Dee;
+    
+    %   Compute Residual
+    Residual = getResidual(time, q, dot_q, ddot_q, Const, Config);
+
+
+    
+    %   Newton-Raphson loop to find equilibrium
+    while norm(Residual) > Config.r_min
+        %   Compute Jacobian
+        J = getJacobian(time, q, dot_q, ddot_q, Const, Config);
+           
+        %   Compute update
+        Delta_q = J\Residual;
+        q = q - Delta_q;
+    
+        %   Compute Residual
+        Residual = getResidual(time, q, dot_q, ddot_q, Const, Config);
+    end
+
+    %   Once equilibrium found, compare the obtained position
+    xyz = rod_shape(time, q, Const, Config);
+
+    %   Get disks location
+    p = zeros(3, 4);
+
+    %   Compare with data
+    error = p - disk_Rot_mean;
+    
+    %   Scalar varible -> scalar output
+    error_norm = norm(error);
+    
+end
+
+
+
+function xyz = rod_shape(t, q, Const, Config)
+
+
+ne = Const.dim_base;
+zeroq = zeros(ne, 1);
+
+
+%   Define the forward state
+forward_y0 = zeros(19, 1);
+
+%   Initialization
+forward_y0(1:7) = [Const.Q_X0;
+                    Const.r_X0];
+
+%   Forward integration
+[~, Y] = ode45(@(X, y) ForwardKinematics(X, y, q, zeroq, zeroq, Config, Const), ...
+                    Config.forward_integration_domain, forward_y0);
+
+
+xyz = Y(:, 5:7);
+
+end

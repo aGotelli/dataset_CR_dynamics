@@ -1,0 +1,198 @@
+\documentclass[a4paper, 11pt]{article}
+
+% Packages for mathematics
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Packages for formatting
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{dsfont}
+\usepackage{algorithm2e}
+\DontPrintSemicolon
+
+\newtheorem{remark}{Remark}
+
+\title{Notes on State Estimation of Cosserat Rod Dynamics}
+\author{Andrea Gotelli}
+\date{\today}
+
+\newcommand{\Lambdaad}{\ensuremath{\Lambda_{{ad}}}}
+\newcommand{\Lambdaa}{\ensuremath{\Lambda_{{a}}}}
+
+\newcommand{\ad}{\text{ad}}
+\newcommand{\Ad}{\text{Ad}}
+\newcommand{\X}{\ensuremath{(X)}}
+
+\newcommand{\deta}{\ensuremath{\dot{\eta}}}
+
+\newcommand{\dxi}{\ensuremath{\dot{\xi}}}
+\newcommand{\ddxi}{\ensuremath{\ddot{\xi}}}
+
+\newcommand{\dq}{\ensuremath{\dot{q}}}
+\newcommand{\ddq}{\ensuremath{\ddot{q}}}
+\begin{document}
+\maketitle
+In this document we present the state estimation of a Cosserat rod. 
+First we will restate the equations involved in the rod dynamics, then we will present the inverse dynamics model (IDM) and how it can be used to simulate the rod dynamics using a time-implicit scheme.
+Finally, we will present the state estimation problem, where we use measurements of the rod tip twist and the base wrench to estimate the state of the rod.
+
+\section{Rod Inverse Dynamics Model}
+The rod Inverse Dynamics Model (IDM) is an input-output map taking the set of generalized coordinates, and corresponding derivatives, to compute the dynamics state of the rod. As output it gives a Residual vector which norm goes to zero when the internal balance is satisfied.
+
+The first step is to compute the field of strain and its time derivatives:
+\begin{equation}
+    \begin{cases}
+        \xi &= \xi_0 + A\Phi q\\
+        \dxi &= A\Phi \dq\\
+        \ddxi &=  A\Phi \ddq
+    \end{cases}
+\end{equation}
+%
+where $\Phi$ is a (polynomial) base function and $A$ is a matrix accounting for the allowed deformation of the rod, \textit{i.e.} its Degrees of Freedom (DoFs). Then, the rod kinematics can be expressed with the following system of PDEs:
+\begin{equation}\label{eqn:forward kinematics}
+    \begin{aligned}
+        g^\prime     &=  \widehat{\xi}g,\\
+        \eta^\prime  &= -\ad_\xi\eta + \dxi,\\
+        \deta^\prime &= -\ad_\xi\deta - \ad_{\dxi} + \ddxi,
+    \end{aligned}
+\end{equation}
+which is integrated from $X=0$ to $X=1$ and initialized by $(g, \eta, \deta) (X=0) = (g_0, \eta_0, \deta_0)$.
+The numerical integration of \eqref{eqn:forward kinematics} gives the field of pose, twist and its derivative along the rod domain. 
+Once the kinematics is known, it can be used to compute the internal stress wrenches.
+\begin{equation}\label{eqn:backward dynamics}
+    \Lambda^\prime = \ad_\xi^T\Lambda + \mathcal{M}\deta - \ad_\eta^T\mathcal{M}\eta - \overline{F},
+\end{equation}
+where $\mathcal{M} = \text{diag}(\rho I_{xx},\rho I_{yy},\rho I_{zz},\rho A,\rho A,\rho A)$ is the inertia matrix of the cross section. Equation \eqref{eqn:backward dynamics} is integrated from $X=1$ to $X=0$ and initialized by $\Lambda(X=1) = \Lambda_1$.
+Note that \eqref{eqn:backward dynamics} accounts only for the inertia and extral distributed wrenches acting on the rod. 
+The internal balance of a passive and undamped Cosserat rod is expressed as:
+\begin{equation}\label{eqn:internal balance}
+    \Lambda = \mathcal{H}(\xi -\xi_0)
+\end{equation}
+where $\mathcal{H}$ is the stiffness (Hooke) matrix $\mathcal{H} = \text{diag}(GI_{xx},EI_{yy},EI_{zz},EA,GA,GA)$ and $\epsilon= \xi -\xi_0$ expresses a difference in strain (\textit{i.e.} a deformation).
+Equation \eqref{eqn:internal balance} reads as the internal energy coming from a deformation is balanced by the inertia of the rod cross-sections.
+%
+As the input are the generalized coordinates, the balance needs to be mapped into the same vector space. 
+We thus define the set of internal generalized forces as:
+\begin{equation}\label{eqn:internal forces}
+    Q_a = \int_0^\ell \Phi^ T A^T \Lambda \; dX
+\end{equation}
+Similarly, the internal stiffness can be mapped into the same space as follows:
+\begin{equation}\label{eqn:internal stiffness}
+    \mathcal{K}_{e} = \int_0^\ell \Phi^TA^T \mathcal{H} A\Phi \; dX,
+\end{equation}
+Finally, the internal balance of a Cosserat rod is given by
+\begin{equation}\label{eqn:internal balance generalized}
+    Q_{ad} =  Q_a - Q_e - C_e
+\end{equation}
+with $Q_{ad}$ obtained using \eqref{eqn:internal forces} with $\Lambdaad\X$ the internal wrench field imposed by the actuation, $Q_e = \mathcal{K}_{e}q$ and $C_e = \mathcal{C}_{e}\dq$ with $\mathcal{C}_{e}$ the damping matrix computed with the same procedure as \eqref{eqn:internal stiffness}.
+The inverse dynamics model comprises the equations \eqref{eqn:forward kinematics}, \eqref{eqn:backward dynamics} and \eqref{eqn:internal balance generalized} and can be summarized as:
+\begin{equation}\label{eqn:inverse dynamics}
+    \mathcal{R} = \text{IDM}(q, \dq, \ddq, g_0, \eta_0, \deta_0)
+\end{equation}
+where $\mathcal{R} = Q_a - Q_{ad} - Q_e - C_e$ is the Residual vector, which norm goes to zero when the internal balance is satisfied.
+
+\section{Simulation Using an Implicit Scheme}
+
+\begin{algorithm}[t]
+    \caption{Simulation Algorithm for Cosserat Rod Dynamics using a time-implicit scheme.}
+    \label{alg:simulation}
+    $[q, \dq, \ddq]_{n+1}^k \gets \text{prediction}([q, \dq, \ddq]_n)$\;\;
+
+    $\mathcal{R} \gets \text{IDM}([q, \dq, \ddq]_{n+1}^k, \mathds{1}_4, 0, 0)$\;\;
+
+    \While{$\|\mathcal{R}\| > \varepsilon$}{\;
+        $\mathcal{J} \gets \text{TIDM}([q, \dq, \ddq]_{n+1}^k, \mathds{1}_4, 0, 0)$\;\;
+
+        $\Delta q_{n+1}^{k+1} = \mathcal{J}^{-1}\mathcal{R}$\;\;
+
+        $[q, \dq, \ddq]_{n+1}^{k+1} \gets \text{correction}([q, \dq, \ddq]_{n+1}^k, \Delta q_{n+1}^{k+1})$\;\;
+
+        $\mathcal{R} \gets \text{IDM}([q, \dq, \ddq]_{n+1}^{k+1}, \mathds{1}_4, 0, 0)$\;
+    }\;
+
+    $n \gets n+1$\;\;
+\end{algorithm}
+ 
+The IDM can be used to simulate the dynamics of a Cosserat rod using a time-implicit scheme. 
+Using a time-implicit schemes, the first and second derivatives of the generalized coordinates are given by the implicit scheme relation, leaving the generalized coordinates as the only unknown of the problem.
+The algorithm iteratively solves for the generalized coordinates, and obtaines the corresponding velocities and accelerations, at each time step until the Residual vector norm is below a specified threshold $\varepsilon$.
+%
+For the iterative solution, we use the Newton-Raphson method, which requires the Jacobian of the IDM.
+The Jacobian is computed using the Tangent Inverse Dynamics Model (TIDM), which is the analytical differentiation of the IDM.
+%
+As in the case of a cantilever rod, at the base the pose is fixed, the twist and its derivative are set to zero, and there is no wrench applied at the rod tip.
+
+
+
+\section{State Estimation}
+
+\begin{algorithm}[t]
+    \caption{Simulation Algorithm for Cosserat Rod Dynamics using a time-implicit scheme.}
+    \label{alg:state estimation}
+    $[q, \dq, \ddq]_{n+1}^k \gets \text{prediction}([q, \dq, \ddq]_n)$\;\;
+
+    $\mathcal{R} \gets \overline{\text{IDM}}([q, \dq, \ddq]_{n+1}^k, \mathds{1}_4, 0, 0, {^e\eta^*_1}, {\Lambda^*_0})$\;
+
+    \While{$\|\mathcal{R}\| > \varepsilon$}{\;
+        $\mathcal{J} \gets \overline{\text{TIDM}}([q, \dq, \ddq]_{n+1}^k, \mathds{1}_4, 0, 0, {^e\eta^*_1}, {\Lambda^*_0}))$\;
+
+        $\Delta q_{n+1}^{k+1} = \mathcal{J}^{-1}\mathcal{R}$\;\;
+
+        $[q, \dq, \ddq]_{n+1}^{k+1} \gets \text{correction}([q, \dq, \ddq]_{n+1}^k, \Delta q_{n+1}^{k+1})$\;\;
+
+        $\mathcal{R} \gets \overline{\text{IDM}}([q, \dq, \ddq]_{n+1}^{k+1}, \mathds{1}_4, 0, 0, {^e\eta^*_1}, {\Lambda^*_0}))$\;
+    }\;
+
+    % $[\overline{\eta}_0]_{n+1} = K_W \left( \Lambda_0 - \Lambda^*_0 \right)$\;\;
+
+    $n \gets n+1$\;\;
+\end{algorithm}
+
+Once discussed the simulation of a Cosserat rod, we now present the state estimation problem.
+In this case, we will use measurements of the wrench at the rod base $\Lambda^*_0$ and the twist of the rod tip $^e\eta^*_1$. Note that the former is measured in the local frame of the rod base cross-section, while the latter is measured in the inertial frame, as indicated by the superscript $^e$.
+%
+We compare these values to the values computed by the IDM, which are $\Lambda_0$ and $\eta_1$, obtaining:
+%
+\begin{align}
+    \overline{\Lambda}_1    &= K_t S^T \left( S\eta_1 - ^e\eta^*_1 \right),\label{eqn:wrench dual error}\\
+    \overline{\eta}_0       &= K_w \left( \Lambda_0 - \Lambda^*_0 \right),\label{eqn:twist dual error}
+\end{align}
+%
+where $K_t, K_w \in \mathbb{R}^{6\times6}$ are two gains matrices, $S=\text{diag}(R_1, R_1)$ is defined from the orientation of the rod tip cross-section $R_1 = R(X=1)$.
+The computed values will then be used in the IDM to force the numerical solution to match the measurements, whenever one is available.
+%
+The Algorithm \ref{alg:simulation} can be adapted to include this state estimation process (see Algorithm \ref{alg:state estimation}).
+Specifically, the IDM will now accounts for the measurements of the wrench and the twist, creating a similar algorithm called $\overline{\text{IDM}}$.
+%
+The algorithm computes the forward kinematics \eqref{eqn:forward kinematics} as before, with initial conditions $(g_0, \eta_0, \deta_0) = (\mathds{1}_4, 0, 0)$. 
+Once obtained the kinematics state of the rod tip, the dual wrench $\overline{\Lambda}_1$ is computed using \eqref{eqn:wrench dual error} to be used as initial condition for the backward dynamics \eqref{eqn:backward dynamics}.
+%
+With the notion of the wrench at the base, the dual error twist $\overline{\eta}_0$ is computed using \eqref{eqn:twist dual error}.
+%
+In order to account for this dual error, we modify the IDM to include the dual error twist in the computation of the Residual vector $\mathcal{R}$.
+Specifically, we need to map the influence of these initial conditions into the generalized coordinates space.
+%
+\begin{equation}
+    \overline{Q}_a = - \int_0^\ell \Phi^TA^T \ad_{\overline{\eta}}^T\mathcal{M}\overline{\eta}\;dX,
+\end{equation}
+%
+which expresses the Coriolis and centrifugal forces of \eqref{eqn:backward dynamics}, where $\overline{\eta}$ is computed by projecting the initial condition into the local frame of each cross-section:
+%
+\begin{equation}
+    \overline{\eta} = \Ad_{g^{-1}}\overline{\eta}_0,
+\end{equation}
+%
+with $g$ the pose of the cross-section at $X$ computed by the forward pass of \eqref{eqn:forward kinematics}, where the inversion is required as $g\X$ gives the pose of the $\mathcal{F}\X$ w.r.t. $\mathcal{F}_0$ (but we need to map from $\mathcal{F}_0$ to $\mathcal{F}\X$). 
+%
+Then, $\overline{Q}_a$ are the generalized forces that accounts for the dual error twist $\overline{\eta}_0$.
+The residual is then computed as:
+\begin{equation}
+    \mathcal{R} = Q_a + \overline{Q}_a - Q_{ad} - Q_e - C_e.
+\end{equation}
+
+
+\end{document}
