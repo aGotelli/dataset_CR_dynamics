@@ -1,4 +1,4 @@
-function   dy = elastic_gain(X,~,Const)
+function   dy = elastic_gain(X,~,Const, Config)
 
 % 
 % L= Const.L;
@@ -14,7 +14,8 @@ D = Const.mu*H;
 Ha  = B'*H*B;
 Da  = B'*D*B;
 
-Phi = getPhi(X,Const);
+% Phi = getPhi(X,Const);
+Phi = Base_Phi(X, 0, Const, Config)';
 
 Krr_prime = Phi'*Ha*Phi;
 Drr_prime = Phi'*Da*Phi;
