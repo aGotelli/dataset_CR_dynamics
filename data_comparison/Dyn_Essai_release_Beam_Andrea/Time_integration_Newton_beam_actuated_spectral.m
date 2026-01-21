@@ -1,4 +1,4 @@
-function [T,q,q_dot,q_dot_dot, position_disks_simu] = Time_integration_Newton_beam_actuated_spectral(Const, Config)
+function [q,q_dot,q_dot_dot, position_disks_simu] = Time_integration_Newton_beam_actuated_spectral(Const, Config)
 
 
 r_min = 1e-6;

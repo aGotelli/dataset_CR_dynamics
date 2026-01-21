@@ -55,27 +55,39 @@ Const.F1 = zeros(6,1);
 
 
 %%  Take data measurements
+
+cable_tensions = load("..\data_collection\dataCollectionPack\planar motion\plane_x_angle_90_speed_1\processed\cable_tensions.csv");
+
+
+
+
 Config.data.dt = 0.01;
-Config.data.time = 0:Config.data.dt:10;
-omega = 0.5*pi;
-K1 = 1.0;
-K2 = 0.5;
+Config.data.time = cable_tensions(:, 1);
+
+
+%   Compute difference tension
+tau_1 = cable_tensions(:, 2) - cable_tensions(:, 4);
+tau_2 = cable_tensions(:, 3) - cable_tensions(:, 5);
 Config.data.tau = [
-    K1*sin(omega * Config.data.time)
-    K2*sin(omega * Config.data.time)
+    tau_1'
+    tau_2'
 ];
+
+% 
+% plot(tau_1);
+% plot(tau_2);
 
 
 %% Time integration
 
 
-Config.plot = true;
+Config.plot = false;
 
 
 
-[T,q,q_dot,q_dot_dot, position_disks_simu] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
+[q,q_dot,q_dot_dot, position_disks_simu] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
 
-
+save("processed data")
 % 
 % %%  Compare data with vicon
 % 
