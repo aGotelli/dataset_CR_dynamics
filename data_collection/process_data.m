@@ -12,6 +12,11 @@ butterOrder = 4;
 samplingHz = 100;
 
 
+plot_filtered = true;
+plot_interpolation = true;
+plot_disk_num = 5;
+
+
 %% ====== LOAD DATA ======
 motor = readtable(folder + "datasequence__circle_radius_90p0.csv");
 
@@ -22,12 +27,9 @@ mk_2_y    = readtable(folder + "dataMark10_2_y_.csv");
 
 ati = readtable(folder + "dataATIFT_.csv");
 
-%   Da aggiungere in data processing
-% vicon_data = readtable(folder + "dataVicon_.csv");
-% 
-% time_vicon = vicon_data.timestamp - vicon_data.timestamp(1);
-% dt_vicon = diff(time_vicon);
-% f_vicon = 1 / median(dt_vicon)
+N_frames_static_begin = 10; %how many frames to use to compute relative pose for Vicon
+filename = folder + "dataVicon_.csv";
+[N_disks, timestamp_vicon, rel_kinematics_disks] = data_vicon(filename, N_frames_static_begin);
 
 %% ====== EXTRACT MOTOR SIGNALS ======
 time_actuators = motor.timestamp;                     
@@ -76,47 +78,150 @@ end
 ATI_FT_f = [ATI_F_f ATI_T_f];
 
 
+rel_kinematics_disks_f = zeros(size(rel_kinematics_disks));
+for it=1:N_disks
+
+    for k=1:6  
+        rel_kinematics_disks_f(:, k, it) = butter_filtfilt(timestamp_vicon, rel_kinematics_disks(:, k, it), cutoffHz, butterOrder);
+        
+    end
+end
+
+
 %% ====== PLOT: 4 SUBPLOTS (MOTOR TARGET/MEAS + FORCE) ======
-figure("Name","Motors + corresponding cable force (filtered)");
 
-for it = 1:4
-    subplot(4,1,it)
+if plot_filtered
+    figure("Name","Motors + corresponding cable force (filtered)");
+    
+    for it = 1:4
+        subplot(4,1,it)
+    
+        yyaxis left
+        plot(time_actuators, measured_angles_f(:,it),   "b", "LineWidth", 2.0); hold on
+        plot(time_actuators, target_angles(:,it), "r","LineWidth", 2.0);
+        ylabel("Angle [rad]")
+        grid on
+    
+        yyaxis right
+        plot(time_cables{it}, cable_tensions_f{it}, "g", "LineWidth", 2.0);
+        ylabel("Tension [N]")
+    
+        title("Motor " + it + " (meas/target) + mapped force")
+        if it == 4
+            xlabel("Time (raw timestamp)")
+        end
+    
+        % Look for:
+        % - Do force changes occur at the same times as angle changes?
+        % - Is there a consistent lag between motion and tension response?
+    end
+    % 
+    figure("Name","ATI FT (filtered)");
+    subplot(2,1,1)
+    plot(tA, ATI_T_f(:,1), "r"); hold on
+    plot(tA, ATI_T_f(:,2), "g");
+    plot(tA, ATI_T_f(:,3), "b");
+    grid on; ylabel("Torque [Nm]"); legend("Tx","Ty","Tz")
+    title("ATI Torques (filtered)")
+    
+    subplot(2,1,2)
+    plot(tA, ATI_F_f(:,1), "r"); hold on
+    plot(tA, ATI_F_f(:,2), "g");
+    plot(tA, ATI_F_f(:,3), "b");
+    grid on; ylabel("Force [N]"); xlabel("Time (raw timestamp)")
+    legend("Fx","Fy","Fz")
+    title("ATI Forces (filtered)")
+    
+    
+    
+    
+    % xyz_XYZ = rel_kinematics_disks_f(:, :, plot_disk_num);
+    % 
+    % x_data = xyz_XYZ(:, 1);
+    % y_data = xyz_XYZ(:, 2);
+    % z_data = xyz_XYZ(:, 3);
+    % 
+    % Rot_X = xyz_XYZ(:, 4);
+    % Rot_Y = xyz_XYZ(:, 5);
+    % Rot_Z = xyz_XYZ(:, 6);
+    % 
+    % figure("Name", "Kinematics Relative")
+    % subplot(3, 2, 1)
+    % plot(timestamp_vicon, Rot_X)
+    % grid on
+    % xlabel("Time [s]")
+    % ylabel("Roll [RAD]")
+    % 
+    % subplot(3, 2, 2)
+    % plot(timestamp_vicon, x_data)
+    % grid on
+    % xlabel("Time [s]")
+    % ylabel("X [m]")
+    % 
+    % subplot(3, 2, 3)
+    % plot(timestamp_vicon, Rot_Y)
+    % grid on
+    % xlabel("Time [s]")
+    % ylabel("Pitch [RAD]")
+    % 
+    % subplot(3, 2, 4)
+    % plot(timestamp_vicon, y_data)
+    % grid on
+    % xlabel("Time [s]")
+    % ylabel("Y [m]")
+    % 
+    % subplot(3, 2, 5)
+    % plot(timestamp_vicon, Rot_Z)
+    % grid on
+    % xlabel("Time [s]")
+    % ylabel("Yaw [RAD]")
+    % 
+    % subplot(3, 2, 6)
+    % plot(timestamp_vicon, z_data)
+    % grid on
+    % xlabel("Time [s]")
+    % ylabel("Z [m]")
 
-    yyaxis left
-    plot(time_actuators, measured_angles_f(:,it),   "b", "LineWidth", 2.0); hold on
-    plot(time_actuators, target_angles(:,it), "r","LineWidth", 2.0);
-    ylabel("Angle [rad]")
-    grid on
 
-    yyaxis right
-    plot(time_cables{it}, cable_tensions_f{it}, "g", "LineWidth", 2.0);
-    ylabel("Tension [N]")
+    figure("Name","Vicon (filtered) disk " + int2str(plot_disk_num));
+    xyz_XYZ = rel_kinematics_disks_f(:, :, plot_disk_num);
+    
+    
+    for it = 1:3
+        index_plot = it*2 -1;
+        subplot(3,2,index_plot)
+    
+        plot(timestamp_vicon, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0); hold on
+        ylabel("Euler Angle [RAD]")
+        grid on
+    
+       
+    
+        if it == 3
+            xlabel("Time [s]")
+        end
+    
+    end
+    
+    for it = 1:3
+        index_plot = it*2;
+        subplot(3,2,index_plot)
+     
+        plot(timestamp_vicon, xyz_XYZ(:, it), "b", "LineWidth", 2.0); hold on
 
-    title("Motor " + it + " (meas/target) + mapped force")
-    if it == 4
-        xlabel("Time (raw timestamp)")
+        ylabel("Position [m]")
+        grid on
+    
+       
+    
+        if it == 3
+            xlabel("Time [s]")
+        end
+    
     end
 
-    % Look for:
-    % - Do force changes occur at the same times as angle changes?
-    % - Is there a consistent lag between motion and tension response?
 end
-% 
-figure("Name","ATI FT (filtered)");
-subplot(2,1,1)
-plot(tA, ATI_T_f(:,1), "r"); hold on
-plot(tA, ATI_T_f(:,2), "g");
-plot(tA, ATI_T_f(:,3), "b");
-grid on; ylabel("Torque [Nm]"); legend("Tx","Ty","Tz")
-title("ATI Torques (filtered)")
 
-subplot(2,1,2)
-plot(tA, ATI_F_f(:,1), "r"); hold on
-plot(tA, ATI_F_f(:,2), "g");
-plot(tA, ATI_F_f(:,3), "b");
-grid on; ylabel("Force [N]"); xlabel("Time (raw timestamp)")
-legend("Fx","Fy","Fz")
-title("ATI Forces (filtered)")
 
 
 %%  Interpolate at the same frequency
@@ -134,6 +239,8 @@ relative_time_cables{4} = time_cables{4} - time_start_motors;
 
 relative_time_ATI = tA - time_start_motors;
 
+
+relative_time_vicon = timestamp_vicon - time_start_motors;
 
 %   Now define interpolation points for the given frequency
 N_samples = floor(samplingHz*time_end_motors);
@@ -156,92 +263,153 @@ for it=1:6
     interp_base_wrench(:, it) = interp1(relative_time_ATI, ATI_FT_f(:, it), sampling_time)';
 end
 
+interp_rel_kinematics_disks = zeros(N_samples, 6, N_disks);
+for it=1:N_disks
+
+    for k=1:6  
+        interp_rel_kinematics_disks(:, k, it) = interp1(relative_time_vicon, rel_kinematics_disks_f(:, k, it), sampling_time);
+    end
+end
+
 
 %%  Plot interpolated data
-figure("Name","Actuators Angles");
 
-for it = 1:4
-    subplot(4,1,it)
-
-    plot(relative_time_motors, measured_angles_f(:,it),   "b", "LineWidth", 2.0); hold on
-    plot(sampling_time, interp_angles(:,it), "or","MarkerSize", 3);
-    ylabel("Angle [rad]")
-    grid on
-
-   
-
-    title("Actuator " + it)
-    if it == 4
-        xlabel("Time [s]")
+if plot_interpolation
+    figure("Name","Actuators Angles");
+    
+    for it = 1:4
+        subplot(4,1,it)
+    
+        plot(relative_time_motors, measured_angles_f(:,it),   "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_angles(:,it), "or","MarkerSize", 3);
+        ylabel("Angle [rad]")
+        grid on
+    
+       
+    
+        title("Actuator " + it)
+        if it == 4
+            xlabel("Time [s]")
+        end
+    
+    end
+    
+    
+    
+    figure("Name","Cables Tensions");
+    
+    for it = 1:4
+        subplot(4,1,it)
+    
+        plot(relative_time_cables{it}, cable_tensions_f{it}, "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_tensions(:,it), "or","MarkerSize", 3);
+        ylabel("Tension [N]")
+        grid on
+    
+       
+    
+        title("Actuator " + it)
+        if it == 4
+            xlabel("Time [s]")
+        end
+    
+    end
+    
+    
+    
+    
+    figure("Name","ATI FT");
+    
+    for it = 1:3
+        index_plot = it*2 -1;
+        subplot(3,2,index_plot)
+    
+        plot(relative_time_ATI, ATI_FT_f(:, it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_base_wrench(:,it), "or","MarkerSize", 3);
+        ylabel("Force [N]")
+        grid on
+    
+       
+    
+        if it == 3
+            xlabel("Time [s]")
+        end
+    
+    end
+    
+    for it = 1:3
+        index_plot = it*2;
+        subplot(3,2,index_plot)
+    
+        plot(relative_time_ATI, ATI_FT_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_base_wrench(:,3 + it), "or","MarkerSize", 3);
+        ylabel("Torque [Nm]")
+        grid on
+    
+       
+    
+        if it == 3
+            xlabel("Time [s]")
+        end
+    
     end
 
-end
 
 
 
-figure("Name","Cables Tensions");
 
-for it = 1:4
-    subplot(4,1,it)
+    figure("Name","Vicon disk " + int2str(plot_disk_num));
+    xyz_XYZ = rel_kinematics_disks_f(:, :, plot_disk_num);
+    interp_xyz_XYZ = interp_rel_kinematics_disks(:, :, plot_disk_num);
+    
+    
+    for it = 1:3
+        index_plot = it*2 -1;
+        subplot(3,2,index_plot)
+    
+        plot(relative_time_vicon, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_xyz_XYZ(:, 3 + it), "or","MarkerSize", 3);
+        ylabel("Euler Angle [RAD]")
+        grid on
+    
+       
+    
+        if it == 3
+            xlabel("Time [s]")
+        end
+    
+    end
+    
+    for it = 1:3
+        index_plot = it*2;
+        subplot(3,2,index_plot)
+     
+        plot(relative_time_vicon, xyz_XYZ(:, it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_xyz_XYZ(:, it), "or","MarkerSize", 3);
 
-    plot(relative_time_cables{it}, cable_tensions_f{it}, "b", "LineWidth", 2.0); hold on
-    plot(sampling_time, interp_tensions(:,it), "or","MarkerSize", 3);
-    ylabel("Tension [N]")
-    grid on
-
-   
-
-    title("Actuator " + it)
-    if it == 4
-        xlabel("Time [s]")
+        ylabel("Position [m]")
+        grid on
+    
+       
+    
+        if it == 3
+            xlabel("Time [s]")
+        end
+    
     end
 
-end
 
 
-
-
-figure("Name","ATI FT");
-
-for it = 1:3
-    index_plot = it*2 -1;
-    subplot(3,2,index_plot)
-
-    plot(relative_time_ATI, ATI_FT_f(:, it), "b", "LineWidth", 2.0); hold on
-    plot(sampling_time, interp_base_wrench(:,it), "or","MarkerSize", 3);
-    ylabel("Force [N]")
-    grid on
-
-   
-
-    if it == 3
-        xlabel("Time [s]")
-    end
 
 end
-
-for it = 1:3
-    index_plot = it*2;
-    subplot(3,2,index_plot)
-
-    plot(relative_time_ATI, ATI_FT_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
-    plot(sampling_time, interp_base_wrench(:,3 + it), "or","MarkerSize", 3);
-    ylabel("Torque [Nm]")
-    grid on
-
-   
-
-    if it == 3
-        xlabel("Time [s]")
-    end
-
-end
-
-
 %%  Save the interpolated data
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
 interp_time_base_wrench = [sampling_time interp_base_wrench];
+interp_time_vicon_frames = zeros(N_samples, 7, N_disks);
+for it=1:N_disks
+    interp_time_vicon_frames(:, :, it) = [sampling_time interp_rel_kinematics_disks(:, :, it)];
+end
 
 
 saving_folder = folder + "processed\";
@@ -250,6 +418,7 @@ mkdir(saving_folder);
 writematrix(interp_time_angles, saving_folder + "angles.csv");
 writematrix(interp_time_tensions, saving_folder + "cable_tensions.csv");
 writematrix(interp_time_base_wrench, saving_folder + "base_wrench.csv");
+writematrix(interp_time_vicon_frames, saving_folder + "vicon_frames.csv");
 
 
 %% ====== HELPER FUNCTION ======

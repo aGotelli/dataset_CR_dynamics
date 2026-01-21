@@ -23,6 +23,7 @@ Const.mu = 1e-1;
 
 Const.GI = 0;
 Const.EI = 0.092;
+% Const.EI = 0.075;
 Const.EA = 0;
 Const.GA = 0;
 
