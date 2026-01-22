@@ -3,7 +3,7 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = "dataCollectionPack\planar motion\plane_x_angle_90_speed_1\";
+folder = "dataCollectionPack\planar motion\plane_x_angle_90_speed_2\";
 
 cutoffHz    = 20;   % Butterworth cutoff
 butterOrder = 4;

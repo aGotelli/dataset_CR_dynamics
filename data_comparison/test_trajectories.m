@@ -11,6 +11,8 @@ addpath('Dyn_Essai_release_Beam_Andrea/methode spectral/')
 Config.option=odeset('RelTol',10^(-8),'AbsTol',10^(-8));
 
 
+path = "..\data_collection\dataCollectionPack\planar motion\plane_x_angle_90_speed_2\processed\";
+
 
 %%  Define position frames Vicon
 Config.X_meas = [0, 0.1189, 0.2388, 0.3577, 0.48];
@@ -56,7 +58,7 @@ Const.F1 = zeros(6,1);
 
 %%  Take data measurements
 
-cable_tensions = load("..\data_collection\dataCollectionPack\planar motion\plane_x_angle_90_speed_1\processed\cable_tensions.csv");
+cable_tensions = load(path + "cable_tensions.csv");
 
 
 
@@ -85,19 +87,23 @@ Config.plot = false;
 
 
 
-[q,q_dot,q_dot_dot, position_disks_simu] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
+[q,q_dot,q_dot_dot, position_disks_simu, wrench_at_base] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
 
-save("processed data")
+save(path + "simulation_results")
 
 
 %%  Plotting results
-load("processed data")
+load(path + "simulation_results")
 
-vicon_frames_stacked = load("..\data_collection\dataCollectionPack\planar motion\plane_x_angle_90_speed_1\processed\vicon_frames.csv");
+vicon_frames_stacked = load(path + "vicon_frames.csv");
 N_times_vicon = size(vicon_frames_stacked, 1);
 vicon_frames = reshape(vicon_frames_stacked, [N_times_vicon, 7, 5]);
 disk_num = 5;
 time_kinematics_tip = vicon_frames(:, :, disk_num);
+time_simu = time_kinematics_tip(:, 1);
+
+
+time_base_wrench = load(path + "base_wrench.csv");
 
 
 
@@ -123,6 +129,46 @@ hold on
 plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on
 legend('Measured', 'Simulated')
+
+figure("Name", "Wrench at base (Torques)")
+subplot(3, 1, 1)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 2), 'b', 'LineWidth', 1)
+hold on
+plot(time_simu, wrench_at_base(:, 1), 'r', 'LineWidth', 1)
+
+subplot(3, 1, 2)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 3), 'b', 'LineWidth', 1)
+hold on
+plot(time_simu, wrench_at_base(:, 2), 'r', 'LineWidth', 1)
+
+subplot(3, 1, 3)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 4), 'b', 'LineWidth', 1)
+hold on
+plot(time_simu, wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+
+
+
+figure("Name", "Wrench at base (Forces)")
+subplot(3, 1, 1)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 1)
+hold on
+plot(time_simu, wrench_at_base(:, 4), 'r', 'LineWidth', 1)
+
+subplot(3, 1, 2)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 1)
+hold on
+plot(time_simu, wrench_at_base(:, 5), 'r', 'LineWidth', 1)
+
+subplot(3, 1, 3)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 7), 'b', 'LineWidth', 1)
+hold on
+plot(time_simu, wrench_at_base(:, 6), 'r', 'LineWidth', 1)
+
+
+figure("Name", "Torque")
+plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 1)
+hold on
+plot(time_simu, -wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 
 % 
 % %%  Compare data with vicon

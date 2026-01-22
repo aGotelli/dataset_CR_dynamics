@@ -17,13 +17,13 @@ Const.J(3,3) = pi*Const.Rc^4/4;
 
 
 
-Const.mu = 1e-1;
+Const.mu = 1.8e-1;
 
 
 
 Const.GI = 0;
-Const.EI = 0.092;
-% Const.EI = 0.075;
+% Const.EI = 0.092;
+Const.EI = 0.088;
 Const.EA = 0;
 Const.GA = 0;
 

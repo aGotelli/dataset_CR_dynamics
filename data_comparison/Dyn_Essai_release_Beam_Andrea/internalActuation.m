@@ -1,4 +1,4 @@
-function Qad = internalActuation(tau, Const, Config)
+function [Qad, L1, L2] = internalActuation(tau, Const, Config)
 
 
 L0 = zeros(Const.dim_base, 1);
