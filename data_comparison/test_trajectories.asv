@@ -59,7 +59,7 @@ Const.F1 = zeros(6,1);
 %%  Take data measurements
 
 cable_tensions = load(path + "cable_tensions.csv");
-time_angles_motor = load(path + "angles.csv");
+motor  = load(path + "angles.csv");
 
 
 
@@ -174,25 +174,16 @@ legend('Measured', 'Simulated')
 
 
 %   Plot the cable displacements
-cable_spool_radius = 0.02;
-time_cables = time_angles_motor(:, 1);
-motor_angles = time_angles_motor(:, 2:end);
-measured_cables_pulled = motor_angles*cable_spool_radius;
 figure("Name", "Cable Displacement")
 subplot(2, 1, 1)
-plot(time_cables, measured_cables_pulled(:, 1), 'b', 'LineWidth', 1)
-hold on 
 plot(time_simu, cables_displacements(:, 1), 'r', 'LineWidth', 1)
 grid on
 
 
 subplot(2, 1, 2)
-plot(time_cables, measured_cables_pulled(:, 2), 'b', 'LineWidth', 1)
-hold on
 plot(time_simu, cables_displacements(:, 2), 'r', 'LineWidth', 1)
 grid on
 
-legend('Measured', 'Simulated')
 % 
 % %%  Compare data with vicon
 % 

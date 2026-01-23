@@ -1,4 +1,4 @@
-function [q,q_dot,q_dot_dot, position_disks_simu, wrench_at_base] = Time_integration_Newton_beam_actuated_spectral(Const, Config)
+function [q,q_dot,q_dot_dot, position_disks_simu, wrench_at_base, cables_displacements] = Time_integration_Newton_beam_actuated_spectral(Const, Config)
 
 
 r_min = 1e-6;
@@ -33,6 +33,9 @@ time = data.time;
 N_time = length(time);
 position_disks_simu = zeros(5, 3, N_time);
 wrench_at_base = zeros(N_time, 6);
+cables_displacements = zeros(N_time, 2);
+
+
 for it_t = 1:N_time
     
     
@@ -94,15 +97,20 @@ for it_t = 1:N_time
     q_dot(:,it_t+1)     = Const.q_dot;
     q_dot_dot(:,it_t+1) = Const.q_dot_dot; 
 
-
+    %   Compute wrench at base
     [F0, ~, ~] = TIDM_spectral(qn_0,rn_0,q_0,r_0,eta_0,eta_dot_0,a,b,time,Const,Config);
     wrench_at_base(it_t, :) = F0';
 
+    %   Compute position disks
     CI = [q_0;r_0;eta_0];
     [~, X3] = ode45(@(t,y) Forward_eta(t,y,time,Const,Config),Config.X_meas,CI,Config.option); % Solve ODE
     Xt = X3(:,5:7);
 
     position_disks_simu(:, :, it_t) = Xt;
+
+    %   Compute cable length
+    [pulled_lenghts, ~] = getCablesLength(Const, Config);
+    cables_displacements(it_t, :) = pulled_lenghts';
 
     if Config.plot
         
