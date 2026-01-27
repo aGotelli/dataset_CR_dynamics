@@ -6,7 +6,9 @@ number_of_grating = 26;
 greating_index = 0:1:(number_of_grating-1);
 
 
-fbgs_raw_data = readtable("dataCollectionPack\planar motion\plane_x_-y_angle_90_speed_2\dataFBGS_.csv");
+% fbgs_raw_data = readtable("dataCollectionPack\planar motion\plane_x_-y_angle_90_speed_2\dataFBGS_.csv");
+fbgs_raw_data = readtable("dataFBGS.csv");
+
 
 time_fbgs = fbgs_raw_data.Timestamp;
 
@@ -81,3 +83,96 @@ plot(time_fbgs, squeeze( shapes(3, end, :) ), 'b')
 grid on
 xlabel("Time")
 ylabel("Positions")
+
+
+figure("Name", 'FBGS Motion')
+
+for it_t=1:N_time_fbgs
+    
+    xyz = shapes(:, :, it_t);
+
+    plot3(xyz(1, :), xyz(2, :), xyz(3, :), 'b', 'LineWidth', 1)
+    
+    grid on
+    xlim([-0.3, 0.3])
+    ylim([-0.3, 0.3])
+    zlim([-0.3, 0.3])
+    title("Time " + num2str(time_fbgs(it_t)))
+    drawnow
+    
+
+end
+
+%%  Now use the curvature directly
+
+curvature_samples = size(angles, 2);
+
+X_gratings = linspace(0, .48, curvature_samples);
+
+strain_rod = zeros(6, curvature_samples, N_time_fbgs);
+for it_t=1:N_time_fbgs
+    
+    %   Extract curvature and angle for that timestep
+    angle_X = angles(it_t, :);
+    curvature_X = curvatures(it_t, :);
+
+    T = [
+        0*angle_X
+        cos(angle_X)
+        sin(angle_X)
+    ];
+
+    K = curvature_X.*T;
+
+    Gamma = repmat([1; 0; 0], [1 length(angle_X)]);
+
+    strain_rod(:, :, it_t) = [
+        K
+        Gamma
+    ];
+
+end
+
+%%  Find corresponding set of generalized coordinates
+
+
+addpath("..\data_comparison\Dyn_Essai_release_Beam_Andrea\")
+
+
+
+
+%  Defining required variables
+% K1, K2, K3, ...
+Config.V_a = [ 0, 1, 1, 0, 0, 0];
+
+%   Defining size of the basis
+Const.dim_base_k = [0, 3, 3, 0, 0, 0];
+
+%   Resulting dimension q
+Const.dim_base   = Config.V_a*Const.dim_base_k';
+
+Config.L = 0.48;
+
+
+function error = findCoords(q, strain, X_grating)3
+3
+5rtftrfgyg
+
+
+    K_q = zeros(2, curvature_samples)
+    
+    for it_x=1:length(X_grating)
+
+        X = X_gratings(it_x);
+
+
+        Phi = Base_Phi(X, 0, Const, Config)';
+
+        
+        K_q = Phi*q;
+
+    
+    end
+
+
+end

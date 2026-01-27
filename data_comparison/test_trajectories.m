@@ -11,7 +11,7 @@ addpath('Dyn_Essai_release_Beam_Andrea/methode spectral/')
 Config.option=odeset('RelTol',10^(-8),'AbsTol',10^(-8));
 
 
-path = "..\data_collection\dataCollectionPack\planar motion\plane_x_angle_90_speed_2\processed\";
+path = "..\data_collection\dataCollectionPack\20260127\plane_x_angle_150_speed_1\processed\";
 
 
 %   If you want to plot in real time

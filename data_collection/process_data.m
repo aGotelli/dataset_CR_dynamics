@@ -3,7 +3,7 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = "dataCollectionPack\planar motion\plane_x_angle_90_speed_2\";
+folder = "dataCollectionPack\20260127\plane_x_angle_150_speed_1\";
 
 cutoffHz    = 20;   % Butterworth cutoff
 butterOrder = 4;
@@ -19,17 +19,17 @@ plot_disk_num = 5;
 
 
 %% ====== LOAD DATA ======
-motor = readtable(folder + "datasequence__circle_radius_90p0.csv");
+motor = readtable(folder + "datasequence_circle_radius_150p0.csv");
 
-mk_1_negx = readtable(folder + "dataMark10_1_-x_.csv");
-mk_1_x    = readtable(folder + "dataMark10_1_x_.csv");
-mk_2_negy = readtable(folder + "dataMark10_2_-y_.csv");
-mk_2_y    = readtable(folder + "dataMark10_2_y_.csv");
+mk_1_negx = readtable(folder + "dataMark10_1_-x.csv");
+mk_1_x    = readtable(folder + "dataMark10_1_x.csv");
+mk_2_negy = readtable(folder + "dataMark10_2_-y.csv");
+mk_2_y    = readtable(folder + "dataMark10_2_y.csv");
 
-ati = readtable(folder + "dataATIFT_.csv");
+ati = readtable(folder + "dataATIFT.csv");
 
 N_frames_static_begin = 10; %how many frames to use to compute relative pose for Vicon
-filename = folder + "dataVicon_.csv";
+filename = folder + "dataVicon.csv";
 [N_disks, timestamp_vicon, rel_kinematics_disks] = data_vicon(filename, N_frames_static_begin);
 
 %% ====== EXTRACT MOTOR SIGNALS ======
