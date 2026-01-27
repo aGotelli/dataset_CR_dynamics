@@ -1,4 +1,6 @@
-
+clear;
+close all;
+clc;
 
 number_of_grating = 26;
 greating_index = 0:1:(number_of_grating-1);

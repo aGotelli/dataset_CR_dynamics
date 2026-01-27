@@ -14,6 +14,10 @@ Config.option=odeset('RelTol',10^(-8),'AbsTol',10^(-8));
 path = "..\data_collection\dataCollectionPack\planar motion\plane_x_angle_90_speed_2\processed\";
 
 
+%   If you want to plot in real time
+Config.plot = false;
+
+
 %%  Define position frames Vicon
 Config.X_meas = [0, 0.1189, 0.2388, 0.3577, 0.48];
 % Config.observation_points = Config.X_meas/Config.L; %   Normalized domain
@@ -84,7 +88,7 @@ Config.data.tau = [
 %% Time integration
 
 
-Config.plot = false;
+
 
 
 
@@ -94,6 +98,7 @@ save(path + "simulation_results")
 
 
 %%  Plotting results
+close all
 load(path + "simulation_results")
 
 vicon_frames_stacked = load(path + "vicon_frames.csv");
@@ -130,41 +135,41 @@ hold on
 plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on
 legend('Measured', 'Simulated')
-
-figure("Name", "Wrench at base (Torques)")
-subplot(3, 1, 1)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 2), 'b', 'LineWidth', 1)
-hold on
-plot(time_simu, simulated_wrench_at_base(:, 1), 'r', 'LineWidth', 1)
-
-subplot(3, 1, 2)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 3), 'b', 'LineWidth', 1)
-hold on
-plot(time_simu, simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
-
-subplot(3, 1, 3)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 4), 'b', 'LineWidth', 1)
-hold on
-plot(time_simu, simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
-
-
-
-figure("Name", "Wrench at base (Forces)")
-subplot(3, 1, 1)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 1)
-hold on
-plot(time_simu, simulated_wrench_at_base(:, 4), 'r', 'LineWidth', 1)
-
-subplot(3, 1, 2)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 1)
-hold on
-plot(time_simu, simulated_wrench_at_base(:, 5), 'r', 'LineWidth', 1)
-
-subplot(3, 1, 3)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 7), 'b', 'LineWidth', 1)
-hold on
-plot(time_simu, simulated_wrench_at_base(:, 6), 'r', 'LineWidth', 1)
-
+% 
+% figure("Name", "Wrench at base (Torques)")
+% subplot(3, 1, 1)
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 2), 'b', 'LineWidth', 1)
+% hold on
+% plot(time_simu, simulated_wrench_at_base(:, 1), 'r', 'LineWidth', 1)
+% 
+% subplot(3, 1, 2)
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 3), 'b', 'LineWidth', 1)
+% hold on
+% plot(time_simu, simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
+% 
+% subplot(3, 1, 3)
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 4), 'b', 'LineWidth', 1)
+% hold on
+% plot(time_simu, simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+% 
+% 
+% 
+% figure("Name", "Wrench at base (Forces)")
+% subplot(3, 1, 1)
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 1)
+% hold on
+% plot(time_simu, simulated_wrench_at_base(:, 4), 'r', 'LineWidth', 1)
+% 
+% subplot(3, 1, 2)
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 1)
+% hold on
+% plot(time_simu, simulated_wrench_at_base(:, 5), 'r', 'LineWidth', 1)
+% 
+% subplot(3, 1, 3)
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 7), 'b', 'LineWidth', 1)
+% hold on
+% plot(time_simu, simulated_wrench_at_base(:, 6), 'r', 'LineWidth', 1)
+% 
 
 figure("Name", "Torque")
 plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 1)

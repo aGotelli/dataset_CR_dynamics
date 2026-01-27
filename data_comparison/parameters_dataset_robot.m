@@ -2,10 +2,11 @@
 Config.L = 0.48;
 Const.Rc  = 0.002;
 
-weight = 87.04; % [g]
+weight = 102; % [g]
 weight = weight/1000;
 specific_weight = weight/(pi*Const.Rc^2*Config.L);
 
+%   -> Specific weigth 
 Const.rho = specific_weight;
 
 
@@ -16,14 +17,16 @@ Const.J(3,3) = pi*Const.Rc^4/4;
 
 
 
-
+%   -> Damping coefficient
 Const.mu = 1.8e-1;
 
 
-
+%   -> Material Properties
 Const.GI = 0;
 % Const.EI = 0.092;
 Const.EI = 0.088;
+
+%   Keep zero
 Const.EA = 0;
 Const.GA = 0;
 
