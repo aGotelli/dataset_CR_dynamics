@@ -116,25 +116,32 @@ time_base_wrench = load(path + "base_wrench.csv");
 tip_frame = squeeze( position_disks_simu(5, :, :) )';
 
 
-figure("Name", "Tip Position")
+f = figure("Name", "Tip Position");
 subplot(3, 1, 1)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 2), 'b', 'LineWidth', 1)
+plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 2), 'g', 'LineWidth', 1)
 hold on
 plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
 grid on
 
 subplot(3, 1, 2)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 3), 'b', 'LineWidth', 1)
+plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 3), 'g', 'LineWidth', 1)
 hold on
 plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
 grid on
 
 subplot(3, 1, 3)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 4), 'b', 'LineWidth', 1)
+plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 4), 'g', 'LineWidth', 1)
 hold on
 plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on
 legend('Measured', 'Simulated')
+
+name = f.Name;
+savefig(path + name)
+filename_png = [char(path + name), '.png'];
+exportgraphics(f, filename_png, 'Resolution', 300); 
+
+
 % 
 % figure("Name", "Wrench at base (Torques)")
 % subplot(3, 1, 1)
@@ -171,11 +178,22 @@ legend('Measured', 'Simulated')
 % plot(time_simu, simulated_wrench_at_base(:, 6), 'r', 'LineWidth', 1)
 % 
 
-figure("Name", "Torque")
-plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 1)
+f = figure("Name", "Torque");
+subplot(2, 1, 1)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'g', 'LineWidth', 1)
+hold on
+plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+
+subplot(2, 1, 2)
+plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'g', 'LineWidth', 1)
 hold on
 plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 legend('Measured', 'Simulated')
+
+name = f.Name;
+savefig(path + name)
+filename_png = [char(path + name), '.png'];
+exportgraphics(f, filename_png, 'Resolution', 300); 
 
 
 %   Plot the cable displacements
@@ -183,21 +201,27 @@ cable_spool_radius = 0.02;
 time_cables = time_angles_motor(:, 1);
 motor_angles = time_angles_motor(:, 2:end);
 measured_cables_pulled = motor_angles*cable_spool_radius;
-figure("Name", "Cable Displacement")
+f = figure("Name", "Cable Displacement");
 subplot(2, 1, 1)
-plot(time_cables, measured_cables_pulled(:, 1), 'b', 'LineWidth', 1)
+plot(time_cables, measured_cables_pulled(:, 1), 'g', 'LineWidth', 1)
 hold on 
 plot(time_simu, cables_displacements(:, 1), 'r', 'LineWidth', 1)
 grid on
 
 
 subplot(2, 1, 2)
-plot(time_cables, measured_cables_pulled(:, 2), 'b', 'LineWidth', 1)
+plot(time_cables, measured_cables_pulled(:, 2), 'g', 'LineWidth', 1)
 hold on
-plot(time_simu, cables_displacements(:, 2), 'r', 'LineWidth', 1)
+plot(time_simu, -cables_displacements(:, 2), 'r', 'LineWidth', 1)
 grid on
 
 legend('Measured', 'Simulated')
+
+name = f.Name;
+savefig(path + name)
+filename_png = [char(path + name), '.png'];
+exportgraphics(f, filename_png, 'Resolution', 300); 
+
 % 
 % %%  Compare data with vicon
 % 

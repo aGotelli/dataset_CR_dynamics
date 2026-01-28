@@ -42,7 +42,7 @@ for it_t = 1:N_time
     
     tau = data.tau(:, it_t);
 
-    info = [time(it_t) tau']
+    
      
     
     q_n         = q(:,it_t);
@@ -68,7 +68,7 @@ for it_t = 1:N_time
     Residual = Q_a + Const.Dee*Const.q_dot + Const.Kee*Const.q - Q_ad;
     Jacobian = J(7:end,7:end) + a*Const.Dee + Const.Kee;
     
-    
+    iter = 0;
     while norm(Residual) > r_min        
                 
         Delta_q_k =  -Jacobian\Residual; 
@@ -90,7 +90,7 @@ for it_t = 1:N_time
         q_dot_np1_k = Const.q_dot;
         q_dot_dot_np1_k = Const.q_dot_dot;
         
-    
+        iter = iter + 1;
     end
     
     q(:,it_t+1)         = Const.q;
@@ -125,6 +125,9 @@ for it_t = 1:N_time
         zlim([-Config.L Config.L])
         drawnow
     end
-end
 
+    % Print iteration info
+    fprintf('\n%-12s %-12s %-12s %-12s %-12s\n', 'time', 'tau_1', 'tau_2', 'NR iter', '% complete');
+    fprintf('%-12.4f %-12.4f %-12.4f %-12d %-12.2f\n', time(it_t), tau(1), tau(2), iter, (it_t/N_time)*100);
+end
 

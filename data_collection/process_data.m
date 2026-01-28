@@ -32,6 +32,36 @@ N_frames_static_begin = 10; %how many frames to use to compute relative pose for
 filename = folder + "dataVicon.csv";
 [N_disks, timestamp_vicon, rel_kinematics_disks] = data_vicon(filename, N_frames_static_begin);
 
+filename = folder + "dataFBGS.csv";
+[fbgs_time, fbgs_shapes] = data_fbgs(filename);
+
+
+
+
+figure("Name", "Tip Position");
+xyz_XYZ = rel_kinematics_disks(:, :, 5);
+xyz_FBGS = squeeze( fbgs_shapes(:, end, :) );
+
+for it = 1:3
+    index_plot = it*2 -1;
+    subplot(3,2,index_plot)
+
+    plot(timestamp_vicon - timestamp_vicon(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
+    hold on
+    plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+    ylabel("Position [m]")
+    grid on
+
+    
+
+    if it == 3
+        xlabel("Time [s]")
+    end
+
+end
+
+return;
+
 %% ====== EXTRACT MOTOR SIGNALS ======
 time_actuators = motor.timestamp;                     
 
