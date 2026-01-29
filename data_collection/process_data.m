@@ -3,7 +3,7 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = "dataCollectionPack\20260127\plane_x_angle_150_speed_1\";
+folder = fullfile("dataCollectionPack","20260127","plane_x_y_angle_150_speed_3");
 
 cutoffHz    = 20;   % Butterworth cutoff
 butterOrder = 4;
@@ -19,48 +19,48 @@ plot_disk_num = 5;
 
 
 %% ====== LOAD DATA ======
-motor = readtable(folder + "datasequence_circle_radius_150p0.csv");
+motor = readtable(fullfile(folder, "datasequence_circle_radius_150p0.csv"));
 
-mk_1_negx = readtable(folder + "dataMark10_1_-x.csv");
-mk_1_x    = readtable(folder + "dataMark10_1_x.csv");
-mk_2_negy = readtable(folder + "dataMark10_2_-y.csv");
-mk_2_y    = readtable(folder + "dataMark10_2_y.csv");
+mk_1_negx = readtable(fullfile(folder, "dataMark10_1_-x.csv"));
+mk_1_x    = readtable(fullfile(folder, "dataMark10_1_x.csv"));
+mk_2_negy = readtable(fullfile(folder, "dataMark10_2_-y.csv"));
+mk_2_y    = readtable(fullfile(folder, "dataMark10_2_y.csv"));
 
-ati = readtable(folder + "dataATIFT.csv");
+ati = readtable(fullfile(folder, "dataATIFT.csv"));
 
 N_frames_static_begin = 10; %how many frames to use to compute relative pose for Vicon
-filename = folder + "dataVicon.csv";
+filename = fullfile(folder, "dataVicon.csv");
 [N_disks, timestamp_vicon, rel_kinematics_disks] = data_vicon(filename, N_frames_static_begin);
 
-filename = folder + "dataFBGS.csv";
+filename = fullfile(folder, "dataFBGS.csv");
 [fbgs_time, fbgs_shapes] = data_fbgs(filename);
 
 
 
+% 
+% figure("Name", "Tip Position");
+% xyz_XYZ = rel_kinematics_disks(:, :, 5);
+% xyz_FBGS = squeeze( fbgs_shapes(:, end, :) );
+% 
+% for it = 1:3
+%     index_plot = it*2 -1;
+%     subplot(3,2,index_plot)
+% 
+%     plot(timestamp_vicon - timestamp_vicon(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
+%     hold on
+%     plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+%     ylabel("Position [m]")
+%     grid on
+% 
+%     
+% 
+%     if it == 3
+%         xlabel("Time [s]")
+%     end
+% 
+% end
 
-figure("Name", "Tip Position");
-xyz_XYZ = rel_kinematics_disks(:, :, 5);
-xyz_FBGS = squeeze( fbgs_shapes(:, end, :) );
-
-for it = 1:3
-    index_plot = it*2 -1;
-    subplot(3,2,index_plot)
-
-    plot(timestamp_vicon - timestamp_vicon(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
-    hold on
-    plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-    ylabel("Position [m]")
-    grid on
-
-    
-
-    if it == 3
-        xlabel("Time [s]")
-    end
-
-end
-
-return;
+% return;
 
 %% ====== EXTRACT MOTOR SIGNALS ======
 time_actuators = motor.timestamp;                     
@@ -468,15 +468,15 @@ for it=1:N_disks
 end
 
 
-saving_folder = folder + "processed\";
+saving_folder = fullfile( folder,  "processed");
 mkdir(saving_folder);
 
-writematrix(interp_time_angles, saving_folder + "angles.csv");
-writematrix(interp_time_tensions, saving_folder + "cable_tensions.csv");
-writematrix(interp_time_base_wrench, saving_folder + "base_wrench.csv");
-writematrix(interp_time_vicon_frames, saving_folder + "vicon_frames.csv");
+writematrix(interp_time_angles, fullfile(saving_folder , "angles.csv"));
+writematrix(interp_time_tensions, fullfile(saving_folder ,"cable_tensions.csv"));
+writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
+writematrix(interp_time_vicon_frames, fullfile(saving_folder , "vicon_frames.csv"));
 
-
+close all
 %% ====== HELPER FUNCTION ======
 function y = butter_filtfilt(t, x, fc, n)
     Fs = 1/median(diff(t));                 % estimate sampling rate from timestamps
