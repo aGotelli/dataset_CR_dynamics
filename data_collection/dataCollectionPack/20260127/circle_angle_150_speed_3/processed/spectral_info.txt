@@ -1,0 +1,4 @@
+Sampling Hz: motor=491.424, cables=350.021 350.753 340.253 342.476, ATI=5919.977, Vicon=99.941
+Useful max freq (search<15.0): motor=8.17850, cables=15.12026, vicon=7.13668, ati=9.89450
+Fc (pre-clamp): 15.120 
+Fc used after clamp [3.0, 15.0]: 15.000 Hz

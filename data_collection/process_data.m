@@ -476,7 +476,7 @@ writematrix(interp_time_tensions, fullfile(saving_folder ,"cable_tensions.csv"))
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
 writematrix(interp_time_vicon_frames, fullfile(saving_folder , "vicon_frames.csv"));
 
-close all
+% close all
 %% ====== HELPER FUNCTION ======
 function y = butter_filtfilt(t, x, fc, n)
     Fs = 1/median(diff(t));                 % estimate sampling rate from timestamps
