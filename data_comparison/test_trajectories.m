@@ -2,16 +2,24 @@ clc
 clear all
 close all
 
+% path that can be good across systems
+thisFile = mfilename("fullpath");
+thisDir  = fileparts(thisFile);
+repoRoot  = fileparts(thisDir); %goes up one dir
+root_data = fullfile(repoRoot, "data_collection");
+name_data_to_process = "plane_y_angle_150_speed_1";
+folder = fullfile(root_data, "dataCollectionPack", "20260127", name_data_to_process);
+
+path = fullfile(folder,"processed");
+% "..\data_collection\dataCollectionPack\20260127\plane_x_angle_150_speed_1\processed\";
+
 % ajoute le dossier outils
-addpath('Dyn_Essai_release_Beam_Andrea/')
+addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
 addpath('Dyn_Essai_release_Beam_Andrea/outils/')
 addpath('Dyn_Essai_release_Beam_Andrea/IDM/')
 addpath('Dyn_Essai_release_Beam_Andrea/methode spectral/')
 
 Config.option=odeset('RelTol',10^(-8),'AbsTol',10^(-8));
-
-
-path = "..\data_collection\dataCollectionPack\20260127\plane_x_angle_150_speed_1\processed\";
 
 
 %   If you want to plot in real time
@@ -62,8 +70,8 @@ Const.F1 = zeros(6,1);
 
 %%  Take data measurements
 
-cable_tensions = load(path + "cable_tensions.csv");
-time_angles_motor = load(path + "angles.csv");
+cable_tensions = load(fullfile(path, "cable_tensions.csv"));
+time_angles_motor = load(fullfile(path, "angles.csv"));
 
 
 
@@ -94,14 +102,14 @@ Config.data.tau = [
 
 [q,q_dot,q_dot_dot, position_disks_simu, simulated_wrench_at_base, cables_displacements] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
 
-save(path + "simulation_results")
+save(fullfile(path,"simulation_results"))
 
 
 %%  Plotting results
 close all
-load(path + "simulation_results")
+load(fullfile(path, "simulation_results"))
 
-vicon_frames_stacked = load(path + "vicon_frames.csv");
+vicon_frames_stacked = load(fullfile(path, "vicon_frames.csv"));
 N_times_vicon = size(vicon_frames_stacked, 1);
 vicon_frames = reshape(vicon_frames_stacked, [N_times_vicon, 7, 5]);
 disk_num = 5;
@@ -109,7 +117,7 @@ time_kinematics_tip = vicon_frames(:, :, disk_num);
 time_simu = time_kinematics_tip(:, 1);
 
 
-time_base_wrench = load(path + "base_wrench.csv");
+time_base_wrench = load(fullfile(path, "base_wrench.csv"));
 
 
 
@@ -137,8 +145,8 @@ grid on
 legend('Measured', 'Simulated')
 
 name = f.Name;
-savefig(path + name)
-filename_png = [char(path + name), '.png'];
+savefig(fullfile(path, name))
+filename_png = [char(fullfile(path, name)), '.png'];
 exportgraphics(f, filename_png, 'Resolution', 300); 
 
 
@@ -191,8 +199,8 @@ plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 legend('Measured', 'Simulated')
 
 name = f.Name;
-savefig(path + name)
-filename_png = [char(path + name), '.png'];
+savefig(fullfile(path, name))
+filename_png = [char(fullfile(path, name)), '.png'];
 exportgraphics(f, filename_png, 'Resolution', 300); 
 
 
@@ -218,8 +226,8 @@ grid on
 legend('Measured', 'Simulated')
 
 name = f.Name;
-savefig(path + name)
-filename_png = [char(path + name), '.png'];
+savefig(fullfile(path, name))
+filename_png = [char(fullfile(path, name)), '.png'];
 exportgraphics(f, filename_png, 'Resolution', 300); 
 
 % 
@@ -311,3 +319,4 @@ exportgraphics(f, filename_png, 'Resolution', 300);
 %     error_norm = norm(error(:));
 % 
 % end
+close all
