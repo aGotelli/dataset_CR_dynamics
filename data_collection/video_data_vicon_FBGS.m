@@ -3,7 +3,7 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = "dataCollectionPack\20260127\plane_y_angle_150_speed_1\";
+folder = "dataCollectionPack\20260127\plane_x_angle_150_speed_1\";
 
 
 
@@ -11,7 +11,8 @@ N_frames_static_begin = 10; %how many frames to use to compute relative pose for
 filename = folder + "dataVicon.csv";
 [N_disks, timestamp_vicon, rel_kinematics_disks] = data_vicon(filename, N_frames_static_begin);
 
-filename = folder + "dataFBGS.csv";
+% filename = folder + "dataFBGS.csv";
+filename = "dataFBGS_straigth.csv";
 [fbgs_time, fbgs_shapes] = data_fbgs(filename);
 
 
@@ -21,9 +22,9 @@ N_FBGS = length(fbgs_time);
 N = min(N_vicon, N_FBGS);
 
 figure("Name", "Video Shape")
-for it_t=1:N
+for it_t=1:N_FBGS
 
-    time = timestamp_vicon(it_t) - timestamp_vicon(1);
+    time = fbgs_time(it_t) - fbgs_time(1);
 
     %   FBGS is growing on x we need to shift into evolving along the
     %   negative z axis
@@ -36,7 +37,7 @@ for it_t=1:N
 
     plot3(xyz_FBGS(1, :), xyz_FBGS(2, :), xyz_FBGS(3, :), 'b');
     hold on
-    plot3(xyz_Vicon(1, :), xyz_Vicon(2, :), xyz_Vicon(3, :), 'or');
+    % plot3(xyz_Vicon(1, :), xyz_Vicon(2, :), xyz_Vicon(3, :), 'or');
     grid on
     xlim([-.5, .5])
     ylim([-.5, .5])
