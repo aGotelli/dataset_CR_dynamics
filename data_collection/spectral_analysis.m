@@ -42,8 +42,9 @@ fs = 1/dt_med;
 
 sig = signals;
 sig = fillmissing(sig, 'linear');
-sig = detrend(sig, 'constant');
+% sig = detrend(sig, 'constant');
 
+% Welch window length: adaptive (~1 s, power-of-two), overrides pwelch default (256)
 if isempty(nperseg_user)
     nperseg = 2^nextpow2(max(round(fs), 32)); % ~1 s window
 else

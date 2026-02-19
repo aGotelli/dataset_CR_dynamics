@@ -7,7 +7,7 @@ thisFile = mfilename("fullpath");
 thisDir  = fileparts(thisFile);
 repoRoot  = fileparts(thisDir); %goes up one dir
 root_data = fullfile(repoRoot, "data_collection");
-name_data_to_process = "plane_y_angle_150_speed_1";
+name_data_to_process = "plane_x_-y_angle_150_speed_3";
 folder = fullfile(root_data, "dataCollectionPack", "20260127", name_data_to_process);
 
 path = fullfile(folder,"processed");
@@ -70,8 +70,8 @@ Const.F1 = zeros(6,1);
 
 %%  Take data measurements
 
-cable_tensions = load(fullfile(path, "cable_tensions.csv"));
-time_angles_motor = load(fullfile(path, "angles.csv"));
+cable_tensions = load(fullfile(path, "cable_tensions_psd.csv"));
+time_angles_motor = load(fullfile(path, "angles_psd.csv"));
 
 
 
