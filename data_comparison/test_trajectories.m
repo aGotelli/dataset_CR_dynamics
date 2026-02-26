@@ -118,10 +118,16 @@ time_simu = time_kinematics_tip(:, 1);
 
 
 time_base_wrench = load(fullfile(path, "base_wrench.csv"));
+fbgs_shapes_stacked = load(fullfile(path, "fbgs_shapes.csv"));
 
 
 
 tip_frame = squeeze( position_disks_simu(5, :, :) )';
+time_fbgs = fbgs_shapes_stacked(:, 1);
+fbgs_xyz_stacked = fbgs_shapes_stacked(:, 2:end);
+N_fbgs_points = size(fbgs_xyz_stacked, 2)/3;
+tip_start_col = 3*(N_fbgs_points - 1) + 1;
+tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
 
 
 f = figure("Name", "Tip Position");
@@ -143,6 +149,32 @@ hold on
 plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on
 legend('Measured', 'Simulated')
+
+name = f.Name;
+savefig(fullfile(path, name))
+filename_png = [char(fullfile(path, name)), '.png'];
+exportgraphics(f, filename_png, 'Resolution', 300); 
+
+
+f = figure("Name", "Tip Position FBGS");
+subplot(3, 1, 1)
+plot(time_fbgs, tip_fbgs(:, 1), 'g', 'LineWidth', 1)
+hold on
+plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
+grid on
+
+subplot(3, 1, 2)
+plot(time_fbgs, tip_fbgs(:, 2), 'g', 'LineWidth', 1)
+hold on
+plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
+grid on
+
+subplot(3, 1, 3)
+plot(time_fbgs, tip_fbgs(:, 3), 'g', 'LineWidth', 1)
+hold on
+plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
+grid on
+legend('FBGS', 'Simulated')
 
 name = f.Name;
 savefig(fullfile(path, name))

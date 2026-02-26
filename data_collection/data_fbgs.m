@@ -70,6 +70,35 @@ function [time_fbgs, fbgs_shapes] = data_fbgs(filename)
 
     end
 
+    % NOTE:
+    %   This loader returns FBGS shapes in the raw sensor frame.
+    %   Any frame re-orientation/alignment should be applied by the caller
+    %   (e.g., in process_data.m) to avoid redundant rotations.
+
+    video_FBGS= true;
+    video_FBGS= false;
+    if video_FBGS
+    
+        figure("Name", 'FBGS Motion')
+    
+        for it_t=1:N_time_fbgs
+            
+            xyz = fbgs_shapes(:, :, it_t);
+    
+            plot3(xyz(1, :), xyz(2, :), xyz(3, :), 'b', 'LineWidth', 1)
+            
+            grid on
+            xlim([-0.3, 0.3])
+            ylim([-0.3, 0.3])
+            zlim([-0.3, 0.3])
+            title("Time " + num2str(time_fbgs(it_t)))
+            drawnow
+            
+    
+        end
+    
+    end
+
 end
 
 
@@ -84,28 +113,7 @@ end
 % xlabel("Time")
 % ylabel("Positions")
 
-% video_FBGS= false;
-% if video_FBGS
 
-%     figure("Name", 'FBGS Motion')
-
-%     for it_t=1:N_time_fbgs
-        
-%         xyz = shapes(:, :, it_t);
-
-%         plot3(xyz(1, :), xyz(2, :), xyz(3, :), 'b', 'LineWidth', 1)
-        
-%         grid on
-%         xlim([-0.3, 0.3])
-%         ylim([-0.3, 0.3])
-%         zlim([-0.3, 0.3])
-%         title("Time " + num2str(time_fbgs(it_t)))
-%         drawnow
-        
-
-%     end
-
-% end
 
 % %%  Now use the curvature directly
 

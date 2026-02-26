@@ -30,7 +30,7 @@ for it_t=1:N_FBGS
     %   negative z axis
     R = axang2rotm([0 1 0 pi/2]);
 
-    xyz_FBGS = fbgs_shapes(:, :, it_t);
+    xyz_FBGS = R * fbgs_shapes(:, :, it_t);
 
 
     xyz_Vicon = squeeze( rel_kinematics_disks(it_t, 1:3, :) );
