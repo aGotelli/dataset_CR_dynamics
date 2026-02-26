@@ -389,7 +389,7 @@ class MotorControl:
 
                 rows.append(
                     [
-                        datetime.now().isoformat(),
+                        now,  # time.time() — same clock as all other sensors
                         round(elapsed, 6),
                         cmd1,
                         math.degrees(cmd1),

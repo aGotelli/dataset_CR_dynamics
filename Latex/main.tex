@@ -1,0 +1,654 @@
+\documentclass[14pt, a4paper]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{siunitx}
+
+% NSD: Title must be <= 110 characters, no marketing words (comprehensive, 
+% novel, first, AI-ready, open), no colons or parentheses, no acronyms.
+%
+% Current: 52 chars (OK length), but "Comprehensive" is discouraged.
+% Suggested alternatives (pick one):
+%   "Multi-sensor dataset of a tendon-driven continuum robot in dynamic motion" (72 chars)
+%   "Multi-sensor dataset of tendon-driven continuum robot quasi-static and dynamic motion" (86 chars)
+%
+\title{Multi-sensor dataset of a tendon-driven continuum robot in dynamic motion}
+\author{Andrea Gotelli, Tongjia Zheng, Angela Peloso, Spencer Teetaert, \\Puspita Dewi, Chengnan Shentu, Jessica Burgner-Kahrs}
+
+
+\newcommand{\ie}{\textit{i.e.}}
+\newcommand{\eg}{\textit{e.g.}}
+
+%	Set the bibliography once and for all
+\bibliographystyle{ieeetr}
+
+\begin{document}
+
+\maketitle
+
+
+\begin{abstract}
+% NSD: max 170 words. Should describe the data and how it may be used.
+% Should NOT make claims regarding new scientific findings.
+% Do not include URLs or sub-headings.
+%
+    This data descriptor presents a multi-sensor dataset on the quasi-static and dynamic motion of a tendon-driven continuum robot, including scenarios with and without contact with objects in the workspace.
+    The robot is instrumented with a motion capture system, fiber Bragg grating sensors, cable tension gauges, motor encoders, a base force-torque sensor, inertial measurement units, and a contact force-torque sensor.
+    The dataset covers planar, circular, and Lissajous trajectories at multiple speeds, organized in four batches: quasi-static motions, dynamic motions, dynamic motions with body-mounted inertial measurement units, and dynamic motions with contact.
+    Both raw sensor recordings and processed data (filtered, time-aligned, uniformly resampled) are provided.
+    The dataset enables benchmarking of dynamics models, training of data-driven methods, study of contact interactions, and sensor fusion research for continuum robots.
+\end{abstract}
+
+
+\section{Background \& Summary}
+%
+% NSD GUIDANCE: Provide an overview of the dataset, the motivation for creating 
+% it, and its potential reuse value. Cite related datasets. Do NOT include 
+% subjective claims on novelty, impact, or utility. Do NOT write a full 
+% literature review — keep the CR introduction to ~1 short paragraph.
+%
+% RECOMMENDED STRUCTURE (3 paragraphs + 1 dataset-summary paragraph):
+%
+% PARAGRAPH 1 — Context (SHORT, ~5-6 sentences max)
+%   - Define continuum robots in one sentence.
+%   - State they are studied for dynamics modeling, ML, and contact/interaction.
+%   - Cite 2-3 key references for each (Boyer, Renda for dynamics; 
+%     a ML ref; Rao, Matthew for contact).
+%   - Do NOT explain what a CR is at tutorial level — this is not a survey.
+%     The NSD audience is broad but the paper targets robotics researchers 
+%     who already know what a CR is.
+%   => DELETE: the figures of rigid-vs-continuum, bio-inspiration paragraph,
+%     history back to 1960s, infinite DoF explanation. These belong in a 
+%     survey or journal paper, not a data descriptor.
+%
+% PARAGRAPH 2 — Gap / Motivation (~4-5 sentences)
+%   - State the problem: experimental validation in CR research relies on 
+%     ad-hoc prototypes with lab-specific sensors; published datasets are 
+%     scarce.
+%   - Cite the Grassmann CTR dataset as a related effort (different robot type).
+%   - Note that no existing dataset combines kinematics AND force measurements 
+%     for a tendon-driven CR in both quasi-static and dynamic regimes.
+%
+% PARAGRAPH 3 — Dataset overview (~6-8 sentences)
+%   - State what this dataset contains: a tendon-driven CR with 4 cables, 
+%     instrumented with OptiTrack, FBGS, Mark10 tension sensors, ATI-FT, 
+%     IMUs, and Resense FT for contact.
+%   - Describe the robot briefly (single-segment, 4 tendons, ~0.48 m length).
+%   - Describe the experiment batches: quasi-static, dynamic, with IMU, 
+%     with contact.
+%   - Describe trajectory types: planar, circular, Lissajous.
+%   - State the data includes both raw and processed versions.
+%
+% PARAGRAPH 4 — Reuse value (~3-4 sentences)
+%   - List concrete reuse scenarios: benchmarking dynamics models, training 
+%     data-driven approaches, studying contact/interaction, sensor fusion 
+%     research, parameter identification.
+%   - Keep factual — do not say "this will enable" or "this is the first".
+%
+%% ---- DRAFT TEXT (to be refined) ----
+
+Continuum robots are manipulators whose body undergoes continuous elastic deformation, actuated by tendons, pneumatics, or other distributed mechanisms~\cite{Robinson1999, BurgnerKahrs2015}.
+Their dynamics have been studied through various modeling approaches~[boyer, renda, shooting], and there is growing interest in applying machine learning methods and in studying their contact and interaction with the environment~[Rao, Matthew].
+However, experimental validation in continuum robotics typically relies on ad-hoc prototypes instrumented with lab-specific sensors, and the resulting data is rarely made publicly available.
+
+% --- gap / motivation ---
+The limited availability of open datasets hampers reproducibility and the comparison of competing modeling, control, and learning approaches on common ground.
+A related effort produced a dataset for concentric tube robots~\cite{Grassmann2022}, but no publicly available dataset currently combines kinematics and force measurements for a tendon-driven continuum robot undergoing both quasi-static and dynamic motions, including contact with objects in the workspace.
+
+% --- dataset overview ---
+This data descriptor presents a multi-sensor dataset recorded on a single-segment tendon-driven continuum robot (length \SI{0.48}{\metre}, 4 tendons).
+The robot is instrumented with:
+an OptiTrack motion capture system providing poses of frames mounted along the robot body;
+Fiber Bragg Grating Sensors (FBGS) providing distributed strain and reconstructed shape;
+Mark10 force gauges measuring each cable tension;
+motor encoders measuring tendon displacements;
+an ATI force-torque sensor measuring the wrench at the robot base;
+IMU sensors providing accelerations and orientations;
+and a Resense force-torque sensor measuring contact forces with objects in the workspace.
+%
+The dataset is organized in four batches:
+(i) quasi-static motions,
+(ii) dynamic motions (planar, circular, Lissajous trajectories at different speeds),
+(iii) dynamic motions with IMUs mounted on the robot body,
+and (iv) dynamic motions with contact with an object in the workspace.
+Both raw sensor recordings and processed (filtered, resampled, time-aligned) data are provided.
+
+% --- reuse value ---
+The dataset is intended for benchmarking dynamics models against experimental data, training and evaluating data-driven methods, studying contact and interaction forces, investigating sensor fusion approaches, and performing parameter identification.
+The robot design uses commercially available components and is documented in sufficient detail to allow replication.
+
+
+
+\section{Methods}
+This section defines the methodology used to collect the data.
+We first describe the specifics of each sensor, we then detail how they where mounted on the robot and how we ensured alignment and validity of the recorded data.
+Finally, we describe how the data is collected giving a general idea of the data collection pipeline, the programming language and the use of CPU wall-time timestamps. 
+
+\subsection{Design}
+%% TODO (Puspita):
+%% This subsection must contain enough detail for another lab to replicate the 
+%% setup. NSD requires: "full descriptions of the experimental design".
+%%
+%% REQUIRED CONTENT:
+%%   1. Robot backbone: material, diameter (2*Rc = 4 mm from parameters file), 
+%%      length (0.48 m), supplier/part number if commercial.
+%%   2. Disk design: number of disks (5 from code), spacing along arc-length 
+%%      (0, 0.1189, 0.2388, 0.3577, 0.48 m — from Config.X_meas), material, 
+%%      how they are attached, hole pattern for cable routing and sensor 
+%%      mounting.
+%%   3. Cable routing: 4 tendons, routing distance from backbone center 
+%%      (d = 37.5 mm from parameters file), no pulleys.
+%%   4. Base design: how it is mounted, why pulleys were avoided, how this 
+%%      affects the cable tension measurement, how the ATI-FT is integrated.
+%%   5. Constraints from Mark10 sensors: physical size, mounting requirements, 
+%%      how they constrain the base design. State explicitly how the setup 
+%%      can be modified if the user does not have Mark10 sensors (e.g., 
+%%      replace with other load cells).
+%%   6. A figure showing the assembled robot with labeled components.
+%%   7. A table or list of all purchased components with part numbers, 
+%%      suppliers, and approximate cost.
+Puspita: desribe the design rationale, the constraints given by the usage of the Mark10 sensors and how the setup can be modified (eg. if they don't have the MArk10 sensors).
+Detail how the disks are designed and how we can mount sensors on them.
+
+\subsection{Sensors}
+%% NSD requires: for each sensor, full technical specifications at a level 
+%% that allows the reader to understand the measurement capabilities and 
+%% limitations. Include: model, manufacturer, country, measurement range, 
+%% resolution, accuracy, sampling rate, interface/protocol, and any relevant 
+%% datasheet specifications.
+%%
+%% SUGGESTED: Add a summary table at the end of this subsection with one 
+%% row per sensor and columns: Sensor | Model | Manufacturer | Quantity measured | 
+%% Range | Resolution/Accuracy | Sampling rate (Hz). This is very common in 
+%% NSD papers and helps reviewers quickly assess the setup.
+%%
+In this section, we describe the characteristics of each sensor in terms of frequency readings, range of outputs, and a summary of their specifics available on their datasheet.
+\subsubsection{Mark 10}
+%% TODO (Tongjia): model number, measurement range (N), resolution, 
+%% accuracy class, sampling rate, communication interface (USB/serial), 
+%% how the sensor is mounted in-line with the cable, zeroing procedure.
+Tongjia: Add specifics for the Mark-10 sensors
+
+\subsubsection{FBGS}
+%% TODO (Tongjia/Spencer): fiber type, number of gratings, grating spacing, 
+%% wavelength range, interrogator model and sampling rate, spatial resolution, 
+%% strain resolution, how the fiber is routed along the robot backbone, 
+%% shape reconstruction method (briefly — detail in Methods or cite).
+Tongjia/Spencer: Add specifics for the FBGS sensor
+
+\subsubsection{ATI-FT}
+%% TODO (Tongjia): model (e.g., ATI Mini45), calibration range (Fx,Fy,Fz 
+%% and Tx,Ty,Tz), resolution, sampling rate, DAQ interface, how it is 
+%% mounted at the robot base, bias/tare procedure before each experiment.
+Tongjia: Add specifics for the ATI-FT sensor
+
+\subsubsection{Gyroscopes}
+%% TODO (Spencer): IMU model (ISM330DHCX from the folder name?), 
+%% accelerometer and gyroscope ranges, resolution, sampling rate, 
+%% communication interface (SPI/I2C), number of units and their placement 
+%% on the robot body (which disks), mass of each unit (relevant because the 
+%% paper notes they "slightly degrade the homogeneous inertia").
+Spencer: Add specifics for the Gyroscopes
+
+\subsubsection{Actuators}
+%% TODO: fill in the control frequency, spool radius (0.02 m from code), 
+%% spool material, motor encoder resolution.
+The tendons are actuated by two brushless DC motors (Cybergear, Xiaomi, China) with custom 3D-printed tendon spools of radius \SI{20}{\milli\metre}. They are position controlled at {\color{red}??}\SI{}{\hertz} to track desired tendon displacement or tension inputs, with tension sensing from the Mark~10 sensors for the latter.
+%% NOTE: state whether 2 motors drive 4 tendons (paired antagonistically) 
+%% or 4 independent motors. The code loads 4 cable tensions and 4 motor 
+%% angles, but the text says "two" motors — clarify.
+
+\subsubsection{Mocap}
+%% TODO (Spencer): OptiTrack system model, number of cameras, capture 
+%% volume, marker type and size, number of rigid bodies tracked (5 disks 
+%% + any objects), sampling rate, reported positional accuracy, software 
+%% version (Motive), how rigid-body frames are defined relative to the 
+%% robot body frame.
+Spencer: Add specifics for the Mocap
+
+\subsubsection{Resense FT}
+%% TODO: You mention a Resense FT sensor for contact force measurement 
+%% in the Technical Validation, but it has no entry in the Sensors section. 
+%% Add: model, range, resolution, sampling rate, how/where it is mounted 
+%% (on the object? on the robot tip?).
+%% If this sensor is only used in the contact batch, state that here.
+
+
+\subsection{Experimental setup}
+%% NSD GUIDANCE: Describe the physical arrangement AND the set of experiments 
+%% performed. This is where a reviewer will assess whether the dataset is 
+%% systematic and well-designed.
+%%
+%% REQUIRED CONTENT (convert bullet points to prose + table):
+%%
+%% 1. Physical arrangement (prose):
+%%    - How the robot is mounted (vertical? horizontal? — the quaternion 
+%%      Q_0 = [0.707 0 0.707 0] in the code suggests a 90-deg rotation, 
+%%      so the robot hangs or is horizontal — clarify).
+%%    - Workspace description: dimensions, what objects are placed for 
+%%      contact experiments.
+%%    - Cable routing: straight from base to disk, no pulleys — explain why.
+%%    - Mocap camera placement and how occlusion was minimized.
+%%
+%% 2. Table of experiments (STRONGLY RECOMMENDED):
+%%    Create a table with columns:
+%%      Batch | Trajectory type | Parameters (angle, speed) | Sensors active | 
+%%      Number of trials | Duration | With contact? | Notes
+%%    Examples from your folder names:
+%%      - plane_x_slow, plane_x_angle_150_speed_1, circle_angle_150_speed_3
+%%      - Lissajous (mentioned in text)
+%%    This table is the single most useful element for a reader deciding 
+%%    whether to download and use your dataset.
+%%
+%% 3. Alignment and calibration protocol (prose):
+%%    - How sensors are aligned at the start (first planar motion for 
+%%      calibration check).
+%%    - How the FBGS reference shape is recorded.
+%%    - How the ATI-FT is biased.
+%%    - How the OptiTrack rigid-body frames are set to match the robot 
+%%      body frame.
+%%
+\begin{itemize}
+    \item Details on the designed base (cables without pulleys, sturdy, non-occlusion for mocap)
+    \item Experiments performed (static loads, planar motions, circle, Lissajous curve) with and without gyroscopes and with interaction with object in workspace.
+    \item Experiments starting with planar motion first (alignment of sensors)
+\end{itemize}
+
+\subsection{Data Collection}
+%% NSD GUIDANCE: "full descriptions of [...] data acquisition and any 
+%% computational processing."
+%%
+%% REQUIRED CONTENT (convert to prose):
+%%
+%% 1. Acquisition pipeline:
+%%    - Software: Python scripts for motor control and sensor reading 
+%%      (reference the code repository), MATLAB for post-processing.
+%%    - OS and hardware: what computer, OS version.
+%%    - How each sensor is read: serial, TCP, SDK, etc.
+%%    - Sampling rates: each sensor has its own native rate (report in a 
+%%      table or refer to the Sensors subsection table).
+%%
+%% 2. Synchronization:
+%%    - All sensors are timestamped with the CPU wall-clock at read time.
+%%    - State the expected synchronization accuracy (bounded by the 
+%%      acquisition loop period and OS scheduling jitter — give an 
+%%      estimate, e.g., <5 ms).
+%%    - State that no hardware trigger is used.
+%%
+%% 3. Post-processing (describe what process_data.m does):
+%%    - Butterworth low-pass filter: order 4, cutoff 20 Hz, zero-phase 
+%%      (filtfilt).
+%%    - Resampling: all signals interpolated to a uniform 100 Hz grid.
+%%    - Coordinate transformations: OptiTrack frames converted to body-
+%%      relative poses using the first N_frames_static_begin frames.
+%%    - FBGS shape rotation (the TODO in your code about rotating the 
+%%      FBGS x-axis down).
+%%    - State that BOTH raw and processed data are released.
+%%
+%% 4. File naming convention:
+%%    - Describe the naming pattern (e.g., dataMotor.csv, dataMark10_+x.csv, 
+%%      dataATIFT.csv, dataOptiTrack.csv, dataFBGS.csv).
+%%    - Describe the processed/ subfolder contents.
+%%
+\begin{itemize}
+    \item Describe how data is collected
+    \item Describe how synchronization is handled (using CPU wall clock)
+    \item Note on the rawness of the released data.
+\end{itemize}
+
+\section{Data Records}
+%% NSD GUIDANCE: "explain what the dataset contains, including the repository 
+%% where the dataset is hosted, an overview of the data files and their 
+%% formats, and any folder structure. Each external dataset should be cited 
+%% using our data citation format."
+%%
+%% This is a CRITICAL section for NSD. A reviewer will check that every 
+%% file in the repository is documented here.
+%%
+%% REQUIRED CONTENT:
+%%
+%% 1. Repository and citation:
+%%    - State the repository (figshare with DOI, or Zenodo — GitHub alone 
+%%      is not a recognized data repository for NSD; use GitHub for code, 
+%%      figshare/Zenodo for data).
+%%    - Provide a formal data citation in the reference list.
+%%
+%% 2. Dataset structure (figure or table):
+%%    - A directory-tree figure showing the folder hierarchy:
+%%        dataset/
+%%          batch_1_quasistatic/
+%%            experiment_001_plane_x_slow/
+%%              dataMotor.csv
+%%              dataMark10_+x.csv
+%%              ...
+%%              processed/
+%%                angles.csv
+%%                cable_tensions.csv
+%%                ...
+%%          batch_2_dynamic/
+%%            ...
+%%    - State total number of experiments, total number of files, total 
+%%      size (GB).
+%%
+%% 3. File format descriptions (one table per file type):
+%%    For EACH CSV file type, state:
+%%      - Column names and units
+%%      - What each column represents
+%%      - Sampling rate (raw vs processed)
+%%      - Any conventions (e.g., tension is positive when cable is pulled)
+%%
+%%    Example table for dataMotor.csv:
+%%      Column         | Unit  | Description
+%%      timestamp      | s     | CPU wall-clock time (POSIX)
+%%      target1_rad    | rad   | Commanded angle, motor 1
+%%      rel_angle1_rad | rad   | Measured angle, motor 1
+%%      ...            | ...   | ...
+%%
+%%    Repeat for: dataMark10_*.csv, dataATIFT.csv, dataOptiTrack.csv, 
+%%    dataFBGS.csv, and all processed/*.csv files.
+%%
+%% 4. Processed data:
+%%    - State what processing was applied (refer to Methods > Data Collection).
+%%    - State the uniform sampling rate (100 Hz).
+%%    - Explain the column layout for each processed file:
+%%        angles.csv: [time, angle1, angle2, angle3, angle4]
+%%        cable_tensions.csv: [time, T1(+x), T2(+y), T3(-x), T4(-y)]
+%%        base_wrench.csv: [time, Fx, Fy, Fz, Tx, Ty, Tz]
+%%        vicon_frames.csv: [time, x, y, z, roll, pitch, yaw] x N_disks
+%%
+\begin{itemize}
+    \item Data available on figshare (with DOI) — GitHub for code only
+    \item Define structure dataset
+    \begin{itemize}
+        \item Number of folders
+        \item Number of files, total size
+        \item Processed and raw data organization
+        \item Sensors used and how data is organized for each sensor
+        \item Column-by-column description of every CSV file type
+    \end{itemize}
+\end{itemize}
+
+% \section{Data Overview (optional)}
+\section{Technical Validation}
+%
+% NSD GUIDANCE: This section should describe experiments, analyses, or checks 
+% needed to support the technical quality of the dataset. It is NOT a results 
+% section: present only what is necessary to convince the reviewer that the 
+% recorded data is internally consistent and trustworthy.
+%
+% STRUCTURE RATIONALE (for co-authors):
+%   - 5.1: Sensor-level checks (noise, calibration) — each sensor in isolation
+%   - 5.2: Kinematic cross-validation (OptiTrack vs FBGS vs IMU) — sensors agree
+%   - 5.3: Force–kinematics consistency via GVS — the ONLY way to cross-check 
+%          force and shape data, framed as a data consistency tool
+%   - 5.4: Contact force static check — validates the Resense FT readings
+%   - 5.5: Synchronization — timestamps are aligned across all sensors
+%   - 5.6: Repeatability — same trajectory gives similar recordings
+%
+This section presents the analyses performed to verify the technical quality and internal consistency of the recorded dataset.
+The dataset contains two families of measurements: kinematic quantities (OptiTrack poses, FBGS strain and reconstructed shape, IMU accelerations, motor encoder angles) and force quantities (Mark10 cable tensions, ATI-FT base wrench, Resense contact force).
+Within each family, sensors can be directly compared.
+However, no direct comparison is possible between kinematic and force measurements without invoking the governing physics of the continuum robot.
+For this reason, a reduced-order dynamics model is employed as a cross-validation tool to verify force--kinematics consistency, as detailed in Section~\ref{sec:force_kin_consistency}.
+
+\subsection{Sensor noise and calibration}
+%% TODO: For each sensor, report a short static recording and the resulting 
+%% noise floor (standard deviation). If any sensor-specific calibration was 
+%% performed (e.g., ATI-FT bias removal, FBGS zero-strain reference, Mark10 
+%% zeroing), describe it here.
+%% 
+%% Suggested content:
+%%   - Table with columns: Sensor | Quantity | Sampling rate | Static noise (std)
+%%   - Mention any offset/bias subtraction applied to raw data (e.g., the ATI 
+%%     bias recorded before each experiment)
+%%   - Note the Mark10 zeroing procedure and its accuracy
+%%   - FBGS reference shape acquisition and its repeatability
+
+\subsection{Kinematic cross-validation}
+\label{sec:kin_cross_val}
+%% Compare shape/pose measurements from independent kinematic sensors.
+%%
+%% 1) OptiTrack vs FBGS:
+%%    - Compare the tip position (and intermediate disk positions if available) 
+%%      recorded by OptiTrack with the FBGS-reconstructed shape evaluated at the 
+%%      same arc-length coordinates.
+%%    - Quantify the discrepancy (e.g., RMSE of tip position over time).
+%%    - Include a figure: overlay of OptiTrack and FBGS tip trajectories vs time 
+%%      (the code in process_data.m lines 43–68 already produces this).
+%%
+%% 2) Numerical derivatives of OptiTrack vs IMU:
+%%    - Compute velocity and acceleration from OptiTrack position via numerical 
+%%      differentiation (central differences on the filtered signal).
+%%    - Compare the resulting acceleration with the IMU measurements at the 
+%%      corresponding disk.
+%%    - Report the agreement qualitatively (overlay plot) and quantitatively (RMSE).
+%%
+%% 3) Motor encoder vs cable displacement:
+%%    - Convert motor angles to cable displacements using the spool radius.
+%%    - Compare with the cable length changes inferred from the robot shape 
+%%      (if computable from OptiTrack/FBGS data).
+
+The OptiTrack and FBGS sensors provide independent measurements of the robot shape.
+To verify their mutual consistency, we compare the tip position recorded by OptiTrack with the tip position reconstructed from FBGS strain data, evaluated at the same arc-length coordinate.
+Figure~\ref{fig:optitrack_vs_fbgs} shows the overlay of these two signals for a representative trajectory.
+%
+% TODO: add RMSE values and figure
+%
+Similarly, numerical differentiation of the filtered OptiTrack position data yields acceleration estimates that can be compared against the IMU readings at the corresponding disk locations.
+%
+% TODO: add comparison figure and RMSE values
+
+\subsection{Force--kinematics consistency}
+\label{sec:force_kin_consistency}
+%% This is the KEY subsection that justifies using GVS.
+%% 
+%% FRAMING (important for NSD reviewers):
+%%   The cable tensions and base wrench are measured by independent sensors 
+%%   (Mark10 and ATI-FT respectively). The kinematic state is measured by 
+%%   OptiTrack/FBGS. There is NO way to directly compare a force measurement 
+%%   with a kinematic measurement without a physical model that relates them.
+%%   Therefore, a dynamics simulation is used strictly as a cross-validation 
+%%   tool, not to present new modeling results.
+%%
+%% Procedure (document clearly):
+%%   1. The robot mechanical parameters (E, I, rho, etc.) are characterized 
+%%      independently via static loading tests — describe these briefly or 
+%%      point to Methods section.
+%%   2. The measured cable tensions from the Mark10 sensors are used as INPUT 
+%%      to a GVS-based forward dynamics simulation.
+%%   3. The simulation OUTPUTS are: (a) the time-varying robot shape (tip 
+%%      position at the disk locations), and (b) the reaction wrench at the 
+%%      base.
+%%   4. These simulated outputs are compared against the independently measured 
+%%      OptiTrack tip positions and ATI-FT base wrench.
+%%   5. Agreement confirms that the force and kinematic recordings are mutually 
+%%      consistent and physically plausible.
+%%
+%% Important caveats to state:
+%%   - The model parameters were obtained from static characterization, not 
+%%     identified from the dynamic data. Therefore, perfect quantitative 
+%%     agreement is not expected.
+%%   - The purpose is to verify that the dataset is internally consistent, 
+%%     not to validate the GVS model itself.
+%%   - Quantitative model fitting (parameter identification) is left as a 
+%%     use case for the dataset.
+
+The cable tensions (measured by Mark10 sensors) and the base wrench (measured by the ATI-FT sensor) cannot be directly compared against the kinematic measurements (OptiTrack, FBGS) without a physical model relating forces to deformations.
+To verify that these two families of measurements are mutually consistent, we employ a forward dynamics simulation based on the Geometric Variable Strain (GVS) approach~\cite{Boyer2021} as a cross-validation tool.
+
+The procedure is as follows.
+The mechanical parameters of the robot (bending stiffness, linear density, cable routing geometry) are characterized independently through static loading tests (see Section~\ref{sec:kin_cross_val}).
+The measured cable tensions from the dataset are then used as the sole input to the GVS forward dynamics simulation.
+The simulation produces two outputs: the predicted time-varying robot shape and the predicted reaction wrench at the base.
+These simulated outputs are compared against the independently recorded OptiTrack measurements (for the shape) and ATI-FT readings (for the base wrench).
+
+Figure~\ref{fig:gvs_tip} reports the comparison between simulated and measured tip position for a representative circular trajectory.
+Figure~\ref{fig:gvs_wrench} reports the corresponding base wrench comparison.
+%
+% TODO: add figures and RMSE table
+%
+The qualitative and quantitative agreement confirms that the force and kinematic recordings in the dataset are physically consistent.
+We note that, since the model parameters were obtained from static characterization rather than identified from the dynamic data, an exact quantitative match is not expected; residual discrepancies reflect the combined effect of unmodeled dynamics (e.g., material damping, cable friction) and parameter uncertainty.
+Systematic parameter identification using this dataset is left as a downstream use case.
+
+\subsection{Contact force validation}
+\label{sec:contact_val}
+%% Validate the Resense FT sensor readings using a static equilibrium check.
+%% 
+%% Procedure:
+%%   1. With the robot in a known static configuration (shape measured by 
+%%      OptiTrack/FBGS), apply a known force at the tip using a calibrated 
+%%      weight or force gauge.
+%%   2. The Resense FT sensor at the contact point records this applied force.
+%%   3. Using the known shape and applied force, compute the expected wrench 
+%%      at the base via static equilibrium (or the GVS static solver).
+%%   4. Compare the computed base wrench with the ATI-FT measurement.
+%%   5. Agreement validates both the Resense reading and the force 
+%%      transmission chain.
+
+To validate the contact force measurements from the Resense FT sensor, we perform a set of static equilibrium checks.
+A known external force is applied at the robot tip while the robot is held in a static configuration whose shape is recorded by the OptiTrack system.
+Using the measured shape and the applied force, the corresponding reaction wrench at the base is computed via static equilibrium.
+This computed wrench is then compared with the direct measurement from the ATI-FT sensor at the base.
+%
+% TODO: add figure and discrepancy table
+
+\subsection{Temporal synchronization}
+\label{sec:synch_val}
+%% This subsection is short but NECESSARY for NSD reviewers: they need to 
+%% know how you ensure that data from different sensors can be compared 
+%% in time. Since your method is simple (shared wall-clock on one machine), 
+%% the subsection can be brief — 1 paragraph + 1 figure.
+%%
+%% KEY FACTS to state:
+%%   - All sensors run as threads in a single Python process on one machine.
+%%   - Each sensor thread timestamps its readings with time.time() (POSIX 
+%%     wall-clock), so all timestamps share the same OS clock source.
+%%   - The synchronization error is bounded by thread scheduling jitter 
+%%     (~1-2 ms on the acquisition machine).
+%%   - This is adequate given the dynamic bandwidth of interest (<20 Hz, 
+%%     i.e., signal periods >50 ms).
+%%   - To verify, show a sharp transient event visible across multiple 
+%%     sensors and confirm onset alignment.
+
+All sensors are acquired as concurrent threads in a single Python process on a single machine.
+Each thread timestamps its readings using the operating system wall-clock (\texttt{time.time()} in Python), ensuring that all sensors share the same clock source without requiring hardware synchronization.
+The resulting synchronization error is bounded by the operating system thread scheduling jitter, which is on the order of \SI{1}{\milli\second} to \SI{2}{\milli\second} on the acquisition machine, well below the signal periods of interest (the highest dynamic content in the dataset is below \SI{20}{\hertz}).
+%
+% TODO: add a figure showing a transient event (e.g., motion onset) across 
+% 2-3 sensor streams, confirming that the event onset is aligned within 
+% the expected bound.
+
+\subsection{Repeatability}
+\label{sec:repeatability}
+%% Run the same commanded trajectory multiple times. Overlay the recordings 
+%% and report the inter-trial variability (e.g., std of tip position, std of 
+%% cable tension) to show the data is reproducible.
+%%  
+%% This is a strong argument for dataset quality and is straightforward to 
+%% produce from existing data if you have repeated runs.
+
+To assess measurement repeatability, the same commanded trajectory is executed in multiple trials.
+%
+% TODO: overlay plots of repeated trials, report inter-trial std
+
+
+\section{Usage Notes}
+%% NSD GUIDANCE: "additional technical notes about how to access or process 
+%% the data. Please do not use this section to write a conclusions section, 
+%% general selling points, worked case studies, or similar."
+%%
+%% SUGGESTED CONTENT:
+%%   - Software requirements to run the processing code (MATLAB version, 
+%%     Python version, required toolboxes/packages).
+%%   - How to load and align the raw data (point to process_data.m).
+%%   - Known issues: e.g., the FBGS coordinate frame requires rotation 
+%%     (the unfinished TODO in process_data.m); any experiments where a 
+%%     sensor dropped out or had anomalous readings.
+%%   - Note on the effect of IMU mass on the robot inertia (batch 3).
+%%   - Guidance on the manual time offset observed in the ATI data (the 
+%%     0.22 s offset in test_trajectories.m) — if this is a known issue, 
+%%     document it here so users are aware.
+%%   - Any limitations on the FBGS reconstruction near the base/tip.
+%%
+Add here any issue observed with the data collection.
+
+\section{Data Availability}
+%% NSD GUIDANCE: For Data Descriptors, repeat the main points from Data Records 
+%% here: repository name, DOI, URL. This is a short statement (1 paragraph).
+%%
+%% NSD accepts: figshare, Zenodo, Dryad, or domain-specific repositories.
+%% GitHub alone is NOT sufficient for data — use it for code only.
+%% NSD says: "We require that data are public and available in a formal data 
+%% repository that meets our policy."
+%%
+%% TEMPLATE:
+%%   The dataset described in this work is available on figshare at 
+%%   \url{https://doi.org/10.6084/m9.figshare.XXXXXXX} (Ref.~[N]).
+%%   The repository contains all raw and processed sensor recordings 
+%%   organized as described in the Data Records section.
+%%
+Many people in Nature Scientific Data use figshare for which I have created an account.
+% NOTE: GitHub is for code. Data must go on figshare (or Zenodo).
+% NSD is NOT double-blind — reviewers see author names.
+
+\section{Code Availability}
+%% NSD GUIDANCE: "a statement must be included [...] indicating whether and 
+%% how custom code can be accessed, including any restrictions to access."
+%% Required even if no code is shared.
+%%
+%% TEMPLATE:
+%%   The Python acquisition scripts and MATLAB post-processing and 
+%%   technical validation code are available on GitHub at 
+%%   \url{https://github.com/ContinuumRoboticsLab/XXXXX} (Ref.~[N]). 
+%%   The code is released under the [MIT/BSD/...] license. 
+%%   The acquisition code requires Python~3.X with the following packages: 
+%%   [list]. The post-processing code requires MATLAB~R202Xa with the 
+%%   Signal Processing Toolbox.
+%%
+Statement about releasing the code for the data acquisition and the postprocessing \& technical validation.
+
+%% NSD GUIDANCE ON REFERENCES:
+%% References must be embedded directly in the .tex file as 
+%% \begin{thebibliography}{99} ... \end{thebibliography}.
+%% Do NOT use a separate .bib file. Remove the \bibliography{bibliography} 
+%% command at the end of the document and replace with inline references.
+%% Use the Nature referencing style (numbered, author-title-journal).
+%% Include DOIs as URLs: https://doi.org/XXXXX
+%% Data citations go in the same reference list.
+
+\section{Author Contributions}
+%% NSD GUIDANCE: Required. Briefly describe each author's contribution.
+%% TEMPLATE:
+%%   A.G. conceived the study and designed the experiments. 
+%%   T.Z. and A.P. performed the data collection. 
+%%   S.T. developed the acquisition software and configured the sensors. 
+%%   P.D. designed and fabricated the robot prototype. 
+%%   C.S. [contribution]. 
+%%   J.B.-K. supervised the project. 
+%%   All authors reviewed the manuscript.
+
+\section{Competing Interests}
+%% NSD GUIDANCE: Required even if negative.
+%% TEMPLATE:
+%%   The authors declare no competing interests.
+The authors declare no competing interests.
+
+% \section{Acknowledgments (optional)}
+%% NSD: Optional. Brief. Do not thank editors. Do not describe funding here.
+
+\section{Funding}
+%% NSD GUIDANCE: Required. List all funding sources, organizations, and 
+%% grant numbers. If not externally funded, state that.
+%%
+%% TEMPLATE:
+%%   This work was supported by [Agency] under grant [number]. 
+%%   J.B.-K. is supported by [grant].
+
+% \section{Ethics statement}
+%% Not needed — no human/animal subjects.
+
+    
+
+\bibliography{bibliography}
+
+\end{document}

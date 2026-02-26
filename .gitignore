@@ -121,3 +121,5 @@ data_collection/sensors/gyros/build/tests/test_simple_unified.dir/Debug/vc143.pd
 data_collection/sensors/gyros/build/tests/test_unified_api.dir/Debug/gyro.obj
 data_collection/sensors/gyros/build/tests/test_unified_api.dir/Debug/test_unified_api.ilk
 data_collection/sensors/gyros/build/tests/test_unified_api.dir/Debug/vc143.pdb
+
+data_collection/dataCollectionPack/20260225/plane_x_slow/processed/fbgs_shapes.csv
