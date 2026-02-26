@@ -70,6 +70,15 @@ function [time_fbgs, fbgs_shapes] = data_fbgs(filename)
 
     end
 
+    %%  Rotate fiber so it grows in negative Z
+    %   Original: fiber grows along +X
+    %   Rotation: Ry(+90 deg) -> X maps to -Z, Z maps to +X, Y unchanged
+    %   R = [0  0  1; 0  1  0; -1  0  0]
+    R = [0 0 1; 0 1 0; -1 0 0];
+    for t = 1:N_time_fbgs
+        fbgs_shapes(:, :, t) = R * fbgs_shapes(:, :, t);
+    end
+
 end
 
 
