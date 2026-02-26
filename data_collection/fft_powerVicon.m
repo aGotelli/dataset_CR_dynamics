@@ -1,7 +1,7 @@
 close all; clear; clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("dataCollectionPack","20260127","plane_x_y_angle_150_speed_3");
+folder = fullfile("dataCollectionPack","20260127","circle_angle_150_speed_3");
 
 plot_disk_nums = 5; % Which Vicon disks to inspect (indices)
 

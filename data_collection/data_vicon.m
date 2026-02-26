@@ -3,13 +3,13 @@ function [N_disks, timestamp_vicon, rel_kinematics_disks, poses_disks, kinematic
 
     
     
-    vicon = readtable(filename);
+    mocap = readtable(filename);
     
     disk_names = {'disk_0', 'disk_1', 'disk_2', 'disk_3', 'disk_4'};
     N_disks = length(disk_names);
     
     
-    timestamp_vicon = vicon.timestamp;
+    timestamp_vicon = mocap.timestamp;
     N_time = length(timestamp_vicon);
     
     
@@ -28,9 +28,9 @@ function [N_disks, timestamp_vicon, rel_kinematics_disks, poses_disks, kinematic
         disk = disk_names{it};
         
         % Extract coordinates
-        x_data = vicon.([disk 'X_m_']);
-        y_data = vicon.([disk 'Y_m_']);
-        z_data = vicon.([disk 'Z_m_']);
+        x_data = mocap.([disk 'X_m_']);
+        y_data = mocap.([disk 'Y_m_']);
+        z_data = mocap.([disk 'Z_m_']);
     
         x_mean = mean(x_data(1:N_frames_static_begin));
         y_mean = mean(y_data(1:N_frames_static_begin));
@@ -43,9 +43,9 @@ function [N_disks, timestamp_vicon, rel_kinematics_disks, poses_disks, kinematic
         disk_pos_stdv(:, it) = [x_stdv y_stdv z_stdv]';
     
     
-        Rot_X = vicon.([disk 'RotX_rad_']);
-        Rot_Y = vicon.([disk 'RotY_rad_']);
-        Rot_Z = vicon.([disk 'RotZ_rad_']);
+        Rot_X = mocap.([disk 'RotX_rad_']);
+        Rot_Y = mocap.([disk 'RotY_rad_']);
+        Rot_Z = mocap.([disk 'RotZ_rad_']);
     
     
         Rot_X_mean = mean(Rot_X(1:N_frames_static_begin));
@@ -95,14 +95,14 @@ function [N_disks, timestamp_vicon, rel_kinematics_disks, poses_disks, kinematic
         disk = disk_names{it};
         
         % Extract coordinates
-        x_data = vicon.([disk 'X_m_']);
-        y_data = vicon.([disk 'Y_m_']);
-        z_data = vicon.([disk 'Z_m_']);
+        x_data = mocap.([disk 'X_m_']);
+        y_data = mocap.([disk 'Y_m_']);
+        z_data = mocap.([disk 'Z_m_']);
     
         
-        Rot_X = vicon.([disk 'RotX_rad_']);
-        Rot_Y = vicon.([disk 'RotY_rad_']);
-        Rot_Z = vicon.([disk 'RotZ_rad_']);
+        Rot_X = mocap.([disk 'RotX_rad_']);
+        Rot_Y = mocap.([disk 'RotY_rad_']);
+        Rot_Z = mocap.([disk 'RotZ_rad_']);
     
         kinematics_disks(:, :, it) = [x_data y_data z_data Rot_X Rot_Y Rot_Z];
     
