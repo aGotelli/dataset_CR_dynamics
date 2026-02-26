@@ -7,11 +7,11 @@ thisFile = mfilename("fullpath");
 thisDir  = fileparts(thisFile);
 repoRoot  = fileparts(thisDir); %goes up one dir
 root_data = fullfile(repoRoot, "data_collection");
-name_data_to_process = "plane_y_angle_150_speed_1";
-folder = fullfile(root_data, "dataCollectionPack", "20260127", name_data_to_process);
+name_data_to_process = "circle_slow";
+folder = fullfile(root_data, "dataCollectionPack", "20260225", name_data_to_process);
 
 path = fullfile(folder,"processed");
-% "..\data_collection\dataCollectionPack\20260127\plane_x_angle_150_speed_1\processed\";
+path = "..\data_collection\dataCollectionPack\20260225\plane_x_slow\processed\";
 
 % ajoute le dossier outils
 addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
@@ -319,4 +319,3 @@ exportgraphics(f, filename_png, 'Resolution', 300);
 %     error_norm = norm(error(:));
 % 
 % end
-close all
