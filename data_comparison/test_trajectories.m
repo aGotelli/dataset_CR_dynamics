@@ -3,15 +3,15 @@ clear all
 close all
 
 % path that can be good across systems
-thisFile = mfilename("fullpath");
-thisDir  = fileparts(thisFile);
-repoRoot  = fileparts(thisDir); %goes up one dir
-root_data = fullfile(repoRoot, "data_collection");
-name_data_to_process = "circle_slow";
-folder = fullfile(root_data, "dataCollectionPack", "20260225", name_data_to_process);
-
-path = fullfile(folder,"processed");
-path = "..\data_collection\dataCollectionPack\20260225\plane_x_slow\processed\";
+% thisFile = mfilename("fullpath");
+% thisDir  = fileparts(thisFile);
+% repoRoot  = fileparts(thisDir); %goes up one dir
+% root_data = fullfile(repoRoot, "data_collection");
+% name_data_to_process = "circle_slow";
+% folder = fullfile(root_data, "dataCollectionPack", "20260225", name_data_to_process);
+% 
+% path = fullfile(folder,"processed");
+path = "..\data_collection\dataCollectionPack\20260304\plane_y\processed\";
 
 % ajoute le dossier outils
 addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
@@ -132,19 +132,19 @@ tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
 
 f = figure("Name", "Tip Position");
 subplot(3, 1, 1)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 2), 'g', 'LineWidth', 1)
+plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 5), 'g', 'LineWidth', 1)
 hold on
 plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
 grid on
 
 subplot(3, 1, 2)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 3), 'g', 'LineWidth', 1)
+plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 6), 'g', 'LineWidth', 1)
 hold on
 plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
 grid on
 
 subplot(3, 1, 3)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 4), 'g', 'LineWidth', 1)
+plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 7), 'g', 'LineWidth', 1)
 hold on
 plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on

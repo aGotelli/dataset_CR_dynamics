@@ -3,9 +3,9 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("dataCollectionPack","20260225/","circle_slow/");
+folder = fullfile("dataCollectionPack","20260304/","plane_y/");
 
-cutoffHz    = 20;   % Butterworth cutoff
+cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
 
 
@@ -28,130 +28,208 @@ mk_2_y    = readtable(fullfile(folder, "dataMark10_+y.csv"));
 
 ati = readtable(fullfile(folder, "dataATIFT.csv"));
 
-N_frames_static_begin = 10; %how many frames to use to compute relative pose for Vicon
 filename = fullfile(folder, "dataOptiTrack.csv");
-% [N_disks, timestamp_vicon, rel_kinematics_disks] = data_optitrack(filename, N_frames_static_begin);
+[N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename);
+
 
 filename = fullfile(folder, "dataFBGS.csv");
 [fbgs_time, fbgs_shapes] = data_fbgs(filename);
 
-
-figure("Name", "Tip Position");
-% xyz_XYZ = rel_kinematics_disks(:, :, 5);
-xyz_FBGS = squeeze( fbgs_shapes(:, end, :) );
-
-vars = {'p_x', 'p_y', 'p_z'};
-for it = 1:3
-    index_plot = it*2 -1;
-    subplot(3,2,index_plot)
-
-    % plot(timestamp_vicon - timestamp_vicon(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
-    hold on
-    plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "b", "LineWidth", 2.0)
-    grid on
-    ylabel([vars{it} ' [m]'])
-
-
-    if it == 3
-        xlabel("Time [s]")
-    end
-
-    if it == 1
-        title("Raw")
-    end
-
-end
-
-
-%%  Align FBGS frame with robot frame via SVD on tip trajectory
-%   For plane_x motion the tip moves in the robot x-z plane -> zero motion in y.
-%   SVD on the (centered) tip positions gives principal directions:
-%     U(:,1)  most variance  -> robot x-axis (lateral bending direction)
-%     U(:,3)  least variance -> robot y-axis (plane normal)
-%     z = cross(x,y)         -> robot z-axis (right-handed)
-
-align_window_s = 10;
-fbgs_time_rel = fbgs_time - fbgs_time(1);
-idx_align = fbgs_time_rel <= align_window_s;
-
-tip_pos_all = squeeze(fbgs_shapes(:, end, :));   % 3 x N_time
-tip_pos = tip_pos_all(:, idx_align);             % 3 x N_time_align
-
-if size(tip_pos, 2) < 3
-    warning('Less than 3 FBGS samples in first %.2f s; using all samples for alignment.', align_window_s);
-    tip_pos = tip_pos_all;
-end
-
-tip_mean   = mean(tip_pos, 2);
-tip_centered = tip_pos - tip_mean;
-
-[U, ~, ~] = svd(tip_centered, 'econ');
-
-x_hat = U(:, 1);                       % primary motion direction
-y_hat = U(:, 3);                       % plane normal (least variance)
-z_hat = cross(x_hat, y_hat);           % right-handed z
-z_hat = z_hat / norm(z_hat);
-
-%   Build initial rotation from SVD basis
-R_align = [x_hat, y_hat, z_hat]';
-
-%   1) Enforce initial tip in negative z direction
-[~, idx_start] = min(abs(fbgs_time_rel - 0));
-tip_start_aligned = R_align * tip_pos_all(:, idx_start);
-if tip_start_aligned(3) > 0
-    R_pi_about_x = [1 0 0; 0 -1 0; 0 0 -1];
-    R_align = R_pi_about_x * R_align;
-end
-
-%   2) Enforce known initial motion direction (+x) with rotation about z
-check_time = 1;
-check_time_s = min(check_time, align_window_s);
-[~, idx_check] = min(abs(fbgs_time_rel - check_time_s));
-
-
-tip_start_aligned = R_align * tip_pos_all(:, idx_start);
-tip_check_aligned = R_align * tip_pos_all(:, idx_check);
-delta_x_motion = tip_check_aligned(1) - tip_start_aligned(1);
-
-if delta_x_motion < 0
-    R_pi_about_z = [-1 0 0; 0 -1 0; 0 0 1];
-    R_align = R_pi_about_z * R_align;
-end
-
-%   Build rotation: R_align * p_fbgs = p_robot
-%   (already built above, and corrected by rotation if needed)
-
-%   Apply to every cross-section at every time step
-N_time_fbgs = size(fbgs_shapes, 3);
-for t = 1:N_time_fbgs
-    fbgs_shapes(:, :, t) = R_align * fbgs_shapes(:, :, t);
-end
-
-% figure("Name", "Tip Position");
-% xyz_XYZ = rel_kinematics_disks(:, :, 5);
-xyz_FBGS = squeeze( fbgs_shapes(:, end, :) );
-
-vars = {'p_x', 'p_y', 'p_z'};
-for it = 1:3
-    index_plot = it*2 ;
-    subplot(3,2,index_plot)
-
-    % plot(timestamp_vicon - timestamp_vicon(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
-    hold on
-    plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-    grid on
-    ylabel([vars{it} ' [m]'])
-
-
-    if it == 3
-        xlabel("Time [s]")
-    end
-
-    if it == 1
-        title("Realigned")
-    end
-
-end
+% % 
+% % figure("Name", "Tip Position");
+% % % xyz_XYZ = rel_kinematics_disks(:, :, 5);
+% % index = 476;
+% % xyz_FBGS = squeeze( fbgs_shapes(:, index, :) );
+% % xyz_FBGS_end = squeeze( fbgs_shapes(:, end, :) );
+% % 
+% % 
+% % vars = {'p_x', 'p_y', 'p_z'};
+% % for it = 1:3
+% %     index_plot = it*2 -1;
+% %     subplot(3,2,index_plot)
+% % 
+% %     % plot(mocap_timestamps - mocap_timestamps(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
+% %     hold on
+% %     plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "b", "LineWidth", 2.0)
+% %     % plot(fbgs_time - fbgs_time(1), xyz_FBGS_end(it, :), "r", "LineWidth", 2.0)
+% % 
+% %     grid on
+% %     ylabel([vars{it} ' [m]'])
+% % 
+% % 
+% %     if it == 3
+% %         xlabel("Time [s]")
+% %     end
+% % 
+% %     if it == 1
+% %         title("Raw")
+% %     end
+% % 
+% % end
+% % 
+% % 
+% % a = 0;
+% % 
+% % %%  Align FBGS frame with robot frame via SVD on tip trajectory
+% % %   For plane_x motion the tip moves in the robot x-z plane -> zero motion in y.
+% % %   SVD on the (centered) tip positions gives principal directions:
+% % %     U(:,1)  most variance  -> robot x-axis (lateral bending direction)
+% % %     U(:,3)  least variance -> robot y-axis (plane normal)
+% % %     z = cross(x,y)         -> robot z-axis (right-handed)
+% % 
+% % align_window_s = 10;
+% % fbgs_time_rel = fbgs_time - fbgs_time(1);
+% % idx_align = fbgs_time_rel <= align_window_s;
+% % 
+% % tip_pos_all = squeeze(fbgs_shapes(:, end, :));   % 3 x N_time
+% % tip_pos = tip_pos_all(:, idx_align);             % 3 x N_time_align
+% % 
+% % if size(tip_pos, 2) < 3
+% %     warning('Less than 3 FBGS samples in first %.2f s; using all samples for alignment.', align_window_s);
+% %     tip_pos = tip_pos_all;
+% % end
+% % 
+% % tip_mean   = mean(tip_pos, 2);
+% % tip_centered = tip_pos - tip_mean;
+% % 
+% % [U, ~, ~] = svd(tip_centered, 'econ');
+% % 
+% % x_hat = U(:, 1);                       % primary motion direction
+% % y_hat = U(:, 3);                       % plane normal (least variance)
+% % z_hat = cross(x_hat, y_hat);           % right-handed z
+% % z_hat = z_hat / norm(z_hat);
+% % 
+% % %   Build initial rotation from SVD basis
+% % R_align = [x_hat, y_hat, z_hat]';
+% % 
+% % %   1) Enforce initial tip in negative z direction
+% % [~, idx_start] = min(abs(fbgs_time_rel - 0));
+% % tip_start_aligned = R_align * tip_pos_all(:, idx_start);
+% % if tip_start_aligned(3) > 0
+% %     R_pi_about_x = [1 0 0; 0 -1 0; 0 0 -1];
+% %     R_align = R_pi_about_x * R_align;
+% % end
+% % 
+% % % %   2) Enforce known initial motion direction (+x) with rotation about z
+% % % check_time = 1;
+% % % check_time_s = min(check_time, align_window_s);
+% % % [~, idx_check] = min(abs(fbgs_time_rel - check_time_s));
+% % % 
+% % % 
+% % % tip_start_aligned = R_align * tip_pos_all(:, idx_start);
+% % % tip_check_aligned = R_align * tip_pos_all(:, idx_check);
+% % % delta_x_motion = tip_check_aligned(1) - tip_start_aligned(1);
+% % % 
+% % % if delta_x_motion < 0
+% % %     R_pi_about_z = [-1 0 0; 0 -1 0; 0 0 1];
+% % %     R_align = R_pi_about_z * R_align;
+% % % end
+% % 
+% % 
+% % 
+% % 
+% % 
+% % %   Apply to every cross-section at every time step
+% % N_time_fbgs = size(fbgs_shapes, 3);
+% % for t = 1:N_time_fbgs
+% %     fbgs_shapes(:, :, t) = R_align * fbgs_shapes(:, :, t);
+% % end
+% 
+% % figure("Name", "Tip Position");
+% % xyz_XYZ = rel_kinematics_disks(:, :, 5);
+% % xyz_FBGS = squeeze( fbgs_shapes(:, index, :) );
+% % xyz_FBGS_end = squeeze( fbgs_shapes(:, end, :) );
+% 
+% % vars = {'p_x', 'p_y', 'p_z'};
+% % for it = 1:3
+% %     index_plot = it*2 ;
+% %     subplot(3,2,index_plot)
+% % 
+% %     % plot(mocap_timestamps - mocap_timestamps(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
+% %     hold on
+% %     plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+% %     grid on
+% %     ylabel([vars{it} ' [m]'])
+% % 
+% % 
+% %     if it == 3
+% %         xlabel("Time [s]")
+% %     end
+% % 
+% %     if it == 1
+% %         title("Realigned")
+% %     end
+% % 
+% % end
+% 
+% 
+% position_tip_mocap = squeeze( rel_poses_disks(1:3, 4, 5, :) );
+% 
+% figure("Name", "FBGS & OptiTrack")
+% % subplot(3,1,1)
+% plot(fbgs_time , xyz_FBGS(1, :), "r", "LineWidth", 2.0)
+% hold on
+% plot(fbgs_time , xyz_FBGS_end(1, :)-0.035, "b", "LineWidth", 2.0)
+% 
+% plot(mocap_timestamps, position_tip_mocap(3, :), "g", "LineWidth", 2.0)
+% grid on
+% % 
+% % subplot(3,1,2)
+% % plot(fbgs_time, xyz_FBGS(2, :), "r", "LineWidth", 2.0)
+% % hold on
+% % plot(fbgs_time , xyz_FBGS_end(2, :), "--r", "LineWidth", 2.0)
+% % 
+% % plot(mocap_timestamps, position_tip_mocap(2, :), "g", "LineWidth", 2.0)
+% % grid on
+% % 
+% % 
+% % subplot(3,1,3)
+% % plot(fbgs_time, xyz_FBGS(3, :), "r", "LineWidth", 2.0)
+% % hold on
+% % plot(fbgs_time , xyz_FBGS_end(3, :)+0.02, "--r", "LineWidth", 2.0)
+% % 
+% % plot(mocap_timestamps, -position_tip_mocap(3, :), "g", "LineWidth", 2.0)
+% % grid on
+% 
+% % 
+% % 
+% % vars = {'p_x', 'p_y', 'p_z'};
+% % for it = 1:3
+% %     index_plot = it;
+% % 
+% % 
+% % 
+% %     if it == 3
+% %         xlabel("Time [s]")
+% %     end
+% % 
+% %     if it == 1
+% %         title("Realigned")
+% %     end
+% % 
+% % end
+% % vars = {'p_x', 'p_y', 'p_z'};
+% % for it = 1:3
+% %     index_plot = it;
+% %     subplot(3,1,index_plot)
+% % 
+% %     % plot(mocap_timestamps - mocap_timestamps(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
+% %     hold on
+% %     plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+% %     plot(mocap_timestamps, position_tip_mocap(it, :), "g", "LineWidth", 2.0)
+% %     grid on
+% %     ylabel([vars{it} ' [m]'])
+% % 
+% % 
+% %     if it == 3
+% %         xlabel("Time [s]")
+% %     end
+% % 
+% %     if it == 1
+% %         title("Realigned")
+% %     end
+% % 
+% % end
 
 
 %% ====== EXTRACT MOTOR SIGNALS ======
@@ -194,7 +272,7 @@ plot(time_cables{3},      'b',  'LineWidth', 1.5);
 plot(time_cables{4},      'c',  'LineWidth', 1.5);
 plot(tA,                  'y',  'LineWidth', 1.5);
 plot(fbgs_time,           'm',  'LineWidth', 1.5);
-% plot(timestamp_vicon,   'k',  'LineWidth', 1.5);   % uncomment when OptiTrack is enabled
+% plot(mocap_timestamps,   'k',  'LineWidth', 1.5);   % uncomment when OptiTrack is enabled
 grid on
 xlabel("Sample index")
 ylabel("Absolute timestamp [s]")
@@ -234,7 +312,7 @@ rel_kinematics_disks_f = zeros(size(rel_kinematics_disks));
 for it=1:N_disks
 
     for k=1:6  
-        rel_kinematics_disks_f(:, k, it) = butter_filtfilt(timestamp_vicon, rel_kinematics_disks(:, k, it), cutoffHz, butterOrder);
+        rel_kinematics_disks_f(:, k, it) = butter_filtfilt(mocap_timestamps, rel_kinematics_disks(:, k, it), cutoffHz, butterOrder);
         
     end
 end
@@ -319,37 +397,37 @@ if plot_filtered
     % 
     % figure("Name", "Kinematics Relative")
     % subplot(3, 2, 1)
-    % plot(timestamp_vicon, Rot_X)
+    % plot(mocap_timestamps, Rot_X)
     % grid on
     % xlabel("Time [s]")
     % ylabel("Roll [RAD]")
     % 
     % subplot(3, 2, 2)
-    % plot(timestamp_vicon, x_data)
+    % plot(mocap_timestamps, x_data)
     % grid on
     % xlabel("Time [s]")
     % ylabel("X [m]")
     % 
     % subplot(3, 2, 3)
-    % plot(timestamp_vicon, Rot_Y)
+    % plot(mocap_timestamps, Rot_Y)
     % grid on
     % xlabel("Time [s]")
     % ylabel("Pitch [RAD]")
     % 
     % subplot(3, 2, 4)
-    % plot(timestamp_vicon, y_data)
+    % plot(mocap_timestamps, y_data)
     % grid on
     % xlabel("Time [s]")
     % ylabel("Y [m]")
     % 
     % subplot(3, 2, 5)
-    % plot(timestamp_vicon, Rot_Z)
+    % plot(mocap_timestamps, Rot_Z)
     % grid on
     % xlabel("Time [s]")
     % ylabel("Yaw [RAD]")
     % 
     % subplot(3, 2, 6)
-    % plot(timestamp_vicon, z_data)
+    % plot(mocap_timestamps, z_data)
     % grid on
     % xlabel("Time [s]")
     % ylabel("Z [m]")
@@ -364,9 +442,9 @@ if plot_filtered
         index_plot = it*2 -1;
         subplot(3,2,index_plot)
     
-        plot(timestamp_vicon, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0)
+        plot(mocap_timestamps, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0)
         hold on
-        plot(timestamp_vicon, xyz_XYZ_f(:, 3 + it), "r", "LineWidth", 2.0)
+        plot(mocap_timestamps, xyz_XYZ_f(:, 3 + it), "r", "LineWidth", 2.0)
         ylabel("Euler Angle [RAD]")
         grid on
     
@@ -382,9 +460,9 @@ if plot_filtered
         index_plot = it*2;
         subplot(3,2,index_plot)
      
-        plot(timestamp_vicon, xyz_XYZ(:, it), "b", "LineWidth", 2.0)
+        plot(mocap_timestamps, xyz_XYZ(:, it), "b", "LineWidth", 2.0)
         hold on
-        plot(timestamp_vicon, xyz_XYZ_f(:, it), "r", "LineWidth", 2.0)
+        plot(mocap_timestamps, xyz_XYZ_f(:, it), "r", "LineWidth", 2.0)
 
         ylabel("Position [m]")
         grid on
@@ -417,7 +495,7 @@ relative_time_cables{4} = time_cables{4} - time_start_motors;
 relative_time_ATI = tA - time_start_motors;
 
 
-relative_time_vicon = timestamp_vicon - time_start_motors;
+relative_time_vicon = mocap_timestamps - time_start_motors;
 
 relative_time_fbgs = fbgs_time - time_start_motors;
 
