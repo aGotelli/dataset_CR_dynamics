@@ -11,7 +11,7 @@ close all
 % folder = fullfile(root_data, "dataCollectionPack", "20260225", name_data_to_process);
 % 
 % path = fullfile(folder,"processed");
-path = "..\data_collection\dataCollectionPack\20260304\plane_y\processed\";
+path = "..\data_collection\dataCollectionPack\20260304\Lissajous_fast\processed\";
 
 % ajoute le dossier outils
 addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
@@ -120,13 +120,14 @@ time_simu = time_kinematics_tip(:, 1);
 time_base_wrench = load(fullfile(path, "base_wrench.csv"));
 fbgs_shapes_stacked = load(fullfile(path, "fbgs_shapes.csv"));
 
+time_base_wrench_raw = load(fullfile(path, "base_wrench_raw.csv"));
 
 
 tip_frame = squeeze( position_disks_simu(5, :, :) )';
 time_fbgs = fbgs_shapes_stacked(:, 1);
 fbgs_xyz_stacked = fbgs_shapes_stacked(:, 2:end);
-N_fbgs_points = size(fbgs_xyz_stacked, 2)/3;
-tip_start_col = 3*(N_fbgs_points - 1) + 1;
+tip_index_fbgs = 476;
+tip_start_col = 3*(tip_index_fbgs - 1) + 1;
 tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
 
 
@@ -134,52 +135,55 @@ f = figure("Name", "Tip Position");
 subplot(3, 1, 1)
 plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 5), 'g', 'LineWidth', 1)
 hold on
+plot(time_fbgs, tip_fbgs(:, 1), 'b', 'LineWidth', 1)
 plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
 grid on
 
 subplot(3, 1, 2)
 plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 6), 'g', 'LineWidth', 1)
 hold on
+plot(time_fbgs, tip_fbgs(:, 2), 'b', 'LineWidth', 1)
 plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
 grid on
 
 subplot(3, 1, 3)
 plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 7), 'g', 'LineWidth', 1)
 hold on
+plot(time_fbgs, tip_fbgs(:, 3), 'b', 'LineWidth', 1)
 plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on
-legend('Measured', 'Simulated')
+legend('OptiTrack', 'FBGS', 'Simulated')
 
 name = f.Name;
 savefig(fullfile(path, name))
 filename_png = [char(fullfile(path, name)), '.png'];
 exportgraphics(f, filename_png, 'Resolution', 300); 
 
-
-f = figure("Name", "Tip Position FBGS");
-subplot(3, 1, 1)
-plot(time_fbgs, tip_fbgs(:, 1), 'g', 'LineWidth', 1)
-hold on
-plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
-grid on
-
-subplot(3, 1, 2)
-plot(time_fbgs, tip_fbgs(:, 2), 'g', 'LineWidth', 1)
-hold on
-plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
-grid on
-
-subplot(3, 1, 3)
-plot(time_fbgs, tip_fbgs(:, 3), 'g', 'LineWidth', 1)
-hold on
-plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
-grid on
-legend('FBGS', 'Simulated')
-
-name = f.Name;
-savefig(fullfile(path, name))
-filename_png = [char(fullfile(path, name)), '.png'];
-exportgraphics(f, filename_png, 'Resolution', 300); 
+% 
+% f = figure("Name", "Tip Position FBGS");
+% subplot(3, 1, 1)
+% plot(time_fbgs, tip_fbgs(:, 1), 'g', 'LineWidth', 1)
+% hold on
+% plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
+% grid on
+% 
+% subplot(3, 1, 2)
+% plot(time_fbgs, tip_fbgs(:, 2), 'g', 'LineWidth', 1)
+% hold on
+% plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
+% grid on
+% 
+% subplot(3, 1, 3)
+% plot(time_fbgs, tip_fbgs(:, 3), 'g', 'LineWidth', 1)
+% hold on
+% plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
+% grid on
+% legend('FBGS', 'Simulated')
+% 
+% name = f.Name;
+% savefig(fullfile(path, name))
+% filename_png = [char(fullfile(path, name)), '.png'];
+% exportgraphics(f, filename_png, 'Resolution', 300); 
 
 
 % 
@@ -222,13 +226,16 @@ f = figure("Name", "Torque");
 subplot(2, 1, 1)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'g', 'LineWidth', 1)
 hold on
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'w', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+
 
 subplot(2, 1, 2)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'g', 'LineWidth', 1)
 hold on
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'w', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
-legend('Measured', 'Simulated')
+legend('Processed', 'Measured', 'Simulated')
 
 name = f.Name;
 savefig(fullfile(path, name))

@@ -11,6 +11,10 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     N_time = length(timestamps);
 
 
+    make_video = false;
+    plots = false;
+
+
     %%   First check data for disks is correct
     
     indices = zeros(N_time, N_disks);
@@ -29,7 +33,9 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     bottom = repmat([0 0 0 1], 1, 1, N_time);
 
 
-    figure("Name", "Position Disks Raw")
+    if(plots)
+        figure("Name", "Position Disks Raw")
+    end
     for it = 1:N_disks
         
         disk = disk_names{it};
@@ -63,14 +69,16 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
         ];
 
         poses_disks(:, :, it, :) = g_disk_abs;
-
-        subplot(5, 1, it)
-        time = timestamps - timestamps(1);
-        plot(time, x_data, 'r', 'LineWidth', 2)
-        hold on
-        plot(time, y_data, 'g', 'LineWidth', 2)
-        plot(time, z_data, 'b', 'LineWidth', 2)
-        title(disk)
+        
+        if(plots)
+            subplot(5, 1, it)
+            time = timestamps - timestamps(1);
+            plot(time, x_data, 'r', 'LineWidth', 2)
+            hold on
+            plot(time, y_data, 'g', 'LineWidth', 2)
+            plot(time, z_data, 'b', 'LineWidth', 2)
+            title(disk)
+        end
     end
 
     
@@ -105,7 +113,7 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
 
     %   OptiTrack/Motion software defines Z pointing down; apply Rx(180°) to
     %   convert to Z-up: x->x, y->-y, z->-z
-    R_fix = axang2rotm([0 0 1 pi])*axang2rotm([1 0 0 pi]);
+    R_fix = axang2rotm([0 0 1 pi]);
     g_fix = eye(4);
     g_fix(1:3, 1:3) = R_fix;
 
@@ -113,11 +121,14 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
 
     rel_kinematics_disks = zeros(N_time, 6, N_disks);
     
-    figure("Name", "Position Disks (Relative)")
+    if(plots)
+        figure("Name", "Position Disks (Relative)")
+    end
     for it = 1:N_disks
         pose_disk = poses_disks(:, :, it, :);
 
         rel_pose_disk = pagemtimes( g_fix, pagemtimes(inv_pose_disk_0, pose_disk) );
+        rel_pose_disk(1:3, 4, :, :) = -rel_pose_disk(1:3, 4, :, :);
         rel_poses_disks(:, :, it, :) = rel_pose_disk;
 
         r_disk = squeeze( rel_pose_disk(1:3, 4, :, :) );
@@ -129,14 +140,16 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
         ];
 
         disk = disk_names{it};
-
-        subplot(5, 1, it)
-        time = timestamps - timestamps(1);
-        plot(time, r_disk(1, :), 'r', 'LineWidth', 2)
-        hold on
-        plot(time, r_disk(2, :), 'g', 'LineWidth', 2)
-        plot(time, r_disk(3, :), 'b', 'LineWidth', 2)
-        title(disk)
+        
+        if(plots)
+            subplot(5, 1, it)
+            time = timestamps - timestamps(1);
+            plot(time, r_disk(1, :), 'r', 'LineWidth', 2)
+            hold on
+            plot(time, r_disk(2, :), 'g', 'LineWidth', 2)
+            plot(time, r_disk(3, :), 'b', 'LineWidth', 2)
+            title(disk)
+        end
     end
 
 
@@ -148,8 +161,8 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     rel_kinematics_disks = rel_kinematics_disks(1:end-1, :, :);
 
 
-    make_video = false;
-
+    
+    plot_poses = rel_poses_disks;
     if make_video
 
         axis_len = 0.05; % length of frame axes in meters
@@ -167,7 +180,7 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
             hold on
     
             for it = 1:N_disks
-                g = rel_poses_disks(:, :, it, it_t);   % 4x4 relative pose
+                g = plot_poses(:, :, it, it_t);   % 4x4 relative pose
                 p = g(1:3, 4);                          % origin
                 R = g(1:3, 1:3);                        % rotation matrix
     

@@ -3,7 +3,7 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("dataCollectionPack","20260304/","plane_y/");
+folder = fullfile("dataCollectionPack","20260304/","Lissajous_fast/");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -12,9 +12,12 @@ butterOrder = 4;
 samplingHz = 100;
 
 
+%   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
+bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for plane_x
+
 %   Plots
-plot_filtered = true;
-plot_interpolation = true;
+plot_filtered = false;
+plot_interpolation = false;
 plot_disk_num = 5;
 
 
@@ -35,201 +38,90 @@ filename = fullfile(folder, "dataOptiTrack.csv");
 filename = fullfile(folder, "dataFBGS.csv");
 [fbgs_time, fbgs_shapes] = data_fbgs(filename);
 
-% % 
-% % figure("Name", "Tip Position");
-% % % xyz_XYZ = rel_kinematics_disks(:, :, 5);
-% % index = 476;
-% % xyz_FBGS = squeeze( fbgs_shapes(:, index, :) );
-% % xyz_FBGS_end = squeeze( fbgs_shapes(:, end, :) );
-% % 
-% % 
-% % vars = {'p_x', 'p_y', 'p_z'};
-% % for it = 1:3
-% %     index_plot = it*2 -1;
-% %     subplot(3,2,index_plot)
-% % 
-% %     % plot(mocap_timestamps - mocap_timestamps(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
-% %     hold on
-% %     plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "b", "LineWidth", 2.0)
-% %     % plot(fbgs_time - fbgs_time(1), xyz_FBGS_end(it, :), "r", "LineWidth", 2.0)
-% % 
-% %     grid on
-% %     ylabel([vars{it} ' [m]'])
-% % 
-% % 
-% %     if it == 3
-% %         xlabel("Time [s]")
-% %     end
-% % 
-% %     if it == 1
-% %         title("Raw")
-% %     end
-% % 
-% % end
-% % 
-% % 
-% % a = 0;
-% % 
-% % %%  Align FBGS frame with robot frame via SVD on tip trajectory
-% % %   For plane_x motion the tip moves in the robot x-z plane -> zero motion in y.
-% % %   SVD on the (centered) tip positions gives principal directions:
-% % %     U(:,1)  most variance  -> robot x-axis (lateral bending direction)
-% % %     U(:,3)  least variance -> robot y-axis (plane normal)
-% % %     z = cross(x,y)         -> robot z-axis (right-handed)
-% % 
-% % align_window_s = 10;
-% % fbgs_time_rel = fbgs_time - fbgs_time(1);
-% % idx_align = fbgs_time_rel <= align_window_s;
-% % 
-% % tip_pos_all = squeeze(fbgs_shapes(:, end, :));   % 3 x N_time
-% % tip_pos = tip_pos_all(:, idx_align);             % 3 x N_time_align
-% % 
-% % if size(tip_pos, 2) < 3
-% %     warning('Less than 3 FBGS samples in first %.2f s; using all samples for alignment.', align_window_s);
-% %     tip_pos = tip_pos_all;
-% % end
-% % 
-% % tip_mean   = mean(tip_pos, 2);
-% % tip_centered = tip_pos - tip_mean;
-% % 
-% % [U, ~, ~] = svd(tip_centered, 'econ');
-% % 
-% % x_hat = U(:, 1);                       % primary motion direction
-% % y_hat = U(:, 3);                       % plane normal (least variance)
-% % z_hat = cross(x_hat, y_hat);           % right-handed z
-% % z_hat = z_hat / norm(z_hat);
-% % 
-% % %   Build initial rotation from SVD basis
-% % R_align = [x_hat, y_hat, z_hat]';
-% % 
-% % %   1) Enforce initial tip in negative z direction
-% % [~, idx_start] = min(abs(fbgs_time_rel - 0));
-% % tip_start_aligned = R_align * tip_pos_all(:, idx_start);
-% % if tip_start_aligned(3) > 0
-% %     R_pi_about_x = [1 0 0; 0 -1 0; 0 0 -1];
-% %     R_align = R_pi_about_x * R_align;
-% % end
-% % 
-% % % %   2) Enforce known initial motion direction (+x) with rotation about z
-% % % check_time = 1;
-% % % check_time_s = min(check_time, align_window_s);
-% % % [~, idx_check] = min(abs(fbgs_time_rel - check_time_s));
-% % % 
-% % % 
-% % % tip_start_aligned = R_align * tip_pos_all(:, idx_start);
-% % % tip_check_aligned = R_align * tip_pos_all(:, idx_check);
-% % % delta_x_motion = tip_check_aligned(1) - tip_start_aligned(1);
-% % % 
-% % % if delta_x_motion < 0
-% % %     R_pi_about_z = [-1 0 0; 0 -1 0; 0 0 1];
-% % %     R_align = R_pi_about_z * R_align;
-% % % end
-% % 
-% % 
-% % 
-% % 
-% % 
-% % %   Apply to every cross-section at every time step
-% % N_time_fbgs = size(fbgs_shapes, 3);
-% % for t = 1:N_time_fbgs
-% %     fbgs_shapes(:, :, t) = R_align * fbgs_shapes(:, :, t);
-% % end
-% 
-% % figure("Name", "Tip Position");
-% % xyz_XYZ = rel_kinematics_disks(:, :, 5);
-% % xyz_FBGS = squeeze( fbgs_shapes(:, index, :) );
-% % xyz_FBGS_end = squeeze( fbgs_shapes(:, end, :) );
-% 
-% % vars = {'p_x', 'p_y', 'p_z'};
-% % for it = 1:3
-% %     index_plot = it*2 ;
-% %     subplot(3,2,index_plot)
-% % 
-% %     % plot(mocap_timestamps - mocap_timestamps(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
-% %     hold on
-% %     plot(fbgs_time - fbgs_time(1), xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-% %     grid on
-% %     ylabel([vars{it} ' [m]'])
-% % 
-% % 
-% %     if it == 3
-% %         xlabel("Time [s]")
-% %     end
-% % 
-% %     if it == 1
-% %         title("Realigned")
-% %     end
-% % 
-% % end
-% 
-% 
-% position_tip_mocap = squeeze( rel_poses_disks(1:3, 4, 5, :) );
-% 
-% figure("Name", "FBGS & OptiTrack")
-% % subplot(3,1,1)
-% plot(fbgs_time , xyz_FBGS(1, :), "r", "LineWidth", 2.0)
-% hold on
-% plot(fbgs_time , xyz_FBGS_end(1, :)-0.035, "b", "LineWidth", 2.0)
-% 
-% plot(mocap_timestamps, position_tip_mocap(3, :), "g", "LineWidth", 2.0)
-% grid on
-% % 
-% % subplot(3,1,2)
-% % plot(fbgs_time, xyz_FBGS(2, :), "r", "LineWidth", 2.0)
-% % hold on
-% % plot(fbgs_time , xyz_FBGS_end(2, :), "--r", "LineWidth", 2.0)
-% % 
-% % plot(mocap_timestamps, position_tip_mocap(2, :), "g", "LineWidth", 2.0)
-% % grid on
-% % 
-% % 
-% % subplot(3,1,3)
-% % plot(fbgs_time, xyz_FBGS(3, :), "r", "LineWidth", 2.0)
-% % hold on
-% % plot(fbgs_time , xyz_FBGS_end(3, :)+0.02, "--r", "LineWidth", 2.0)
-% % 
-% % plot(mocap_timestamps, -position_tip_mocap(3, :), "g", "LineWidth", 2.0)
-% % grid on
-% 
-% % 
-% % 
-% % vars = {'p_x', 'p_y', 'p_z'};
-% % for it = 1:3
-% %     index_plot = it;
-% % 
-% % 
-% % 
-% %     if it == 3
-% %         xlabel("Time [s]")
-% %     end
-% % 
-% %     if it == 1
-% %         title("Realigned")
-% %     end
-% % 
-% % end
-% % vars = {'p_x', 'p_y', 'p_z'};
-% % for it = 1:3
-% %     index_plot = it;
-% %     subplot(3,1,index_plot)
-% % 
-% %     % plot(mocap_timestamps - mocap_timestamps(1), xyz_XYZ(:, it), "b", "LineWidth", 2.0)
-% %     hold on
-% %     plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-% %     plot(mocap_timestamps, position_tip_mocap(it, :), "g", "LineWidth", 2.0)
-% %     grid on
-% %     ylabel([vars{it} ' [m]'])
-% % 
-% % 
-% %     if it == 3
-% %         xlabel("Time [s]")
-% %     end
-% % 
-% %     if it == 1
-% %         title("Realigned")
-% %     end
-% % 
-% % end
+
+
+XYZ_xyz = rel_kinematics_disks(:, :, 5);
+index = 476;
+xyz_FBGS = squeeze( fbgs_shapes(:, index, :) );
+xyz_FBGS_end = squeeze( fbgs_shapes(:, end, :) );
+
+
+
+%   Apply rotation of 90 deg along y axis to ALL shapes
+R_y = axang2rotm([0 1 0 pi/2]);
+N_time_fbgs = size(fbgs_shapes, 3);
+for t = 1:N_time_fbgs
+    fbgs_shapes(:, :, t) = R_y * fbgs_shapes(:, :, t);
+end
+
+%   The fiber now evolves in -z, but bending leaks into both x and y.
+%   Use SVD on the tip x-y trajectory (first 10 s only, planar portion)
+%   to find the bending direction, then rotate about z.
+align_window_s = 10;
+fbgs_time_rel  = fbgs_time - fbgs_time(1);
+idx_align      = fbgs_time_rel <= align_window_s;
+
+tip_xy_all     = squeeze(fbgs_shapes(1:2, end, :));   % 2 x N_time
+tip_xy         = tip_xy_all(:, idx_align);            % 2 x N_align
+tip_xy_centered = tip_xy - mean(tip_xy, 2);
+[U_xy, ~, ~] = svd(tip_xy_centered, 'econ');
+
+%   U_xy(:,1) = principal direction of tip motion in the x-y plane.
+%   Rotate it onto the desired bending axis.
+alpha = atan2(U_xy(2,1), U_xy(1,1));
+if strcmpi(bending_axis, 'y')
+    theta_z = pi/2 - alpha;       % map onto y-axis
+else
+    theta_z = 0 - alpha;          % map onto x-axis
+end
+
+
+R_z = [ cos(theta_z), -sin(theta_z), 0;
+        sin(theta_z),  cos(theta_z), 0;
+        0,              0,           1];
+
+for t = 1:N_time_fbgs
+    fbgs_shapes(:, :, t) = R_z * fbgs_shapes(:, :, t);
+end
+
+
+if strcmpi(bending_axis, 'y')
+    fbgs_shapes(1, :, :) = - fbgs_shapes(1, :, :);
+else
+    fbgs_shapes(2, :, :) = - fbgs_shapes(2, :, :);
+end
+
+
+%   Re-extract plotting slices from the rotated shapes
+xyz_FBGS     = squeeze(fbgs_shapes(:, index, :));
+xyz_FBGS_end = squeeze(fbgs_shapes(:, end, :));
+
+figure("Name", "Tip Position");
+vars = {'p_x', 'p_y', 'p_z'};
+for it = 1:3
+    index_plot = it*2 -1;
+    subplot(3,2,index_plot)
+
+    plot(mocap_timestamps, XYZ_xyz(:, it + 3), "g", "LineWidth", 2.0)
+    hold on
+    plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+    % plot(fbgs_time - fbgs_time(1), xyz_FBGS_end(it, :), "r", "LineWidth", 2.0)
+
+    grid on
+    ylabel([vars{it} ' [m]'])
+
+
+    if it == 3
+        xlabel("Time [s]")
+    end
+
+    if it == 1
+        title("Raw")
+    end
+
+end
+
+legend('OptiTrack', 'FBGS')
 
 
 %% ====== EXTRACT MOTOR SIGNALS ======
@@ -298,6 +190,7 @@ for k = 1:3
 end
 
 ATI_FT_f = [ATI_F_f ATI_T_f];
+ATI_FT = [ATI_F ATI_T];
 
 fbgs_shapes_f = zeros(size(fbgs_shapes));   % 3 x 502 x N_time_fbgs
 N_fbgs_points = size(fbgs_shapes, 2);
@@ -515,9 +408,11 @@ for it=1:4
 end
 
 interp_base_wrench = zeros(N_samples, 6);
+interp_base_wrench_raw = zeros(N_samples, 6);
 for it=1:6
 
     interp_base_wrench(:, it) = interp1(relative_time_ATI, ATI_FT_f(:, it), sampling_time)';
+    interp_base_wrench_raw(:, it) = interp1(relative_time_ATI, ATI_FT(:, it), sampling_time)';
 end
 
 interp_rel_kinematics_disks = zeros(N_samples, 6, N_disks);
@@ -670,6 +565,7 @@ end
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
 interp_time_base_wrench = [sampling_time interp_base_wrench];
+interp_time_base_wrench_raw = [sampling_time interp_base_wrench_raw];
 interp_time_vicon_frames = zeros(N_samples, 7, N_disks);
 for it=1:N_disks
     interp_time_vicon_frames(:, :, it) = [sampling_time interp_rel_kinematics_disks(:, :, it)];
@@ -682,6 +578,7 @@ mkdir(saving_folder);
 writematrix(interp_time_angles, fullfile(saving_folder , "angles.csv"));
 writematrix(interp_time_tensions, fullfile(saving_folder ,"cable_tensions.csv"));
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
+writematrix(interp_time_base_wrench_raw, fullfile(saving_folder , "base_wrench_raw.csv"));
 writematrix(interp_time_vicon_frames, fullfile(saving_folder , "vicon_frames.csv"));
 
 %   FBGS: save as N_samples x (1 + 3*N_fbgs_points)
