@@ -3,7 +3,7 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("dataCollectionPack","20260304/","Lissajous_fast/");
+folder = fullfile("dataCollectionPack","20260304/","circle_fast/");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -41,7 +41,7 @@ filename = fullfile(folder, "dataFBGS.csv");
 
 
 XYZ_xyz = rel_kinematics_disks(:, :, 5);
-index = 476;
+index = 480;
 xyz_FBGS = squeeze( fbgs_shapes(:, index, :) );
 xyz_FBGS_end = squeeze( fbgs_shapes(:, end, :) );
 
@@ -99,8 +99,8 @@ xyz_FBGS_end = squeeze(fbgs_shapes(:, end, :));
 figure("Name", "Tip Position");
 vars = {'p_x', 'p_y', 'p_z'};
 for it = 1:3
-    index_plot = it*2 -1;
-    subplot(3,2,index_plot)
+    index_plot = it;
+    subplot(3,1,index_plot)
 
     plot(mocap_timestamps, XYZ_xyz(:, it + 3), "g", "LineWidth", 2.0)
     hold on
@@ -586,6 +586,8 @@ writematrix(interp_time_vicon_frames, fullfile(saving_folder , "vicon_frames.csv
 interp_fbgs_flat = reshape(permute(interp_fbgs_shapes, [3 1 2]), N_samples, []);
 interp_time_fbgs = [sampling_time interp_fbgs_flat];
 writematrix(interp_time_fbgs, fullfile(saving_folder, "fbgs_shapes.csv"));
+
+
 
 
 %% ====== HELPER FUNCTION ======

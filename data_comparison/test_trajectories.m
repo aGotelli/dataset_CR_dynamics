@@ -11,7 +11,7 @@ close all
 % folder = fullfile(root_data, "dataCollectionPack", "20260225", name_data_to_process);
 % 
 % path = fullfile(folder,"processed");
-path = "..\data_collection\dataCollectionPack\20260304\Lissajous_fast\processed\";
+path = "..\data_collection\dataCollectionPack\20260304\Lissajous_slow\processed\";
 
 % ajoute le dossier outils
 addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
@@ -159,81 +159,19 @@ savefig(fullfile(path, name))
 filename_png = [char(fullfile(path, name)), '.png'];
 exportgraphics(f, filename_png, 'Resolution', 300); 
 
-% 
-% f = figure("Name", "Tip Position FBGS");
-% subplot(3, 1, 1)
-% plot(time_fbgs, tip_fbgs(:, 1), 'g', 'LineWidth', 1)
-% hold on
-% plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
-% grid on
-% 
-% subplot(3, 1, 2)
-% plot(time_fbgs, tip_fbgs(:, 2), 'g', 'LineWidth', 1)
-% hold on
-% plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
-% grid on
-% 
-% subplot(3, 1, 3)
-% plot(time_fbgs, tip_fbgs(:, 3), 'g', 'LineWidth', 1)
-% hold on
-% plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
-% grid on
-% legend('FBGS', 'Simulated')
-% 
-% name = f.Name;
-% savefig(fullfile(path, name))
-% filename_png = [char(fullfile(path, name)), '.png'];
-% exportgraphics(f, filename_png, 'Resolution', 300); 
-
-
-% 
-% figure("Name", "Wrench at base (Torques)")
-% subplot(3, 1, 1)
-% plot(time_base_wrench(:, 1), time_base_wrench(:, 2), 'b', 'LineWidth', 1)
-% hold on
-% plot(time_simu, simulated_wrench_at_base(:, 1), 'r', 'LineWidth', 1)
-% 
-% subplot(3, 1, 2)
-% plot(time_base_wrench(:, 1), time_base_wrench(:, 3), 'b', 'LineWidth', 1)
-% hold on
-% plot(time_simu, simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
-% 
-% subplot(3, 1, 3)
-% plot(time_base_wrench(:, 1), time_base_wrench(:, 4), 'b', 'LineWidth', 1)
-% hold on
-% plot(time_simu, simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
-% 
-% 
-% 
-% figure("Name", "Wrench at base (Forces)")
-% subplot(3, 1, 1)
-% plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 1)
-% hold on
-% plot(time_simu, simulated_wrench_at_base(:, 4), 'r', 'LineWidth', 1)
-% 
-% subplot(3, 1, 2)
-% plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 1)
-% hold on
-% plot(time_simu, simulated_wrench_at_base(:, 5), 'r', 'LineWidth', 1)
-% 
-% subplot(3, 1, 3)
-% plot(time_base_wrench(:, 1), time_base_wrench(:, 7), 'b', 'LineWidth', 1)
-% hold on
-% plot(time_simu, simulated_wrench_at_base(:, 6), 'r', 'LineWidth', 1)
-% 
 
 f = figure("Name", "Torque");
 subplot(2, 1, 1)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'g', 'LineWidth', 1)
 hold on
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'w', 'LineWidth', 1)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'k', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
 
 
 subplot(2, 1, 2)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'g', 'LineWidth', 1)
 hold on
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'w', 'LineWidth', 1)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'k', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 legend('Processed', 'Measured', 'Simulated')
 
@@ -268,6 +206,12 @@ name = f.Name;
 savefig(fullfile(path, name))
 filename_png = [char(fullfile(path, name)), '.png'];
 exportgraphics(f, filename_png, 'Resolution', 300); 
+
+
+%%  Compute RMSE
+
+RMSE_tip = sqrt( (1/N_times_vicon)*sum( (time_kinematics_tip(:, 5:7) - tip_fbgs(:, 1:3)).^2 ) )
+
 
 % 
 % %%  Compare data with vicon
