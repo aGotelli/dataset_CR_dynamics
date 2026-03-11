@@ -15,6 +15,8 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     plots = false;
 
 
+
+
     %%   First check data for disks is correct
     
     indices = zeros(N_time, N_disks);

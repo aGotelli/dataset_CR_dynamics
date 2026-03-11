@@ -3,7 +3,7 @@ clear
 clc
 
 %% ====== SETTINGS ======
-folder = fullfile("dataCollectionPack", "20260304", "Lissajous_fast", "processed");
+folder = fullfile("dataCollectionPack", "20260304", "plane_x_slow", "processed");
 
 d = 0.0375;       % cable offset from backbone center [m] (37.5 mm)
 N_interp = 40;    % interpolation points along backbone (from 5 disks)
@@ -47,29 +47,29 @@ for it = 1:N_disks
     disk_euler(:, 3, it) = 0;   % yaw forced to zero
 end
 
-%% ====== PLOT EULER ANGLES (raw vs unwrapped) ======
-eul_names = {'Roll (X)', 'Pitch (Y)', 'Yaw (Z)'};
-for it = 1:N_disks
-    raw_eul = zeros(N_time, 3);
-    for dim = 1:3
-        col0 = (it-1)*7;
-        raw_eul(:, dim) = vicon_data(:, col0 + 1 + dim);
-    end
-
-    figure("Name", sprintf("Euler Angles – disk %d", it-1));
-    for dim = 1:3
-        subplot(3,1,dim)
-        plot(time, rad2deg(raw_eul(:,dim)),           'b', 'LineWidth', 1.2); hold on
-        plot(time, rad2deg(disk_euler(:, dim, it)),   'r', 'LineWidth', 1.2);
-        grid on
-        ylabel([eul_names{dim} ' [deg]'])
-        if dim == 1
-            legend('Raw', 'Unwrapped', 'Location', 'best')
-            title(sprintf('Disk %d', it-1))
-        end
-        if dim == 3, xlabel('Time [s]'); end
-    end
-end
+% %% ====== PLOT EULER ANGLES (raw vs unwrapped) ======
+% eul_names = {'Roll (X)', 'Pitch (Y)', 'Yaw (Z)'};
+% for it = 1:N_disks
+%     raw_eul = zeros(N_time, 3);
+%     for dim = 1:3
+%         col0 = (it-1)*7;
+%         raw_eul(:, dim) = vicon_data(:, col0 + 1 + dim);
+%     end
+% 
+%     figure("Name", sprintf("Euler Angles – disk %d", it-1));
+%     for dim = 1:3
+%         subplot(3,1,dim)
+%         plot(time, rad2deg(raw_eul(:,dim)),           'b', 'LineWidth', 1.2); hold on
+%         plot(time, rad2deg(disk_euler(:, dim, it)),   'r', 'LineWidth', 1.2);
+%         grid on
+%         ylabel([eul_names{dim} ' [deg]'])
+%         if dim == 1
+%             legend('Raw', 'Unwrapped', 'Location', 'best')
+%             title(sprintf('Disk %d', it-1))
+%         end
+%         if dim == 3, xlabel('Time [s]'); end
+%     end
+% end
 
 %% ====== CABLE GEOMETRY ======
 %   4 antagonistic cables at distance d from backbone, in local-frame axes.
@@ -149,27 +149,25 @@ delta_cable_measured = (motor_angles - motor_angles_ref) * r_spool;
 
 %% ====== PLOTS ======
 cable_labels = {'+x', '+y', '-x', '-y'};
+pairs = {[1 3], [2 4]};          % x-pair, y-pair
+pair_names = {"x", "y"};
 
-figure("Name", "Cable Length Change: MoCap vs Motor");
-for c = 1:4
-    subplot(4,1,c)
-    plot(time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 1.5);  hold on
-    plot(time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 1.5);
-    grid on
-    ylabel('\DeltaL [mm]')
-    title(['Cable ' cable_labels{c}])
-    if c == 1
-        legend('MoCap (computed)', 'Motor (measured)', 'Location', 'best')
+for p = 1:2
+    fig = figure("Name", "Cable Length Change – " + pair_names{p} + " pair");
+    idx = pairs{p};
+    for k = 1:2
+        ax = subplot(2,1,k);
+        set(ax, 'Color', 'w');
+        c = idx(k);
+        plot(time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 1.5);  hold on
+        plot(time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 1.5);
+        grid on; ylabel('\DeltaL [mm]')
+        title(['Cable ' cable_labels{c}])
+        if k == 1
+            legend('MoCap (computed)', 'Motor (measured)', 'Location', 'best')
+        end
+        if k == 2, xlabel('Time [s]'); end
     end
-    if c == 4, xlabel('Time [s]'); end
-end
-
-figure("Name", "Absolute Cable Lengths");
-for c = 1:4
-    subplot(4,1,c)
-    plot(time, cable_lengths(:,c)*1e3, 'b', 'LineWidth', 1.5);
-    grid on
-    ylabel('L [mm]')
-    title(['Cable ' cable_labels{c}])
-    if c == 4, xlabel('Time [s]'); end
+    savefig(fig, fullfile(folder, "cable_" + pair_names{p} + ".fig"));
+    exportgraphics(fig, fullfile(folder, "cable_" + pair_names{p} + ".png"), 'Resolution', 300, 'BackgroundColor', 'white');
 end

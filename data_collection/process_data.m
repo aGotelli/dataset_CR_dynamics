@@ -3,7 +3,7 @@ clear;
 clc;
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("dataCollectionPack","20260304/","circle_fast/");
+folder = fullfile("dataCollectionPack","20260304/","Lissajous_slow/");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -33,6 +33,26 @@ ati = readtable(fullfile(folder, "dataATIFT.csv"));
 
 filename = fullfile(folder, "dataOptiTrack.csv");
 [N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename);
+
+
+%  Extract the data from the static measures
+filename = "dataCollectionPack\20260310\static_test\dataOptiTrack.csv";
+[N_disks_static, mocap_timestamps_static, poses_disks_static, rel_poses_disks_static, rel_kinematics_disks_static] = data_optitrack(filename);
+
+%% ====== CORRECT LOCAL-FRAME BIAS (STATIC CALIBRATION) ======
+%   Straight rod => ideal pose is pure z-translation.
+%   Bias lives in local frame: T_meas = T_true * T_bias
+%   => T_corrected = T_dyn * inv(T_bias)
+for it = 2:N_disks
+    T_static = mean(rel_poses_disks_static(:,:,it,:), 4);
+    T_ideal  = eye(4);  T_ideal(3,4) = T_static(3,4);
+    inv_T_bias = T_static \ T_ideal;          % = inv(T_bias)
+    rel_poses_disks(:,:,it,:) = pagemtimes(rel_poses_disks(:,:,it,:), inv_T_bias);
+    %   Recompute kinematics for this disk
+    R_corr = squeeze(rel_poses_disks(1:3,1:3,it,:));
+    r_corr = squeeze(rel_poses_disks(1:3,4,it,:));
+    rel_kinematics_disks(:,:,it) = [rotm2eul(R_corr,'XYZ')  r_corr'];
+end
 
 
 filename = fullfile(folder, "dataFBGS.csv");
