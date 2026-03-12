@@ -1,17 +1,17 @@
 # Fdb version 4
-["bibtex build/main"] 1773256803.29468 "build/main.aux" "build/main.bbl" "build/main" 1773256957.46034 0
-  "./bibliography.bib" 1773238766 106855 1818ca2261a8a4cde9bbc8c6eadf9f32 ""
-  "build/main.aux" 1773256956 9875 92d92c4c5860060a598f03436b1fd115 "pdflatex"
+["bibtex build/main"] 1773329433.92955 "build/main.aux" "build/main.bbl" "build/main" 1773329436.15519 0
+  "./bibliography.bib" 1773328402 107432 77288d3b829fa99bd7fd90ff1d23a5b8 ""
+  "build/main.aux" 1773329435 10631 a2760e6caee5b7ae4a6714f0cf7435a3 "pdflatex"
   "c:/texlive/2025/texmf-dist/bibtex/bst/base/ieeetr.bst" 1767711781 18361 1a00e58565e7f19bf2b3e1bfb82254ae ""
   (generated)
   "build/main.bbl"
   "build/main.blg"
   (rewritten before read)
-["pdflatex"] 1773256955.14395 "c:/Users/Andrea Gotelli/OneDrive - University of Toronto/Desktop/dataset_CR_dynamics/Latex/main.tex" "build/main.pdf" "main" 1773256957.46116 0
-  "build/main.aux" 1773256956 9875 92d92c4c5860060a598f03436b1fd115 "pdflatex"
-  "build/main.bbl" 1773256803 2716 fcdadccdc9d6ef1d738de8f085683f5d "bibtex build/main"
-  "build/main.out" 1773256956 4629 8be6d7d7be664738990e7c1ce5872a55 "pdflatex"
-  "c:/Users/Andrea Gotelli/OneDrive - University of Toronto/Desktop/dataset_CR_dynamics/Latex/main.tex" 1773256954 82077 256e095c27e53ea676642345fcb3586f ""
+["pdflatex"] 1773329434.28794 "c:/Users/Andrea Gotelli/OneDrive - University of Toronto/Desktop/dataset_CR_dynamics/Latex/main.tex" "build/main.pdf" "main" 1773329436.15583 0
+  "build/main.aux" 1773329435 10631 a2760e6caee5b7ae4a6714f0cf7435a3 "pdflatex"
+  "build/main.bbl" 1773329434 2906 766548a5e4b7e37bb317969cc4f126d0 "bibtex build/main"
+  "build/main.out" 1773329435 5367 3a7eefc8ca580afee32ce8ea6489881b "pdflatex"
+  "c:/Users/Andrea Gotelli/OneDrive - University of Toronto/Desktop/dataset_CR_dynamics/Latex/main.tex" 1773329431 90226 bb217dd16706abc59ee66f057125f3f7 ""
   "c:/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1767712106 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "c:/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1767712974 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "c:/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/tcrm0500.tfm" 1767712583 1536 b3387106d9afecbfe14bde2de6eadf47 ""
@@ -129,6 +129,7 @@
   "c:/texlive/2025/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty" 1767713701 13815 760b0c02f691ea230f5359c4e1de23a7 ""
   "c:/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def" 1767713707 30662 bfd6e864f4ffc5018b0e2b6260c3181c ""
   "c:/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg" 1767713795 678 4792914a8f45be57bb98413425e4c7af ""
+  "c:/texlive/2025/texmf-dist/tex/latex/parskip/parskip.sty" 1767714771 4288 94714aa7f535440f33181fec52a31963 ""
   "c:/texlive/2025/texmf-dist/tex/latex/pdflscape/pdflscape-nometadata.sty" 1767714838 6572 d45c2321088e3d0226f5e476049fa5ec ""
   "c:/texlive/2025/texmf-dist/tex/latex/pdflscape/pdflscape.sty" 1767714838 2122 fa66f24d79b913f2d7ab2599d50e1aed ""
   "c:/texlive/2025/texmf-dist/tex/latex/refcount/refcount.sty" 1767715397 9878 9e94e8fa600d95f9c7731bb21dfb67a4 ""
@@ -142,10 +143,8 @@
   "c:/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1767717162 5587484 30eee748fa419a911c40b0c750dd21ba ""
   "c:/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1767717365 3635700 f959ea7a2494af95c4a2dcc8c112ade1 ""
   "c:/texlive/2025/texmf.cnf" 1767717144 713 e69b156964470283e0530f5060668171 ""
-  "figures/Lissajous_slow/Cable Displacement.png" 1773236385 324532 e287065253219fc943852d2addf1ae48 ""
-  "figures/Lissajous_slow/Tip Position.png" 1773236385 467557 f8c16cf6f14b6a3e04471c51e71bc932 ""
+  "figures/Lissajous_slow/Tip Position.png" 1773264588 453062 aae098c4a70c1f63a08d2a02492a825a ""
   "figures/Lissajous_slow/Torque.png" 1773236385 279659 b44f7516d04c1cd1605948a561d7587d ""
-  "figures/MoCap vs Motor tendon tension.png" 1773256381 161913 fa77835eab1ed50d8a3569b74bb55800 ""
   "figures/fig_robotPlatform.pdf" 1773236385 1501814 25cb5648fdb7457be1e9e61cd319a0db ""
   "figures/robot_motion/Tip Lissajous_slow.png" 1773236385 86615 c8abf7072541ae0df22369b60032daf6 ""
   "figures/robot_motion/Tip circle_slow.png" 1773236385 98197 2208110e00fd711f69d82fc8bbafc48a ""
@@ -153,7 +152,9 @@
   "figures/robot_motion/Tip plane_xy_slow.png" 1773236385 48627 eb388d4741362c04521095e3e5d79f65 ""
   "figures/robot_motion/Tip plane_y_slow.png" 1773236385 34288 c7cf9f2b8e0b3491593c6d488e8b02c6 ""
   "figures/robot_motion/Tip star_slow.png" 1773236385 75971 4aee2799835263bae6a306134703480e ""
-  "main.tex" 1773256954 82077 256e095c27e53ea676642345fcb3586f ""
+  "figures/robot_motion/plane_x/cable_x.png" 1773262489 320736 4a544bd4e83bf223eb87a368a05360af ""
+  "figures/robot_motion/plane_y/cable_y.png" 1773262480 311358 e5a129d41dd5a41809006de39f03389e ""
+  "main.tex" 1773329431 90226 bb217dd16706abc59ee66f057125f3f7 ""
   (generated)
   "build/main.aux"
   "build/main.log"

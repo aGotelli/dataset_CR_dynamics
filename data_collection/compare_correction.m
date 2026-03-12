@@ -52,14 +52,40 @@ tip_fbgs   = squeeze(fbgs_shapes(:, 480, :))'; % N_time x 3
 
 %% Plot
 vars = {'p_x','p_y','p_z'};
-figure("Name","Tip Comparison: Uncorrected vs Corrected vs FBGS");
+fig = figure("Name","Tip Comparison");
 for k = 1:3
     subplot(3,1,k)
-    plot(mocap_t, tip_uncorr(:,k), 'b', 'LineWidth',1.5); hold on
-    plot(mocap_t, tip_corr(:,k),   'g', 'LineWidth',1.5);
+    % plot(mocap_t, tip_uncorr(:,k), 'b', 'LineWidth',1.5); hold on
+    plot(mocap_t, tip_corr(:,k),   'b', 'LineWidth',1.5);
+    hold on
     plot(fbgs_time, tip_fbgs(:,k), 'r', 'LineWidth',1.5);
-    grid on; ylabel([vars{k} ' [m]'])
+    grid on; 
+    ylabel([vars{k} ' [m]'])
     if k==1, title('Robot tip position'); end
     if k==3, xlabel('Time [s]'); end
 end
-legend('OptiTrack (raw)','OptiTrack (corrected)','FBGS','Location','best')
+legend('OptiTrack','FBGS','Location','best')
+
+savefig(fig, fullfile(folder, fig.Name));
+saveas(fig, fullfile(folder, fig.Name), 'png');
+
+% %% FBGS index sensitivity — sweep candidate tip indices
+% fbgs_indices = [470 475 480 485 490];
+% colors = lines(length(fbgs_indices));
+
+% figure("Name","FBGS tip index sensitivity");
+% set(gcf, 'Color', 'w');
+% for k = 1:3
+%     subplot(3,1,k)
+%     plot(mocap_t, tip_corr(:,k), 'k', 'LineWidth', 2); hold on
+%     for j = 1:length(fbgs_indices)
+%         tip_j = squeeze(fbgs_shapes(:, fbgs_indices(j), :))';
+%         plot(fbgs_time, tip_j(:,k), 'Color', colors(j,:), 'LineWidth', 1.2);
+%     end
+%     grid on; ylabel([vars{k} ' [m]'])
+%     if k==1, title('OptiTrack (corrected) vs FBGS at different indices'); end
+%     if k==3, xlabel('Time [s]'); end
+% end
+% leg_labels = [{'OptiTrack'}, arrayfun(@(i) sprintf('FBGS %d',i), fbgs_indices, 'UniformOutput', false)];
+% legend(leg_labels, 'Location', 'best')
+

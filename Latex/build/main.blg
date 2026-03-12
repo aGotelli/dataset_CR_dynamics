@@ -6,45 +6,45 @@ Database file #1: bibliography.bib
 Warning--empty journal in Renda2016
 Warning--empty journal in Bensch2024
 Warning--empty journal in Mathew2026
-You've used 12 entries,
+You've used 13 entries,
             1876 wiz_defined-function locations,
-            565 strings with 6136 characters,
-and the built_in function-call counts, 4316 in all, are:
-= -- 454
-> -- 147
+            575 strings with 6322 characters,
+and the built_in function-call counts, 4678 in all, are:
+= -- 496
+> -- 155
 < -- 0
-+ -- 53
-- -- 41
-* -- 310
-:= -- 574
-add.period$ -- 12
-call.type$ -- 12
-change.case$ -- 12
++ -- 56
+- -- 43
+* -- 335
+:= -- 619
+add.period$ -- 13
+call.type$ -- 13
+change.case$ -- 13
 chr.to.int$ -- 0
-cite$ -- 15
-duplicate$ -- 212
-empty$ -- 370
-format.name$ -- 41
-if$ -- 1061
+cite$ -- 16
+duplicate$ -- 230
+empty$ -- 401
+format.name$ -- 43
+if$ -- 1151
 int.to.chr$ -- 0
-int.to.str$ -- 12
-missing$ -- 12
-newline$ -- 39
-num.names$ -- 12
-pop$ -- 28
+int.to.str$ -- 13
+missing$ -- 13
+newline$ -- 42
+num.names$ -- 13
+pop$ -- 29
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 190
+skip$ -- 209
 stack$ -- 0
-substring$ -- 416
-swap$ -- 117
+substring$ -- 456
+swap$ -- 128
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 3
-while$ -- 41
-width$ -- 14
-write$ -- 117
+while$ -- 45
+width$ -- 15
+write$ -- 127
 (There were 3 warnings)

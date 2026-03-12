@@ -15,6 +15,7 @@
 \citation{Mathew2026}
 \citation{Grassmann2022}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Background \& Summary}{1}{section.1}\protected@file@percent }
+\citation{Moore2012}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Methods}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Design}{2}{subsection.2.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Sensors}{2}{subsection.2.2}\protected@file@percent }
@@ -23,7 +24,7 @@
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.3}ATI-FT}{3}{subsubsection.2.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.4}Gyroscopes}{3}{subsubsection.2.2.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.5}Actuators}{3}{subsubsection.2.2.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.6}Mocap}{3}{subsubsection.2.2.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.6}Motion Capture System}{3}{subsubsection.2.2.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.7}Resense FT}{4}{subsubsection.2.2.7}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Summary of the sensor suite. Effective sampling rates account for communication overhead and software processing; native hardware rates may be higher. Selectable parameters show the value used in this work where known; the full set of options is given in the corresponding sensor subsection.}}{5}{table.caption.1}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
@@ -48,34 +49,39 @@
 \newlabel{sub@fig:motion Lissajous}{{f}{7}{\relax }{figure.caption.4}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Motion of the robot tip (only $xy$ plane coordinates) for the planar motions on $x$ (\subref  {fig:motion plane x}), $y$ (\subref  {fig:motion plane y}) and $xy$ (\subref  {fig:motion plane xy}), the star motion (\subref  {fig:motion star}), the circular (\subref  {fig:motion star}) and (\subref  {fig:motion Lissajous}) trajctories.}}{7}{figure.caption.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Data Collection}{7}{subsection.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.1}Acquisition pipeline}{7}{subsubsection.2.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.2}Synchronization}{8}{subsubsection.2.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.3}Post processing}{8}{subsubsection.2.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.4}File naming and outputs}{8}{subsubsection.2.4.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Data Records}{8}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Technical Validation}{8}{section.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Trajectory of the robot tip as measured by the OptiTrack motion capture system (blue) the FBGS (green) and simulated with the GVS approach fed with tendon tensions (red).}}{9}{figure.caption.5}\protected@file@percent }
-\newlabel{fig:tip trajectory Lissajous_slow}{{3}{9}{Trajectory of the robot tip as measured by the OptiTrack motion capture system (blue) the FBGS (green) and simulated with the GVS approach fed with tendon tensions (red)}{figure.caption.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Comparison of the pulled lenght measured from the actuators and reconstructed from the OptiTrack system.}}{9}{figure.caption.6}\protected@file@percent }
-\newlabel{fig:cable lenght}{{4}{9}{Comparison of the pulled lenght measured from the actuators and reconstructed from the OptiTrack system}{figure.caption.6}{}}
-\newlabel{fig:Base Torque}{{5a}{10}{\relax }{figure.caption.7}{}}
-\newlabel{sub@fig:Base Torque}{{a}{10}{\relax }{figure.caption.7}{}}
-\newlabel{fig:cable displacement}{{5b}{10}{\relax }{figure.caption.7}{}}
-\newlabel{sub@fig:cable displacement}{{b}{10}{\relax }{figure.caption.7}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Comparison of the simulated trque at the base (\subref  {fig:Base Torque}) and cable displacement (pulled length) in (\subref  {fig:cable displacement}).}}{10}{figure.caption.7}\protected@file@percent }
-\newlabel{fig:cable and torque}{{5}{10}{Comparison of the simulated trque at the base (\subref {fig:Base Torque}) and cable displacement (pulled length) in (\subref {fig:cable displacement})}{figure.caption.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Sensor noise and calibration}{10}{subsection.4.1}\protected@file@percent }
-\newlabel{sec:sensors_noise}{{4.1}{10}{Sensor noise and calibration}{subsection.4.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Kinematic cross-validation}{10}{subsection.4.2}\protected@file@percent }
-\newlabel{sec:kin_cross_val}{{4.2}{10}{Kinematic cross-validation}{subsection.4.2}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}Comparison of recorded shape with FBGS and Motion Capture}{10}{subsubsection.4.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}Validation of Cable Displacement via Motion Capture}{10}{subsubsection.4.2.2}\protected@file@percent }
-\citation{Boyer2021}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Trajectory of the robot tip as measured by the OptiTrack motion capture system (blue) the FBGS (green) and simulated with the GVS approach fed with tendon tensions (red) using the Lijassous motion.}}{9}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:tip trajectory Lissajous_slow}{{3}{9}{Trajectory of the robot tip as measured by the OptiTrack motion capture system (blue) the FBGS (green) and simulated with the GVS approach fed with tendon tensions (red) using the Lijassous motion}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Technical Validation}{9}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Sensor noise and calibration}{9}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:sensors_noise}{{4.1}{9}{Sensor noise and calibration}{subsection.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Kinematic cross-validation}{9}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:kin_cross_val}{{4.2}{9}{Kinematic cross-validation}{subsection.4.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}Comparison of recorded shape with FBGS and Motion Capture}{9}{subsubsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}Validation of Cable Displacement via Motion Capture}{9}{subsubsection.4.2.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Comparison of the simulated torque at the base (red) with the measured torque by the (unfiltered) ATI FT sensor (green) using the circular motion.}}{10}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:Base Torque}{{4}{10}{Comparison of the simulated torque at the base (red) with the measured torque by the (unfiltered) ATI FT sensor (green) using the circular motion}{figure.caption.6}{}}
+\newlabel{fig:cable x}{{5a}{10}{\relax }{figure.caption.7}{}}
+\newlabel{sub@fig:cable x}{{a}{10}{\relax }{figure.caption.7}{}}
+\newlabel{fig:cable y}{{5b}{10}{\relax }{figure.caption.7}{}}
+\newlabel{sub@fig:cable y}{{b}{10}{\relax }{figure.caption.7}{}}
+\newlabel{fig:cable lenght}{{\caption@xref {fig:cable lenght}{ on input line 1254}}{10}{Validation of Cable Displacement via Motion Capture}{figure.caption.7}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Comparison of the pulled cable lenght as per measured from the actuator encoders (red) and reconstructed from the OptiTrack recorded kinematics (blue) for the \textit  {plane $x$} (\subref  {fig:cable x}) and \textit  {plane $y$} (\subref  {fig:cable y}).}}{10}{figure.caption.7}\protected@file@percent }
 \citation{Boyer2021}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Force--kinematics consistency}{11}{subsection.4.3}\protected@file@percent }
 \newlabel{sec:force_kin_consistency}{{4.3}{11}{Force--kinematics consistency}{subsection.4.3}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {4.3.1}Rod mechanical parameter characterization}{11}{subsubsection.4.3.1}\protected@file@percent }
 \newlabel{sec:mech_char}{{4.3.1}{11}{Rod mechanical parameter characterization}{subsubsection.4.3.1}{}}
 \newlabel{eq:EI_ident}{{2}{11}{Rod mechanical parameter characterization}{equation.2}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.3.2}Comparison of the measured forces}{11}{subsubsection.4.3.2}\protected@file@percent }
+\citation{Boyer2021}
 \bibdata{bibliography}
 \bibcite{Robinson1999}{1}
+\bibcite{BurgnerKahrs2015}{2}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.3.2}Comparison of the measured forces}{12}{subsubsection.4.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Contact force validation}{12}{subsection.4.4}\protected@file@percent }
 \newlabel{sec:contact_val}{{4.4}{12}{Contact force validation}{subsection.4.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Temporal synchronization}{12}{subsection.4.5}\protected@file@percent }
@@ -85,7 +91,7 @@
 \@writefile{toc}{\contentsline {section}{\numberline {7}Code Availability}{12}{section.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {8}Author Contributions}{12}{section.8}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {9}Competing Interests}{12}{section.9}\protected@file@percent }
-\bibcite{BurgnerKahrs2015}{2}
+\@writefile{toc}{\contentsline {section}{\numberline {10}Funding}{12}{section.10}\protected@file@percent }
 \bibcite{Renda2016}{3}
 \bibcite{Till2019}{4}
 \bibcite{Boyer2021}{5}
@@ -95,6 +101,6 @@
 \bibcite{Rao2024}{9}
 \bibcite{Mathew2026}{10}
 \bibcite{Grassmann2022}{11}
-\bibcite{Rucker2011a}{12}
-\@writefile{toc}{\contentsline {section}{\numberline {10}Funding}{13}{section.10}\protected@file@percent }
+\bibcite{Moore2012}{12}
+\bibcite{Rucker2011a}{13}
 \gdef \@abspage@last{13}

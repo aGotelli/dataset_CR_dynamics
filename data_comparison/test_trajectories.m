@@ -11,7 +11,7 @@ close all
 % folder = fullfile(root_data, "dataCollectionPack", "20260225", name_data_to_process);
 % 
 % path = fullfile(folder,"processed");
-path = "..\data_collection\dataCollectionPack\20260304\Lissajous_slow\processed\";
+path = "..\data_collection\dataCollectionPack\20260304\circle_slow\processed\";
 
 % ajoute le dossier outils
 addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
@@ -162,18 +162,19 @@ exportgraphics(f, filename_png, 'Resolution', 300);
 
 f = figure("Name", "Torque");
 subplot(2, 1, 1)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'g', 'LineWidth', 1)
-hold on
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'k', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+hold on
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'g', 'LineWidth', 2)
+
 
 
 subplot(2, 1, 2)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'g', 'LineWidth', 1)
-hold on
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'k', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
-legend('Processed', 'Measured', 'Simulated')
+hold on
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'g', 'LineWidth', 2)
+legend('Measured', 'Simulated')
 
 name = f.Name;
 savefig(fullfile(path, name))

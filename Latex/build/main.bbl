@@ -33,6 +33,9 @@ A.~T. Mathew, A.~Peringal, D.~Caradonna, F.~Boyer, and F.~Renda, ``Collision det
 \bibitem{Grassmann2022}
 R.~M. Grassmann, R.~Z. Chen, N.~Liang, and J.~Burgner-Kahrs, ``A dataset and benchmark for learning the kinematics of concentric tube continuum robots,'' {\em International Conference on Intelligent Robots and Systems (IROS)}, pp.~9550--9557, 2022.
 
+\bibitem{Moore2012}
+J.~P. Moore and M.~D. Rogge, ``Shape sensing using multi-core fiber optic cable and parametric curve solutions,'' {\em Opt. Express}, vol.~20, pp.~2967--2973, Jan 2012.
+
 \bibitem{Rucker2011a}
 D.~C. Rucker and R.~J. Webster~III, ``Statics and dynamics of continuum robots with general tendon routing and external loading,'' {\em IEEE Transactions on Robotics}, vol.~27, no.~6, pp.~1033--1044, 2011.
 
