@@ -7,6 +7,7 @@ from pathlib import Path
 import os
 import numpy as np
 import can
+import matplotlib.pyplot as plt
 
 # Make sure we can import the Cybergear driver
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,8 +25,11 @@ parser.add_argument("--motor1-id", type=int, default=1, help="CAN ID for motor 1
 parser.add_argument("--motor2-id", type=int, default=2, help="CAN ID for motor 2 (default: 2)")
 parser.add_argument("--motor3-id", type=int, default=3, help="CAN ID for motor 3 antagonist 1 (default: 3)")
 parser.add_argument("--motor4-id", type=int, default=4, help="CAN ID for motor 4 antagonist 2 (default: 4)")
-parser.add_argument("--radius", type=float, default=45.0, help="Radius of circle in degrees")
+# parser.add_argument("--radius", type=float, default=45.0, help="Radius of circle in degrees")
 parser.add_argument("--start-time", type=float, default=None, help="Shared start timestamp (seconds)")
+# parser.add_argument("--delta", type=float, default=0.0, help="Phase difference for Lissajous curve (radians, default: 0.0)")
+# parser.add_argument("--a", type=float, default=2.0, help="Frequency ratio for X component in Lissajous curve (default: 2.0)")
+# parser.add_argument("--b", type=float, default=1.0, help="Frequency ratio for Y component in Lissajous curve (default: 1.0)")
 args = parser.parse_args()
 
 if args.start_time is not None:
@@ -34,21 +38,34 @@ if args.start_time is not None:
 else:
     start_time = time.time()
 
+################################################################################################
+wait_before_start = 3   #   seconds to wait before the main loop starts (ensures all sensors are running)
 
-ramp_rad = math.radians(args.radius)
-limit_speed = 1  # rad/s -- 
+motion_pattern = "plane_x"   # "circle" "plane_x" "plane_y" "plane_x_y" "plane_x_-y" "Lissajous" "star"
+desired_degree = 180
+desired_speed = 1
+# For Lissajous
+Lissajous_delta     = 0.0
+Lissajous_a         = 2.0
+Lissajous_b         = 1.0
+################################################################################################
+
+ramp_rad = math.radians(desired_degree)
 duration = args.duration
 angle_tol = math.radians(0.5)  # Very precise: 0.05 degrees
 vel_tol = 0.05  # Also tighten velocity tolerance
+if motion_pattern == "circle" or "Lissajous":
+    angle_tol = math.radians(12)  # Very precise: 0.05 degrees
+    vel_tol = 1  # Also tighten velocity tolerance
 name, ext = os.path.splitext(args.filename)
 if not ext:
     ext = ".csv"
-suffix = str(args.radius).replace(".", "p")
-filename = f"{name}_circle_radius_{suffix}{ext}"
+suffix = str(desired_degree).replace(".", "p")
+filename = f"{name}{ext}"
 
 print(
     f"4-Motor antagonistic circle: Motors {args.motor1_id}&{args.motor3_id} (pair1), {args.motor2_id}&{args.motor4_id} (pair2)"
-    f" with radius ±{args.radius:.1f}° over {duration:.2f}s, logging to {filename}"
+    f" with radius ±{desired_degree:.1f}° over {duration:.2f}s, logging to {filename}"
 )
 
 bus = can.interface.Bus(interface="candle", channel=0, bitrate=1_000_000)
@@ -109,30 +126,165 @@ print()
 # #     # Phase 4: Motor 2 retracts (-), Motor 4 compensates (+), all return towards home
 # #     (home1 - ramp_rad,  home2 - ramp_rad,   home3 + ramp_rad,   home4 + ramp_rad)
 # # ]
+if motion_pattern == "circle":
+    # Creat a pattern for circle
+    sqrt_2 = math.sqrt(2)
 
-# Creat a pattern for circle
-sqrt_2 = math.sqrt(2)
-home_positions = np.array([home1, home2, home3, home4])
+    # Define offset vectors for each phase
+    # Tendons: (x: + push, y: + pull, -x: + push, -y: + pull)
+    offset_vectors = [
+        # Two planar motion for calibration
+        np.array([-ramp_rad, 0, ramp_rad*0.85, 0]),
+        np.array([ramp_rad*0.85, 0, -ramp_rad, 0]),
+        np.array([0, 0, 0, 0]),
+        np.array([0, ramp_rad, 0, -ramp_rad*0.85]),
+        np.array([0, -ramp_rad*0.85, 0, ramp_rad]),
+        np.array([0, 0, 0, 0]),
+        # Circular motion starts here
+        np.array([ramp_rad*0.85, ramp_rad*0.1, -ramp_rad, ramp_rad*0.1]),
+        np.array([ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2, -ramp_rad/sqrt_2, -ramp_rad/sqrt_2*0.8]),
+        np.array([-ramp_rad*0.1, ramp_rad, -ramp_rad*0.1, -ramp_rad*0.85]),
+        np.array([-ramp_rad/sqrt_2, ramp_rad/sqrt_2, ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2*0.8]),
+        np.array([-ramp_rad, ramp_rad*0.1, ramp_rad*0.85, ramp_rad*0.1]),
+        np.array([-ramp_rad/sqrt_2, -ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2]),
+        np.array([-ramp_rad*0.1, -ramp_rad*0.85, -ramp_rad*0.1, ramp_rad]),
+        np.array([ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2, ramp_rad/sqrt_2]),
+    ]
+    n_preparation_phase = 6
+elif motion_pattern == "Lissajous":
+    # Create a pattern for Lissajous curve using parametric equations:
+    # x(t) = A * sin(a*t + delta), y(t) = B * sin(b*t)
+    # where a, b are frequency ratios and delta is phase difference
+    
+    # Use command line parameters
+    delta = Lissajous_delta  # phase difference
+    a = Lissajous_a         # frequency ratio for X
+    b = Lissajous_b         # frequency ratio for Y
+    
+    # Generate waypoints for Lissajous curve
+    n_points = 16  # Number of points around the curve
+    offset_vectors = [
+        # Initial planar calibration motions
+        np.array([-ramp_rad, 0, ramp_rad*0.85, 0]),
+        np.array([ramp_rad*0.85, 0, -ramp_rad, 0]),
+        np.array([0, 0, 0, 0]),
+        np.array([0, ramp_rad, 0, -ramp_rad*0.85]),
+        np.array([0, -ramp_rad*0.85, 0, ramp_rad]),
+        np.array([0, 0, 0, 0]),
+    ]
+    
+    # Generate Lissajous curve waypoints using parametric equations
+    for i in range(n_points):
+        t = 2 * math.pi * i / n_points  # Parameter t from 0 to 2π
+        x = ramp_rad * math.sin(a * t + delta)  # X component with phase
+        y = ramp_rad * math.sin(b * t)          # Y component
+        
+        # Convert to tendon offsets: [x+, y+, x-, y-]
+        # Antagonistic pairs: x_minus = -x_plus, y_minus = -y_plus
+        x_plus  = x       # Can be positive or negative
+        y_plus  = -y       # Can be positive or negative  
+        x_minus = -x_plus     # Always opposite of x_plus
+        y_minus = -y_plus     # Always opposite of y_plus
 
-# Define offset vectors for each phase
-# (+ push, + pull, + push, + pull)
-offset_vectors = [
-    np.array([ramp_rad*0.85, ramp_rad*0.1, -ramp_rad, ramp_rad*0.1]),
-    np.array([ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2, -ramp_rad/sqrt_2, -ramp_rad/sqrt_2*0.8]),
-    np.array([-ramp_rad*0.1, ramp_rad, -ramp_rad*0.1, -ramp_rad*0.85]),
-    np.array([-ramp_rad/sqrt_2, ramp_rad/sqrt_2, ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2*0.8]),
-    np.array([-ramp_rad, ramp_rad*0.1, ramp_rad*0.85, ramp_rad*0.1]),
-    np.array([-ramp_rad/sqrt_2, -ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2*0.8, ramp_rad/sqrt_2]),
-    np.array([-ramp_rad*0.1, -ramp_rad*0.85, -ramp_rad*0.1, ramp_rad]),
-    np.array([ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2*0.8, -ramp_rad/sqrt_2, ramp_rad/sqrt_2]),
-]
+        scaling = 0.85
+        if x_plus > 0:
+            x_plus = scaling*x_plus
+        if x_minus > 0:
+            x_minus = scaling*x_minus
+        if y_plus < 0:
+            y_plus = scaling*y_plus
+        if y_minus < 0:
+            y_minus = scaling*y_minus
+
+            
+        offset_vectors.append(np.array([x_plus, y_plus, x_minus, y_minus]))
+    n_preparation_phase = 6
+
+    # Plot waypoints for Lissajous curve
+    # Extract x_plus and y_plus from offset_vectors (skip calibration phases)
+    lissajous_vectors = offset_vectors[6:]  # Skip first 6 calibration phases
+    x_waypoints = [vec[0] for vec in lissajous_vectors]  # x_plus values
+    y_waypoints = [vec[1] for vec in lissajous_vectors]  # y_plus values
+    
+    # Create waypoint plot
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.plot(x_waypoints, y_waypoints, 'b-o', linewidth=2, markersize=8, label='Lissajous Waypoints')
+    
+    # Add numbering to each waypoint
+    for i, (x, y) in enumerate(zip(x_waypoints, y_waypoints)):
+        ax.annotate(f'{i}', (x, y), xytext=(5, 5), textcoords='offset points', 
+                   fontsize=10, ha='left', va='bottom', 
+                   bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7))
+    
+    # Formatting
+    ax.set_xlabel('X+ Tendon Offset (rad)')
+    ax.set_ylabel('Y+ Tendon Offset (rad)')
+    ax.set_title(f'Lissajous Curve Waypoints\na={Lissajous_a}, b={Lissajous_b}, delta={Lissajous_delta:.3f} rad')
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    ax.axis('equal')
+    
+    # Save plot
+    waypoint_plot_path = Path(filename).parent / (Path(filename).stem + '_waypoints.png')
+    fig.savefig(waypoint_plot_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f'Lissajous waypoints plot saved to {waypoint_plot_path}')
+    print(f'Generated {len(lissajous_vectors)} waypoints for the Lissajous curve')
+
+elif motion_pattern == "plane_x":
+    offset_vectors = [
+        np.array([-ramp_rad, 0, ramp_rad*0.85, 0]),
+        np.array([ramp_rad*0.85, 0, -ramp_rad, 0]),
+    ]
+    n_preparation_phase = 0
+elif motion_pattern == "plane_y":
+    offset_vectors = [
+        np.array([0, ramp_rad, 0, -ramp_rad*0.85]),
+        np.array([0, -ramp_rad*0.85, 0, ramp_rad]),
+    ]
+    n_preparation_phase = 0
+elif motion_pattern == "plane_x_y":
+    offset_vectors = [
+        np.array([-ramp_rad, ramp_rad, ramp_rad*0.85, -ramp_rad*0.85]),
+        np.array([ramp_rad*0.85, -ramp_rad*0.85, -ramp_rad, ramp_rad]),
+    ]
+    n_preparation_phase = 0
+elif motion_pattern == "plane_x_-y":
+    offset_vectors = [
+        np.array([-ramp_rad, -ramp_rad*0.85, ramp_rad*0.85, ramp_rad]),
+        np.array([ramp_rad*0.85, ramp_rad, -ramp_rad, -ramp_rad*0.85]),
+    ]
+    n_preparation_phase = 0
+elif motion_pattern == "star":
+    offset_vectors = [
+        # Initial planar calibration motions
+        np.array([-ramp_rad, 0, ramp_rad*0.85, 0]),
+        np.array([ramp_rad*0.85, 0, -ramp_rad, 0]),
+        np.array([0, 0, 0, 0]),
+        np.array([0, ramp_rad, 0, -ramp_rad*0.85]),
+        np.array([0, -ramp_rad*0.85, 0, ramp_rad]),
+        np.array([0, 0, 0, 0]),
+        # Diagonal motion starts here
+        np.array([-ramp_rad, ramp_rad, ramp_rad*0.85, -ramp_rad*0.85]),
+        np.array([ramp_rad*0.85, -ramp_rad*0.85, -ramp_rad, ramp_rad]),
+        np.array([0, 0, 0, 0]),
+        np.array([-ramp_rad, -ramp_rad*0.85, ramp_rad*0.85, ramp_rad]),
+        np.array([ramp_rad*0.85, ramp_rad, -ramp_rad, -ramp_rad*0.85]),
+        np.array([0, 0, 0, 0]),
+    ]
+    n_preparation_phase = 0
 
 # Generate phases using vector addition
+home_positions = np.array([home1, home2, home3, home4])
 phases = [tuple(home_positions + offset) for offset in offset_vectors]
 
 samples = []
 phase_index = 0
 current_phase = 0
+
+# sys.exit("Exiting after waypoint generation for testing")
+
+time.sleep( wait_before_start )
 
 # Main loop - continue until duration is reached
 while time.time() - start_time < duration:
@@ -143,7 +295,14 @@ while time.time() - start_time < duration:
     # print(f"  Antagonistic check: M2+M4={math.degrees(target2-home2):.1f}+{math.degrees(target4-home4):.1f}={math.degrees((target2-home2)+(target4-home4)):.1f}°")
     phase_start = time.time()
     # Send commands with speed limit
-    
+    limit_speed     = desired_speed
+    if motion_pattern == "circle" or "Lissajous":
+        if current_phase < n_preparation_phase:
+            limit_speed = 1 # speed for the preparation phase
+        else:
+            limit_speed = desired_speed # speed for the circle
+            
+
     motor1.set_motor_position_control(limit_spd=limit_speed, loc_ref=target1)
     motor2.set_motor_position_control(limit_spd=limit_speed, loc_ref=target2)
     motor3.set_motor_position_control(limit_spd=limit_speed, loc_ref=target3)
@@ -240,7 +399,7 @@ while time.time() - start_time < duration:
             ]
         )
         # print(f"{angle_rad1+home1} vs {target1}")
-        print(f"m1: cur: {abs_angle_rad1} - tg: {target1} - m2: cur: {abs_angle_rad2} - tg: {target2} - m3: cur: {abs_angle_rad3} - tg: {target3} - m4: cur: {abs_angle_rad4} - tg: {target4}")
+        # print(f"m1: cur: {abs_angle_rad1} - tg: {target1} - m2: cur: {abs_angle_rad2} - tg: {target2} - m3: cur: {abs_angle_rad3} - tg: {target3} - m4: cur: {abs_angle_rad4} - tg: {target4}")
 
         finish1 = abs(abs_angle_rad1 - target1) <= angle_tol #and abs(velocity1) <= vel_tol
         finish2 = abs(abs_angle_rad2 - target2) <= angle_tol #and abs(velocity2) <= vel_tol
@@ -250,8 +409,17 @@ while time.time() - start_time < duration:
 
         if finish1 and finish2 and finish3 and finish4:
             print(f"Phase {phase_index} completed - moving to next phase")
-            # Move to next phase in the cycle (loop back to 0 after phase 3)
-            current_phase = (current_phase + 1) % len(phases)
+            # Move to next phase in the cycle
+            if 'first_cycle_complete' not in locals():
+                first_cycle_complete = False
+            
+            current_phase = (current_phase + 1)
+            if current_phase >= len(phases):
+                first_cycle_complete = True
+                if motion_pattern in ("circle", "Lissajous"):
+                    current_phase = n_preparation_phase  # Skip the additional phases in subsequent cycles
+                else:
+                    current_phase = 0
             break
             
         if time.time() - start_time >= duration:
