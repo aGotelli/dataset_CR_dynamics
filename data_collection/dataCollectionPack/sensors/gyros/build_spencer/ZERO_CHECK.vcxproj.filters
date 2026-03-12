@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\build_spencer\CMakeFiles\698560f43b67330a152bfeac78606e52\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{9CA564D4-0AA3-31BE-BFC5-A41E51DF82AF}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

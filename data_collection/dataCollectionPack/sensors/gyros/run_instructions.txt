@@ -1,0 +1,1 @@
+PS C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection> .\sensors\gyros\build\Debug\sparkfun_ism330dhcx.exe test_main 300 5

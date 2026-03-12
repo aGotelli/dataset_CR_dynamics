@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\tests\test_simple_unified.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\gyro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\sfe_bus.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\sfe_ism330dhcx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\sfe_ism_shim.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\src\sensor_api\st_src\ism330dhcx_reg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\crladmin\Desktop\dataset_CR_dynamics\data_collection\sensors\gyros\tests\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{7D79E366-FA15-3576-896F-9FCBD7208CB1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

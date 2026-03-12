@@ -1,0 +1,8 @@
+﻿  StreamClassTester.cpp
+C:\Users\Tongjia\OneDrive - University of Toronto\CR Experiment\Data Collection Code\FBGS Stream Client\StreamClassTester.cpp(46,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Tongjia\OneDrive - University of Toronto\CR Experiment\Data Collection Code\FBGS Stream Client\StreamClassTester.cpp(49,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Tongjia\OneDrive - University of Toronto\CR Experiment\Data Collection Code\FBGS Stream Client\StreamClassTester.cpp(52,20): warning C4018: '<': signed/unsigned mismatch
+  StreamClient.cpp
+C:\Users\Tongjia\OneDrive - University of Toronto\CR Experiment\Data Collection Code\FBGS Stream Client\StreamClient.cpp(347,40): warning C4477: 'printf' : format string '%llu' requires an argument of type 'unsigned __int64', but variadic argument 1 has type 'double_t'
+  Generating Code...
+  StreamClassTester.vcxproj -> C:\Users\Tongjia\OneDrive - University of Toronto\CR Experiment\Data Collection Code\FBGS Stream Client\x64\Debug\StreamClassTester.exe
