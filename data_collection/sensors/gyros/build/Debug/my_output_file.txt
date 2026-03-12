@@ -1,3 +1,0 @@
-This is the content of the text file.
-You can add multiple lines of text.
-Hello from C++!

@@ -1,2 +1,0 @@
-COM4 ID4 
-COM5 ID3
