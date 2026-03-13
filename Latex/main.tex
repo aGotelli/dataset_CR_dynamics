@@ -565,7 +565,7 @@ Gyro: up to $\pm$\SI{4000}{dps};\newline Accel: up to $\pm$\SI{16}{g} &
 % TODO: confirm selected FS and ODR
 &
 I\textsuperscript{2}C / SPI &
-XXX\,Hz &
+350\,Hz &
 3 \\
 \midrule
 %
@@ -576,7 +576,7 @@ Shaft angle (14-bit),\newline velocity, torque &
 Cont.\ \SI{4}{\newton\meter};\newline peak \SI{12}{\newton\meter};\newline spool $r{=}$\SI{20}{\milli\meter} &
 14-bit single-turn\newline absolute encoder &
 CAN~2.0\newline \SI{1}{Mbit/s} &
-XXX\,Hz &
+460\,Hz &
 1--4 \\
 \midrule
 %
@@ -587,7 +587,7 @@ Resense HEX\,12\newline (Resense GmbH, Germany)\newline + EVAL~100S-06-1 electro
 $F_{x,y,z}$: $\pm$\SI{25}{\newton}\newline $T_{x,y,z}$: $\pm$\SI{125}{\milli\newton\meter} &
 1\% FS;\; 3\% crosstalk;\newline 24-bit ADC;\newline 300\% overload &
 USB (\SI{12}{Mbit/s})\newline virtual COM;\newline 28-byte binary packets &
-\SI{1}{\kilo\hertz}\textsuperscript{*} &
+\SI{100}{\hertz} &
 4 \\
 \bottomrule
 \end{tabular}
@@ -1113,17 +1113,238 @@ Both the raw and processed datasets are released.
 %%        base_wrench.csv: [time, Fx, Fy, Fz, Tx, Ty, Tz]
 %%        optitrack_frames.csv: [time, x, y, z, roll, pitch, yaw] x N_disks
 %%
-\begin{itemize}
-    \item Data available on figshare (with DOI) — GitHub for code only
-    \item Define structure dataset
-    \begin{itemize}
-        \item Number of folders
-        \item Number of files, total size
-        \item Processed and raw data organization
-        \item Sensors used and how data is organized for each sensor
-        \item Column-by-column description of every CSV file type
-    \end{itemize}
-\end{itemize}
+% ── Repository ──
+The dataset is hosted on figshare at
+\url{https://doi.org/10.6084/m9.figshare.XXXXXXX} (Ref.~[XX]).
+%% TODO: replace the DOI placeholder above once the figshare deposit is finalized.
+The acquisition and post-processing code is available on GitHub (see the Code Availability section).
+
+% ── Overall organization ──
+The repository is organized into four top-level folders, one per experimental batch:
+
+\begin{enumerate}
+    \item[\texttt{batch\_1/}] Quasi-static motions (no IMUs, no contact).
+    \item[\texttt{batch\_2/}] Dynamic motions (no IMUs, no contact).
+    \item[\texttt{batch\_3/}] Dynamic motions with body-mounted IMUs.
+    \item[\texttt{batch\_4/}] Dynamic motions with contact with an object in the workspace.
+\end{enumerate}
+
+Each batch folder contains one subfolder per experiment, named according to the trajectory type and speed:
+\texttt{<trajectory>\_<speed>}, where \texttt{<trajectory>} is one of
+\texttt{plane\_x},
+\texttt{plane\_y},
+\texttt{plane\_xy},
+\texttt{circle},
+\texttt{Lissajous}, or
+\texttt{star},
+and \texttt{<speed>} is either \texttt{slow} ($\omega_{\max} = 1$~rad/s) or \texttt{fast} ($\omega_{\max} = 3$~rad/s).
+
+%% TODO: update the list above once the final set of trajectories is confirmed;
+%% remove "star" if it will not be included or add any additional trajectory types.
+
+% ── Per-experiment directory layout ──
+Every experiment folder shares the same internal layout, illustrated in Table~\ref{tab:dir_layout}.
+
+\begin{table}[ht]
+\centering
+\caption{Per-experiment directory layout. Each experiment folder contains the raw sensor recordings, quick-look plots, and two subfolders with post-processed data and GVS simulation results.}
+\label{tab:dir_layout}
+\renewcommand{\arraystretch}{1.15}
+\footnotesize
+\begin{tabular}{@{} l l @{}}
+\toprule
+\textbf{File / folder} & \textbf{Description} \\
+\midrule
+\texttt{dataATIFT.csv}       & Raw base force/torque (ATI Mini40) \\
+\texttt{dataATIFT.png}       & Quick-look plot of the ATI recording \\
+\texttt{dataFBGS.csv}        & Raw FBGS shape, curvature, and bending-angle data \\
+\texttt{dataMark10\_+x.csv}  & Raw cable tension, $+x$ tendon \\
+\texttt{dataMark10\_+y.csv}  & Raw cable tension, $+y$ tendon \\
+\texttt{dataMark10\_-x.csv}  & Raw cable tension, $-x$ tendon \\
+\texttt{dataMark10\_-y.csv}  & Raw cable tension, $-y$ tendon \\
+\texttt{dataMark10\_*.png}   & Quick-look plots of each tension recording \\
+\texttt{dataMotor.csv}       & Raw motor feedback (angles, velocities, torques) \\
+\texttt{dataMotor.png}       & Quick-look plot of the motor recording \\
+\texttt{dataOptiTrack.csv}   & Raw OptiTrack 6-DoF poses for all tracked rigid bodies \\
+\midrule
+\texttt{processed/}          & Post-processed data (filtered, resampled at 100~Hz) \\
+\quad \texttt{angles.csv}    & Motor shaft angles \\
+\quad \texttt{cable\_tensions.csv} & Filtered cable tensions \\
+\quad \texttt{base\_wrench.csv}    & Filtered base wrench \\
+\quad \texttt{base\_wrench\_raw.csv} & Unfiltered (bias-subtracted only) base wrench \\
+\quad \texttt{mocap\_frames.csv}   & Motion-capture disk poses \\
+\quad \texttt{fbgs\_shapes.csv}    & FBGS reconstructed 3-D shapes \\
+\quad \texttt{RMSEs.txt}          & RMSE summary (tip position, cable displacements) \\
+\quad \texttt{matlab\_workspace.mat} & Full MATLAB workspace \\
+\quad \texttt{figures/}           & Diagnostic plots (\texttt{.fig} + \texttt{.png}) \\
+\midrule
+\texttt{gvs/}                & GVS forward-dynamics simulation outputs \\
+\quad \texttt{simulation\_results.mat} & Simulated shape and base wrench \\
+\quad \texttt{figures/}           & Comparison plots (\texttt{.fig} + \texttt{.png}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection*{Raw data files}
+
+All raw CSV files use a header row with explicit column names and units.
+Timestamps are POSIX wall-clock times (seconds since epoch) and share the same operating-system clock source across all sensors.
+
+\paragraph{Motor data (\texttt{dataMotor.csv}).}
+Table~\ref{tab:cols_motor} lists the columns.
+Angles are in radians, velocities in rad/s, and torques in N\,m.
+The \texttt{phase\_index} column encodes the current phase of the commanded trajectory (0~=~idle, subsequent integers correspond to successive motion segments).
+The \texttt{home$n$} flag indicates whether motor~$n$ has completed its homing routine.
+
+\begin{table}[ht]
+\centering
+\caption{Columns in \texttt{dataMotor.csv}. The block of six columns is repeated for motors~1--4 (subscript $n \in \{1,2,3,4\}$). Motors 1\,\&\,3 form the $x$-plane antagonistic pair; motors 2\,\&\,4 form the $y$-plane pair.}
+\label{tab:cols_motor}
+\renewcommand{\arraystretch}{1.15}
+\footnotesize
+\begin{tabular}{@{} l l l @{}}
+\toprule
+\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
+\midrule
+\texttt{timestamp}           & s     & CPU wall-clock (POSIX) \\
+\texttt{phase\_index}        & --    & Current trajectory phase \\
+\texttt{home$n$}             & bool  & Homing flag, motor $n$ \\
+\texttt{target$n$\_rad}      & rad   & Commanded shaft angle, motor $n$ \\
+\texttt{abs\_angle$n$\_rad}  & rad   & Absolute encoder reading, motor $n$ \\
+\texttt{rel\_angle$n$\_rad}  & rad   & Relative angle (from home), motor $n$ \\
+\texttt{velocity$n$\_rad\_s} & rad/s & Shaft angular velocity, motor $n$ \\
+\texttt{torque$n$\_Nm}       & N\,m  & Output torque, motor $n$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Cable tension (\texttt{dataMark10\_*.csv}).}
+Four files are recorded per experiment, one per tendon, named by the tendon direction ($+x$, $-x$, $+y$, $-y$).
+Each file contains two columns:
+
+\begin{table}[ht]
+\centering
+\caption{Columns in each \texttt{dataMark10\_*.csv} file.}
+\label{tab:cols_mark10}
+\renewcommand{\arraystretch}{1.15}
+\footnotesize
+\begin{tabular}{@{} l l l @{}}
+\toprule
+\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
+\midrule
+\texttt{timestamp}     & s  & CPU wall-clock (POSIX) \\
+\texttt{tension (N)}   & N  & Measured tendon tension \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Base force/torque (\texttt{dataATIFT.csv}).}
+
+\begin{table}[ht]
+\centering
+\caption{Columns in \texttt{dataATIFT.csv}.}
+\label{tab:cols_atift}
+\renewcommand{\arraystretch}{1.15}
+\footnotesize
+\begin{tabular}{@{} l l l @{}}
+\toprule
+\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
+\midrule
+\texttt{timestamp}  & s            & CPU wall-clock (POSIX) \\
+\texttt{Fx (N)}     & N            & Force along $x$ \\
+\texttt{Fy (N)}     & N            & Force along $y$ \\
+\texttt{Fz (N)}     & N            & Force along $z$ \\
+\texttt{Tx (Nm)}    & N\,m         & Torque about $x$ \\
+\texttt{Ty (Nm)}    & N\,m         & Torque about $y$ \\
+\texttt{Tz (Nm)}    & N\,m         & Torque about $z$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Motion capture (\texttt{dataOptiTrack.csv}).}
+The file contains one timestamp column followed by nine columns per tracked rigid body (five disks, indexed 0--4 from base to tip).
+%% TODO: if batch 4 adds a 6th rigid body for the contact object, update this description.
+
+\begin{table}[ht]
+\centering
+\caption{Columns in \texttt{dataOptiTrack.csv}. The block of nine columns is repeated for each disk $k \in \{0,1,2,3,4\}$.}
+\label{tab:cols_optitrack}
+\renewcommand{\arraystretch}{1.15}
+\footnotesize
+\begin{tabular}{@{} l l l @{}}
+\toprule
+\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
+\midrule
+\texttt{timestamp\_s}             & s    & CPU wall-clock (POSIX) \\
+\texttt{disk\_$k$\_frame\_number} & --   & Motive frame counter \\
+\texttt{disk\_$k$\_is\_valid}     & bool & Tracking validity (0\,=\,occluded) \\
+\texttt{disk\_$k$\_x}            & m    & Position, $x$ \\
+\texttt{disk\_$k$\_y}            & m    & Position, $y$ \\
+\texttt{disk\_$k$\_z}            & m    & Position, $z$ \\
+\texttt{disk\_$k$\_qx}           & --   & Quaternion, $x$ \\
+\texttt{disk\_$k$\_qy}           & --   & Quaternion, $y$ \\
+\texttt{disk\_$k$\_qz}           & --   & Quaternion, $z$ \\
+\texttt{disk\_$k$\_qw}           & --   & Quaternion, $w$ (scalar-last) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{FBGS shape sensing (\texttt{dataFBGS.csv}).}
+This is the largest raw file.
+It contains 1559 columns: one timestamp, 26 curvature values (one per grating), 26 bending-angle values, and $26 \times 58 = 1506$ shape coordinates (the 3-D reconstructed shape output by ILLumiSense Shape~CORE at \SI{1}{\milli\meter} arc-length resolution, stored as a flattened array of $[x, y, z]$ triplets along the fibre).
+
+\begin{table}[ht]
+\centering
+\caption{Column groups in \texttt{dataFBGS.csv}.}
+\label{tab:cols_fbgs}
+\renewcommand{\arraystretch}{1.15}
+\footnotesize
+\begin{tabular}{@{} l l l l @{}}
+\toprule
+\textbf{Column range} & \textbf{Count} & \textbf{Unit} & \textbf{Description} \\
+\midrule
+\texttt{Timestamp}                  & 1    & s             & CPU wall-clock (POSIX) \\
+\texttt{Curvature\_0}\,...\,\texttt{Curvature\_25} & 26 & 1/m & Curvature at each grating \\
+\texttt{Angle\_0}\,...\,\texttt{Angle\_25}         & 26 & rad & Bending angle at each grating \\
+\texttt{Shape\_0}\,...\,\texttt{Shape\_1505}       & 1506 & m & Flattened 3-D shape ($x,y,z$ triplets) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection*{Processed data files}
+
+All processed CSV files are headerless and uniformly sampled at \SI{100}{\hertz}.
+The first column is always time (in seconds), starting at $t = 0$ corresponding to the first motor command.
+The processing steps (filtering, resampling, coordinate alignment) are described in the Methods section.
+
+\paragraph{Motor angles (\texttt{processed/angles.csv}).}
+Five columns: time~(s), $\theta_1$~(rad), $\theta_2$~(rad), $\theta_3$~(rad), $\theta_4$~(rad).
+Angles are relative to the home position.
+
+\paragraph{Cable tensions (\texttt{processed/cable\_tensions.csv}).}
+Five columns: time~(s), $T_{+x}$~(N), $T_{+y}$~(N), $T_{-x}$~(N), $T_{-y}$~(N).
+
+\paragraph{Base wrench (\texttt{processed/base\_wrench.csv} and \texttt{base\_wrench\_raw.csv}).}
+Seven columns: time~(s), $F_x$~(N), $F_y$~(N), $F_z$~(N), $T_x$~(N\,m), $T_y$~(N\,m), $T_z$~(N\,m).
+The \texttt{base\_wrench.csv} file contains the low-pass filtered wrench; \texttt{base\_wrench\_raw.csv} contains the bias-subtracted but unfiltered wrench, provided for users who wish to apply their own filtering.
+
+\paragraph{Motion-capture frames (\texttt{processed/mocap\_frames.csv}).}
+%% TODO: confirm exact column count once the processed data layout is finalized.
+Each row contains the time followed by, for each of the five tracked disks, the position ($x$, $y$, $z$) in metres, the orientation as a quaternion ($q_x$, $q_y$, $q_z$, $q_w$), and the arc-length coordinate~(m) of the disk along the backbone.
+All poses are expressed in the robot base frame.
+
+\paragraph{FBGS shapes (\texttt{processed/fbgs\_shapes.csv}).}
+Each row contains the time followed by the 3-D reconstructed shape of the fibre after alignment to the robot body frame.
+The shape is stored as a sequence of $[x, y, z]$ coordinate triplets at \SI{1}{\milli\meter} arc-length intervals along the backbone.
+
+\paragraph{RMSE summary (\texttt{processed/RMSEs.txt}).}
+A plain-text file reporting root-mean-square errors for the tip position (OptiTrack vs.\ FBGS, in metres and as a percentage of the motion range) and for the cable displacements (encoder vs.\ motion-capture reconstruction, in metres and as a percentage of the motion range).
+
+\paragraph{GVS simulation outputs (\texttt{gvs/}).}
+The \texttt{simulation\_results.mat} file contains the GVS forward-dynamics simulation results (predicted tip trajectory and base wrench) used for the force--kinematics consistency check described in Section~\ref{sec:force_kin_consistency}.
+The accompanying \texttt{figures/} subfolder contains comparison plots of simulated vs.\ measured tip position, cable displacement, and base torque.
 
 % \section{Data Overview (optional)}
 \section{Technical Validation}
