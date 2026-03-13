@@ -2,16 +2,13 @@ clc
 clear all
 close all
 
-% path that can be good across systems
-% thisFile = mfilename("fullpath");
-% thisDir  = fileparts(thisFile);
-% repoRoot  = fileparts(thisDir); %goes up one dir
-% root_data = fullfile(repoRoot, "data_collection");
-% name_data_to_process = "circle_slow";
-% folder = fullfile(root_data, "dataCollectionPack", "20260225", name_data_to_process);
-% 
-% path = fullfile(folder,"processed");
-path = "..\data_collection\dataCollectionPack\20260304\Lissajous_slow\processed\";
+
+path = fullfile("..", "dataCollectionPack", "20260304", 'plane_y_fast/');
+load_path = fullfile(path, 'processed/');
+savepath = fullfile(path, "gvs/");
+saving_fig_folder = fullfile(savepath, "figures/");
+
+mkdir()
 
 % ajoute le dossier outils
 addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
@@ -30,7 +27,12 @@ Config.plot = false;
 Config.X_meas = [0, 0.1189, 0.2388, 0.3577, 0.48];
 % Config.observation_points = Config.X_meas/Config.L; %   Normalized domain
 
+writematrix(Config.X_meas, fullfile(path, 'test.txt'))
+writematrix(Config.X_meas, fullfile(load_path, 'test.txt'))
+writematrix(Config.X_meas, fullfile(savepath, 'test.txt'))
+writematrix(Config.X_meas, fullfile(saving_fig_folder, 'test.txt'))
 
+return;
 %%  Defining deformable DoFs
 % K1, K2, K3, ...
 Config.V_a = [ 0, 1, 1, 0, 0, 0];
@@ -88,30 +90,22 @@ Config.data.tau = [
     tau_2'
 ];
 
-% 
-% plot(tau_1);
-% plot(tau_2);
 
 
 %% Time integration
 
-
-
-
-
-
 [q,q_dot,q_dot_dot, position_disks_simu, simulated_wrench_at_base, cables_displacements] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
 
-save(fullfile(path,"simulation_results"))
+save(fullfile(savepath,"simulation_results"))
 
 
 %%  Plotting results
 close all
-load(fullfile(path, "simulation_results"))
+load(fullfile(savepath, "simulation_results"))
 
-vicon_frames_stacked = load(fullfile(path, "vicon_frames.csv"));
-N_times_vicon = size(vicon_frames_stacked, 1);
-vicon_frames = reshape(vicon_frames_stacked, [N_times_vicon, 7, 5]);
+mocap_frames_stacked = load(fullfile(path, "mocap_frames.csv"));
+N_times_vicon = size(mocap_frames_stacked, 1);
+vicon_frames = reshape(mocap_frames_stacked, [N_times_vicon, 7, 5]);
 disk_num = 5;
 time_kinematics_tip = vicon_frames(:, :, disk_num);
 time_simu = time_kinematics_tip(:, 1);
@@ -131,7 +125,7 @@ tip_start_col = 3*(tip_index_fbgs - 1) + 1;
 tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
 
 
-f = figure("Name", "Tip Position");
+fig = figure("Name", "Tip Position");
 subplot(3, 1, 1)
 plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 5), 'g', 'LineWidth', 1)
 hold on
@@ -154,31 +148,30 @@ plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on
 legend('OptiTrack', 'FBGS', 'Simulated')
 
-name = f.Name;
-savefig(fullfile(path, name))
-filename_png = [char(fullfile(path, name)), '.png'];
-exportgraphics(f, filename_png, 'Resolution', 300); 
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
-f = figure("Name", "Torque");
+fig = figure("Name", "Torque");
 subplot(2, 1, 1)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'g', 'LineWidth', 1)
-hold on
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'k', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+hold on
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'g', 'LineWidth', 2)
+
 
 
 subplot(2, 1, 2)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'g', 'LineWidth', 1)
-hold on
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'k', 'LineWidth', 1)
 plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
-legend('Processed', 'Measured', 'Simulated')
+hold on
+% plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'g', 'LineWidth', 2)
+legend('Measured', 'Simulated')
 
-name = f.Name;
+name = fig.Name;
 savefig(fullfile(path, name))
 filename_png = [char(fullfile(path, name)), '.png'];
-exportgraphics(f, filename_png, 'Resolution', 300); 
+exportgraphics(fig, filename_png, 'Resolution', 300); 
 
 
 %   Plot the cable displacements
@@ -186,7 +179,7 @@ cable_spool_radius = 0.02;
 time_cables = time_angles_motor(:, 1);
 motor_angles = time_angles_motor(:, 2:end);
 measured_cables_pulled = motor_angles*cable_spool_radius;
-f = figure("Name", "Cable Displacement");
+fig = figure("Name", "Cable Displacement");
 subplot(2, 1, 1)
 plot(time_cables, measured_cables_pulled(:, 1), 'g', 'LineWidth', 1)
 hold on 
@@ -202,15 +195,15 @@ grid on
 
 legend('Measured', 'Simulated')
 
-name = f.Name;
+name = fig.Name;
 savefig(fullfile(path, name))
 filename_png = [char(fullfile(path, name)), '.png'];
-exportgraphics(f, filename_png, 'Resolution', 300); 
+exportgraphics(fig, filename_png, 'Resolution', 300); 
 
 
 %%  Compute RMSE
 
-RMSE_tip = sqrt( (1/N_samples)*(time_kinematics_tip(:, 5)) )
+RMSE_tip = sqrt( (1/N_times_vicon)*sum( (time_kinematics_tip(:, 5:7) - tip_fbgs(:, 1:3)).^2 ) )
 
 
 % 

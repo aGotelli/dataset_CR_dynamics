@@ -5,7 +5,7 @@ clc;
 addpath("outils\")
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack","20260304/","plane_y_slow/");
+folder = fullfile("..", "dataCollectionPack","20260304/","plane_y_fast/");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -532,8 +532,10 @@ if plot_interpolation
 end
 
 %%  SAVING DATA AND PLOTS
-saving_folder = fullfile( folder,  "processed");
+saving_folder = fullfile( folder,  "processed/");
+saving_fig_folder = fullfile( saving_folder,  "figures/");
 mkdir(saving_folder);
+mkdir(saving_fig_folder);
 
 
 %%  Plot robot tip
@@ -546,8 +548,8 @@ xlim([-.35 .35])
 ylim([-.35 .35])
 xlabel("p_x [m]")
 ylabel("p_y [m]")
-savefig(saving_folder + fig.Name)
-saveas(fig, saving_folder + fig.Name, 'png')
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 
@@ -585,8 +587,8 @@ for it = 1:3
 end
 
 legend('OptiTrack', 'FBGS')
-savefig(saving_folder + fig.Name)
-saveas(fig, saving_folder + fig.Name, 'png')
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 RMSE_tip = rmse(xyz_FBGS', XYZ_xyz_disk(:, 4:6))
 
@@ -619,8 +621,8 @@ for p = 1:2
         end
         if k == 2, xlabel('Time [s]'); end
     end
-    savefig(saving_folder + fig.Name)
-    saveas(fig, saving_folder + fig.Name, 'png')
+    savefig(saving_fig_folder + fig.Name)
+    saveas(fig, saving_fig_folder + fig.Name, 'png')
 end
 
 RMSE_cables = rmse(delta_cable_computed, delta_cable_measured)
@@ -629,6 +631,19 @@ range_cables = max(delta_cable_measured) - min(delta_cable_measured);
 RMSE_cables_perc_motion = (RMSE_cables./range_cables)*100;
 idx_0 = find(range_cables <= 1e-2);
 RMSE_cables_perc_motion(idx_0) = 0*RMSE_cables_perc_motion(idx_0)
+
+
+
+% Save RMSEs
+fid = fopen(fullfile(saving_folder , "RMSEs.txt"), 'w');
+fprintf(fid, 'RMSE_tip = [%s]\n', strjoin(string(RMSE_tip), ', '));
+fprintf(fid, 'RMSE_tip_perc_motion = [%s]\n', strjoin(string(RMSE_tip_perc_motion), ', '));
+fprintf(fid, 'RMSE_cables = [%s]\n', strjoin(string(RMSE_cables), ', '));
+fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc_motion), ', '));
+
+% 3. Close the file
+fclose(fid);
+
 
 %%  Save the interpolated data
 interp_time_angles      = [sampling_time interp_angles];
