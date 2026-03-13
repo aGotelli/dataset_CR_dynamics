@@ -2,8 +2,10 @@ close all;
 clear;
 clc;
 
+addpath("outils\")
+
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("dataCollectionPack","20260304/","Lissajous_slow/");
+folder = fullfile("..", "dataCollectionPack","20260304/","plane_y_slow/");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -13,11 +15,11 @@ samplingHz = 100;
 
 
 %   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
-bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for plane_x
+bending_axis = 'y';        % 'y' for plane_y experiments, 'x' for plane_x
 
 %   Plots
 plot_filtered = false;
-plot_interpolation = false;
+plot_interpolation = true;
 plot_disk_num = 5;
 
 
@@ -34,47 +36,42 @@ ati = readtable(fullfile(folder, "dataATIFT.csv"));
 filename = fullfile(folder, "dataOptiTrack.csv");
 [N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename);
 
+%%  TODO: Check convention frames in mocap data processing
 
-%  Extract the data from the static measures
-filename = "dataCollectionPack\20260310\static_test\dataOptiTrack.csv";
-[N_disks_static, mocap_timestamps_static, poses_disks_static, rel_poses_disks_static, rel_kinematics_disks_static] = data_optitrack(filename);
 
-%% ====== CORRECT LOCAL-FRAME BIAS (STATIC CALIBRATION) ======
-%   Straight rod => ideal pose is pure z-translation.
-%   Bias lives in local frame: T_meas = T_true * T_bias
-%   => T_corrected = T_dyn * inv(T_bias)
-for it = 2:N_disks
-    T_static = mean(rel_poses_disks_static(:,:,it,:), 4);
-    T_ideal  = eye(4);  T_ideal(3,4) = T_static(3,4);
-    inv_T_bias = T_static \ T_ideal;          % = inv(T_bias)
-    rel_poses_disks(:,:,it,:) = pagemtimes(rel_poses_disks(:,:,it,:), inv_T_bias);
-    %   Recompute kinematics for this disk
-    R_corr = squeeze(rel_poses_disks(1:3,1:3,it,:));
-    r_corr = squeeze(rel_poses_disks(1:3,4,it,:));
-    rel_kinematics_disks(:,:,it) = [rotm2eul(R_corr,'XYZ')  r_corr'];
-end
+% 
+% %  Extract the data from the static measures
+% filename = "dataCollectionPack\20260310\static_test\dataOptiTrack.csv";
+% [N_disks_static, mocap_timestamps_static, poses_disks_static, rel_poses_disks_static, rel_kinematics_disks_static] = data_optitrack(filename);
+% 
+% %% ====== CORRECT LOCAL-FRAME BIAS (STATIC CALIBRATION) ======
+% %   Straight rod => ideal pose is pure z-translation.
+% %   Bias lives in local frame: T_meas = T_true * T_bias
+% %   => T_corrected = T_dyn * inv(T_bias)
+% for it = 2:N_disks
+%     T_static = mean(rel_poses_disks_static(:,:,it,:), 4);
+%     T_ideal  = eye(4);  T_ideal(3,4) = T_static(3,4);
+%     inv_T_bias = T_static \ T_ideal;          % = inv(T_bias)
+%     rel_poses_disks(:,:,it,:) = pagemtimes(rel_poses_disks(:,:,it,:), inv_T_bias);
+%     %   Recompute kinematics for this disk
+%     R_corr = squeeze(rel_poses_disks(1:3,1:3,it,:));
+%     r_corr = squeeze(rel_poses_disks(1:3,4,it,:));
+%     rel_kinematics_disks(:,:,it) = [rotm2eul(R_corr,'XYZ')  r_corr'];
+% end
 
 
 filename = fullfile(folder, "dataFBGS.csv");
 [fbgs_time, fbgs_shapes] = data_fbgs(filename);
 
 
-
-XYZ_xyz = rel_kinematics_disks(:, :, 5);
-index = 480;
-xyz_FBGS = squeeze( fbgs_shapes(:, index, :) );
-xyz_FBGS_end = squeeze( fbgs_shapes(:, end, :) );
-
-
-
-%   Apply rotation of 90 deg along y axis to ALL shapes
-R_y = axang2rotm([0 1 0 pi/2]);
+%   Apply rotation of -90 deg along y axis to ALL shapes
+R_y = axang2rotm([0 1 0 -pi/2]);
 N_time_fbgs = size(fbgs_shapes, 3);
 for t = 1:N_time_fbgs
     fbgs_shapes(:, :, t) = R_y * fbgs_shapes(:, :, t);
 end
 
-%   The fiber now evolves in -z, but bending leaks into both x and y.
+%   The fiber now evolves in z, but bending leaks into both x and y.
 %   Use SVD on the tip x-y trajectory (first 10 s only, planar portion)
 %   to find the bending direction, then rotate about z.
 align_window_s = 10;
@@ -112,7 +109,9 @@ else
 end
 
 
-%   Re-extract plotting slices from the rotated shapes
+%   Extract plotting slices from the rotated shapes
+XYZ_xyz_disk = rel_kinematics_disks(:, :, 5);
+index = 480;
 xyz_FBGS     = squeeze(fbgs_shapes(:, index, :));
 xyz_FBGS_end = squeeze(fbgs_shapes(:, end, :));
 
@@ -122,7 +121,7 @@ for it = 1:3
     index_plot = it;
     subplot(3,1,index_plot)
 
-    plot(mocap_timestamps, XYZ_xyz(:, it + 3), "g", "LineWidth", 2.0)
+    plot(mocap_timestamps, XYZ_xyz_disk(:, it + 3), "g", "LineWidth", 2.0)
     hold on
     plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
     % plot(fbgs_time - fbgs_time(1), xyz_FBGS_end(it, :), "r", "LineWidth", 2.0)
@@ -295,60 +294,10 @@ if plot_filtered
     legend("Fx","Fy","Fz")
     title("ATI Forces (filtered)")
     
-    
-    
-    
-    % xyz_XYZ = rel_kinematics_disks_f(:, :, plot_disk_num);
-    % 
-    % x_data = xyz_XYZ(:, 1);
-    % y_data = xyz_XYZ(:, 2);
-    % z_data = xyz_XYZ(:, 3);
-    % 
-    % Rot_X = xyz_XYZ(:, 4);
-    % Rot_Y = xyz_XYZ(:, 5);
-    % Rot_Z = xyz_XYZ(:, 6);
-    % 
-    % figure("Name", "Kinematics Relative")
-    % subplot(3, 2, 1)
-    % plot(mocap_timestamps, Rot_X)
-    % grid on
-    % xlabel("Time [s]")
-    % ylabel("Roll [RAD]")
-    % 
-    % subplot(3, 2, 2)
-    % plot(mocap_timestamps, x_data)
-    % grid on
-    % xlabel("Time [s]")
-    % ylabel("X [m]")
-    % 
-    % subplot(3, 2, 3)
-    % plot(mocap_timestamps, Rot_Y)
-    % grid on
-    % xlabel("Time [s]")
-    % ylabel("Pitch [RAD]")
-    % 
-    % subplot(3, 2, 4)
-    % plot(mocap_timestamps, y_data)
-    % grid on
-    % xlabel("Time [s]")
-    % ylabel("Y [m]")
-    % 
-    % subplot(3, 2, 5)
-    % plot(mocap_timestamps, Rot_Z)
-    % grid on
-    % xlabel("Time [s]")
-    % ylabel("Yaw [RAD]")
-    % 
-    % subplot(3, 2, 6)
-    % plot(mocap_timestamps, z_data)
-    % grid on
-    % xlabel("Time [s]")
-    % ylabel("Z [m]")
 
-
-    figure("Name","Vicon disk kinematics" + int2str(plot_disk_num));
+    figure("Name","Mocap disk kinematics" + int2str(plot_disk_num));
     xyz_XYZ = rel_kinematics_disks(:, :, plot_disk_num);
-    xyz_XYZ_f = rel_kinematics_disks_f(:, :, plot_disk_num);
+    XYZ_xyz_f = rel_kinematics_disks_f(:, :, plot_disk_num);
     
     
     for it = 1:3
@@ -357,7 +306,7 @@ if plot_filtered
     
         plot(mocap_timestamps, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0)
         hold on
-        plot(mocap_timestamps, xyz_XYZ_f(:, 3 + it), "r", "LineWidth", 2.0)
+        plot(mocap_timestamps, XYZ_xyz_f(:, 3 + it), "r", "LineWidth", 2.0)
         ylabel("Euler Angle [RAD]")
         grid on
     
@@ -375,7 +324,7 @@ if plot_filtered
      
         plot(mocap_timestamps, xyz_XYZ(:, it), "b", "LineWidth", 2.0)
         hold on
-        plot(mocap_timestamps, xyz_XYZ_f(:, it), "r", "LineWidth", 2.0)
+        plot(mocap_timestamps, XYZ_xyz_f(:, it), "r", "LineWidth", 2.0)
 
         ylabel("Position [m]")
         grid on
@@ -408,7 +357,7 @@ relative_time_cables{4} = time_cables{4} - time_start_motors;
 relative_time_ATI = tA - time_start_motors;
 
 
-relative_time_vicon = mocap_timestamps - time_start_motors;
+relative_time_mocap = mocap_timestamps - time_start_motors;
 
 relative_time_fbgs = fbgs_time - time_start_motors;
 
@@ -439,7 +388,7 @@ interp_rel_kinematics_disks = zeros(N_samples, 6, N_disks);
 for it=1:N_disks
 
     for k=1:6  
-        interp_rel_kinematics_disks(:, k, it) = interp1(relative_time_vicon, rel_kinematics_disks_f(:, k, it), sampling_time);
+        interp_rel_kinematics_disks(:, k, it) = interp1(relative_time_mocap, rel_kinematics_disks_f(:, k, it), sampling_time);
     end
 end
 
@@ -537,17 +486,17 @@ if plot_interpolation
 
 
 
-    figure("Name","Vicon disk " + int2str(plot_disk_num));
-    xyz_XYZ_f = rel_kinematics_disks_f(:, :, plot_disk_num);
-    interp_xyz_XYZ = interp_rel_kinematics_disks(:, :, plot_disk_num);
+    figure("Name","Mocap disk " + int2str(plot_disk_num));
+    XYZ_xyz_f = rel_kinematics_disks_f(:, :, plot_disk_num);
+    interp_XYZ_xyz = interp_rel_kinematics_disks(:, :, plot_disk_num);
     
     
     for it = 1:3
         index_plot = it*2 -1;
         subplot(3,2,index_plot)
     
-        plot(relative_time_vicon, xyz_XYZ_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_xyz_XYZ(:, 3 + it), "or","MarkerSize", 3);
+        plot(relative_time_mocap, XYZ_xyz_f(:, it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_XYZ_xyz(:, it), "or","MarkerSize", 3);
         ylabel("Euler Angle [RAD]")
         grid on
     
@@ -563,8 +512,8 @@ if plot_interpolation
         index_plot = it*2;
         subplot(3,2,index_plot)
      
-        plot(relative_time_vicon, xyz_XYZ_f(:, it), "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_xyz_XYZ(:, it), "or","MarkerSize", 3);
+        plot(relative_time_mocap, XYZ_xyz_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_XYZ_xyz(:, 3 + it), "or","MarkerSize", 3);
 
         ylabel("Position [m]")
         grid on
@@ -581,25 +530,124 @@ if plot_interpolation
 
 
 end
+
+%%  SAVING DATA AND PLOTS
+saving_folder = fullfile( folder,  "processed");
+mkdir(saving_folder);
+
+
+%%  Plot robot tip
+interp_xy_tip = interp_rel_kinematics_disks(:, 4:5, 5);
+fig = figure("Name", "Tip Trajectory xy plane");
+plot(interp_xy_tip(:, 1), interp_xy_tip(:, 2), 'LineWidth', 1)
+grid on
+grid on
+xlim([-.35 .35])
+ylim([-.35 .35])
+xlabel("p_x [m]")
+ylabel("p_y [m]")
+savefig(saving_folder + fig.Name)
+saveas(fig, saving_folder + fig.Name, 'png')
+
+
+
+
+%%  On the processed data, perform comparisons
+
+%   FBGS and Mocap
+%   Extract plotting slices from the rotated shapes
+XYZ_xyz_disk = interp_rel_kinematics_disks(:, :, 5);
+index = 480;
+xyz_FBGS     = squeeze(interp_fbgs_shapes(:, index, :));
+
+fig = figure("Name", "Tip Position Interpolated");
+vars = {'p_x', 'p_y', 'p_z'};
+for it = 1:3
+    index_plot = it;
+    subplot(3,1,index_plot)
+
+    plot(sampling_time, XYZ_xyz_disk(:, it + 3), "g", "LineWidth", 2.0)
+    hold on
+    plot(sampling_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+
+    grid on
+    ylabel([vars{it} ' [m]'])
+
+
+    if it == 3
+        xlabel("Time [s]")
+    end
+
+    if it == 1
+        title("Raw")
+    end
+
+end
+
+legend('OptiTrack', 'FBGS')
+savefig(saving_folder + fig.Name)
+saveas(fig, saving_folder + fig.Name, 'png')
+
+RMSE_tip = rmse(xyz_FBGS', XYZ_xyz_disk(:, 4:6))
+
+%   Compute range of motion
+range_tip = max(XYZ_xyz_disk(:, 4:6)) - min(XYZ_xyz_disk(:, 4:6));
+
+RMSE_tip_perc_motion = (RMSE_tip./range_tip)*100
+
+
+%   Mocap and cables
+[delta_cable_measured, delta_cable_computed] = compare_cable_lenght(interp_rel_kinematics_disks, interp_angles, sampling_time);
+
+cable_labels = {'+x', '+y', '-x', '-y'};
+pairs = {[1 3], [2 4]};          % x-pair, y-pair
+pair_names = {"x", "y"};
+
+for p = 1:2
+    fig = figure("Name", "Cable Length Change – " + pair_names{p} + " pair");
+    idx = pairs{p};
+    for k = 1:2
+        ax = subplot(2,1,k);
+        set(ax, 'Color', 'w');
+        c = idx(k);
+        plot(sampling_time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 1.5);  hold on
+        plot(sampling_time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 1.5);
+        grid on; ylabel('\DeltaL [mm]')
+        title(['Cable ' cable_labels{c}])
+        if k == 1
+            legend('MoCap (computed)', 'Motor (measured)', 'Location', 'best')
+        end
+        if k == 2, xlabel('Time [s]'); end
+    end
+    savefig(saving_folder + fig.Name)
+    saveas(fig, saving_folder + fig.Name, 'png')
+end
+
+RMSE_cables = rmse(delta_cable_computed, delta_cable_measured)
+%   Compute range of motion
+range_cables = max(delta_cable_measured) - min(delta_cable_measured);
+RMSE_cables_perc_motion = (RMSE_cables./range_cables)*100;
+idx_0 = find(range_cables <= 1e-2);
+RMSE_cables_perc_motion(idx_0) = 0*RMSE_cables_perc_motion(idx_0)
+
 %%  Save the interpolated data
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
 interp_time_base_wrench = [sampling_time interp_base_wrench];
 interp_time_base_wrench_raw = [sampling_time interp_base_wrench_raw];
-interp_time_vicon_frames = zeros(N_samples, 7, N_disks);
+interp_time_mocap_frames = zeros(N_samples, 7, N_disks);
 for it=1:N_disks
-    interp_time_vicon_frames(:, :, it) = [sampling_time interp_rel_kinematics_disks(:, :, it)];
+    interp_time_mocap_frames(:, :, it) = [sampling_time interp_rel_kinematics_disks(:, :, it)];
 end
 
 
-saving_folder = fullfile( folder,  "processed");
-mkdir(saving_folder);
+
 
 writematrix(interp_time_angles, fullfile(saving_folder , "angles.csv"));
 writematrix(interp_time_tensions, fullfile(saving_folder ,"cable_tensions.csv"));
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
 writematrix(interp_time_base_wrench_raw, fullfile(saving_folder , "base_wrench_raw.csv"));
-writematrix(interp_time_vicon_frames, fullfile(saving_folder , "vicon_frames.csv"));
+writematrix(interp_time_mocap_frames, fullfile(saving_folder , "mocap_frames.csv"));
 
 %   FBGS: save as N_samples x (1 + 3*N_fbgs_points)
 %   columns: [time, x_0..x_501, y_0..y_501, z_0..z_501]
@@ -607,7 +655,8 @@ interp_fbgs_flat = reshape(permute(interp_fbgs_shapes, [3 1 2]), N_samples, []);
 interp_time_fbgs = [sampling_time interp_fbgs_flat];
 writematrix(interp_time_fbgs, fullfile(saving_folder, "fbgs_shapes.csv"));
 
-
+%   Save the workspace as reference
+save(fullfile(saving_folder, 'matlab_workspace'));
 
 
 %% ====== HELPER FUNCTION ======
