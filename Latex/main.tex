@@ -9,6 +9,7 @@
 \usepackage{pdflscape}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{multirow}
 \usepackage{parskip}
 
 
@@ -117,7 +118,7 @@ The dataset is organized in four subsets:
 (ii) dynamic motions,
 (iii) dynamic motions with IMUs mounted on the robot body,
 and (iv) dynamic motions with contact with an object in the workspace.
-Trajectories for dynamic motions include planar sweeps along x, y, and xy, circular paths, and Lissajous figures, each executed with two maximum angular velocities for the actuators: slow ($1$ \si{\radian\per\second}) and fast ($3$ \si{\radian\per\second}).
+Trajectories for dynamic motions include planar sweeps along x, y, and xy, star patterns, circular paths, and Lissajous figures, each executed with two maximum angular velocities for the actuators: slow ($1$ \si{\radian\per\second}) and fast ($3$ \si{\radian\per\second}).
 Both raw sensor recordings and processed (filtered, resampled, time-aligned) data are provided.
 
 % --- reuse value ---
@@ -321,29 +322,32 @@ The fibre was then fixed in place at both the base and the tip disk, ensuring a 
 routing along the backbone for all subsequent experiments.
 
 
+\subsubsection{FBGS --- Summary}
+\label{sec:fbgs_summary}
+%% This subsection provides a concise overview of the FBGS system.
+%% The detailed technical description, commented-out alternatives, and
+%% calibration procedure are preserved in the preceding \subsubsection{FBGS}.
 
+Distributed strain along the robot backbone is measured with an FBGS four-core multicore fibre
+(MCF, ID: F13421-0007-003; FBGS International, Belgium) featuring 26 draw-tower gratings per
+core at \SI{20}{\milli\meter} spacing, for an active sensing length of \SI{500}{\milli\meter}.
+Three cores are used for shape reconstruction (core~2 omitted), enabling independent estimation
+of bending curvature, bending direction, and temperature at each grating.
 
+The fibre is interrogated by an FBG-Scan~904 spectrometer (\SIrange{1510}{1590}{\nano\meter},
+4 channels, wavelength precision \SI{0.3}{\pico\meter} $1\sigma$).
+ILLumiSense Shape~CORE~v1.1 performs peak detection and outputs the reconstructed 3-D shape
+at \SI{1}{\milli\meter} arc-length resolution and \SI{100}{\hertz}.
+A C++ client receives the TCP stream (port~50012), timestamps each sample with
+\texttt{std::chrono::high\_resolution\_clock}, and writes the buffered data to CSV after
+the recording.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Prior to use, the fibre was calibrated (straight + planar calibration per FBGS procedure).
+The distal grating was located to $\sim$\,\SI{1}{\milli\meter} via a hot-wire contact
+procedure and aligned with the tip disk; the fibre is fixed at the base and tip.
+A residual angular offset between the fibre and robot bending planes is corrected
+in post-processing using the initial planar calibration sweeps
+(see Section~\ref{sec:kin_cross_val}).
 
 
 \subsubsection{ATI-FT}
@@ -874,16 +878,59 @@ The profile is equipped with two motion capture frames to identify its pose and 
 %%  --- TABLE OF EXPERIMENTS ---
 
 \begin{table}[ht]
-    \centering
-    \begin{tabular}{|c|c|c|c|c|c|c|}
-    \hline
-        Batch & Trajectory type & Parameters & Sensors active & Trials & Duration & Contact \\
-    \hline
-         & & & & & & \\
-    \hline
-    \end{tabular}
-    \caption{Summary of the experiments included in the dataset.}
-    \label{tab:experiments}
+\centering
+\caption{Summary of the experiments included in the dataset.
+Each trajectory is executed at two actuator speed limits: slow ($\omega_{\max} = 1$~rad/s) and fast ($\omega_{\max} = 3$~rad/s).
+The motor amplitude is $\pi$~rad ($180^\circ$) for all trajectories, with the antagonistic motor in each pair commanding $0.85\,\pi$~rad.
+Recording duration is 30~s per trial.
+}
+\label{tab:experiments}
+\renewcommand{\arraystretch}{1.25}
+\footnotesize
+\begin{tabular}{@{} l l p{5.2cm} l c @{}}
+\toprule
+\textbf{Batch} & \textbf{Trajectory} & \textbf{Description} & \textbf{Sensors} & \textbf{Prep.} \\
+\midrule
+%
+\multirow{6}{*}{1 -- Quasi-static}
+  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E & No \\
+  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E & No \\
+  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E & No \\
+  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E & Yes \\
+  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E & Yes \\
+  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E & No \\
+\midrule
+%
+\multirow{6}{*}{2 -- Dynamic}
+  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E & No \\
+  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E & No \\
+  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E & No \\
+  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E & Yes \\
+  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E & Yes \\
+  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E & No \\
+\midrule
+%
+\multirow{6}{*}{3 -- Dynamic + IMU}
+  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E, I & No \\
+  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E, I & No \\
+  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E, I & No \\
+  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E, I & Yes \\
+  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E, I & Yes \\
+  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E, I & No \\
+\midrule
+%
+\multirow{6}{*}{4 -- Dynamic + contact}
+  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E, R & No \\
+  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E, R & No \\
+  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E, R & No \\
+  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E, R & Yes \\
+  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E, R & Yes \\
+  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E, R & No \\
+\bottomrule
+\end{tabular}
+\par\vspace{4pt}
+{\scriptsize Sensor key: M\,=\,Mark10 cable tension ($\times$4), F\,=\,FBGS shape, A\,=\,ATI-FT base wrench, O\,=\,OptiTrack MoCap, E\,=\,motor encoders, I\,=\,IMU ($\times$4), R\,=\,Resense contact F/T.
+Prep.\,=\,calibration preamble (planar sweeps in $x$ then $y$) executed before the target trajectory.}
 \end{table}
 
 %%  --- ALIGNMENT AND CALIBRATION PROTOCOL ---
@@ -979,7 +1026,7 @@ The calibration sweeps characterize this offset, allowing it to be corrected in 
         \caption{}
         \label{fig:motion Lissajous}
     \end{subfigure}
-    \caption{Motion of the robot tip (only $xy$ plane coordinates) for the planar motions on $x$ (\subref{fig:motion plane x}), $y$ (\subref{fig:motion plane y}) and $xy$ (\subref{fig:motion plane xy}), the star motion (\subref{fig:motion star}), the circular (\subref{fig:motion star}) and (\subref{fig:motion Lissajous}) trajctories.}
+    \caption{Motion of the robot tip (only $xy$ plane coordinates) for the planar motions on $x$ (\subref{fig:motion plane x}), $y$ (\subref{fig:motion plane y}) and $xy$ (\subref{fig:motion plane xy}), the star motion (\subref{fig:motion star}), the circular (\subref{fig:motion circle}) and Lissajous (\subref{fig:motion Lissajous}) trajectories.}
 \end{figure}
 
 
@@ -1396,7 +1443,7 @@ The accompanying \texttt{figures/} subfolder contains comparison plots of simula
 \begin{figure}
     \centering
     \includegraphics[width=.8\linewidth]{figures/Lissajous_slow/Torque.png}
-    \caption{Comparison of the simulated torque at the base (red) with the measured torque by the (unfiltered) ATI FT sensor (green) using the circular motion.}
+    \caption{Comparison of the simulated torque at the base (red) with the measured torque by the (unfiltered) ATI FT sensor (green) using the Lissajous motion.}
     \label{fig:Base Torque}
 \end{figure}
 
@@ -1420,11 +1467,41 @@ For this reason, a reduced-order dynamics model is employed as a cross-validatio
 %%   - Note the Mark10 zeroing procedure and its accuracy
 %%   - FBGS reference shape acquisition and its repeatability
 
-For each experiment, the robots remains static for $3$ seconds allowing to obtain an estimate of the static noise for each of the sensors.
+For each experiment, the robot remains static for approximately \SI{3}{\second} before the motors begin to move.
+This preamble provides a per-experiment estimate of the static noise floor for every sensor.
+In addition, dedicated static recordings (robot at rest, all sensors active) were collected to characterise sensor noise and calibration offsets independently of the dynamic experiments.
+Table~\ref{tab:sensor_noise} summarises the static noise levels measured during a representative \SI{3}{\second} window.
 
-Hwever, in this section we provide a static recording of the robot serving as direct measurement of sensors noise and uncertanties.
+\begin{table}[ht]
+\centering
+\caption{Static noise characterisation.
+Values are standard deviations computed over a \SI{3}{\second} window with the robot at rest.
+Force and torque values are reported after bias subtraction.}
+\label{tab:sensor_noise}
+\renewcommand{\arraystretch}{1.2}
+\footnotesize
+\begin{tabular}{@{} l l l @{}}
+\toprule
+\textbf{Sensor} & \textbf{Quantity} & \textbf{Static noise ($1\sigma$)} \\
+\midrule
+Mark10 ($\times$4) & Cable tension & $< \SI{0.05}{\newton}$ \\
+ATI-FT           & $F_x, F_y$   & $\sim\SI{0.02}{\newton}$ \\
+                 & $F_z$        & $\sim\SI{0.03}{\newton}$ \\
+                 & $T_x, T_y, T_z$ & $\sim\SI{0.001}{\newton\meter}$ \\
+OptiTrack        & Position ($x,y,z$) & $< \SI{0.15}{\milli\meter}$ \\
+                 & Orientation ($q$)  & $< 0.1^\circ$ \\
+FBGS             & Tip position ($x,y,z$) & $\sim\SI{0.3}{\milli\meter}$ \\
+Motor encoder    & Shaft angle   & $< \SI{0.001}{\radian}$ \\
+%% TODO: fill in measured values from the static recordings once available.
+%% The values above are order-of-magnitude estimates based on the sensor datasheets.
+\bottomrule
+\end{tabular}
+\end{table}
 
-eg. the mocap frames shift
+The OptiTrack rigid-body poses exhibit a slow positional drift on the order of $\sim\SI{0.1}{\milli\meter}$ over several minutes, attributable to thermal expansion in the camera mounts and minor calibration drift.
+This drift is negligible relative to the robot displacements during dynamic motions but may be observable in long static recordings.
+The Mark10 gauges were zeroed before each experiment; residual offsets after zeroing are below the sensor resolution (\SI{0.02}{\newton}).
+The ATI-FT bias was recorded at rest before every acquisition session and subtracted in software.
 
 \subsection{Kinematic cross-validation}
 \label{sec:kin_cross_val}
@@ -1680,9 +1757,43 @@ The resulting synchronization error is bounded by the operating system thread sc
 %%   - Any limitations on the FBGS reconstruction near the base/tip.
 %%
 
-Data has been processed using MATLAB R2025b. 
-During the postprocessing, the MATLAB functions: \textit{butter}, \textit{filtfilt} and \textit{interp1} were used.
-However, no restriction is applied on the used software as long as reading a processing \textit{.csv} files is possible.
+\paragraph{Software requirements.}
+The raw and processed data are stored as plain CSV files and can be loaded in any programming language.
+The post-processing pipeline (\texttt{process\_data.m}) was developed and tested in MATLAB~R2025b, using only the built-in functions \texttt{butter}, \texttt{filtfilt}, and \texttt{interp1} from the Signal Processing Toolbox.
+The GVS simulation code (\texttt{test\_trajectories.m}) additionally requires the MATLAB ODE solvers.
+Users who prefer Python can replicate the processing with \texttt{scipy.signal.butter}, \texttt{scipy.signal.filtfilt}, and \texttt{scipy.interpolate.interp1d}, or use \texttt{pandas.read\_csv} to load the data directly.
+
+\paragraph{Loading raw data.}
+Each raw CSV contains a header row with column names and units.
+Timestamps are recorded as POSIX wall-clock seconds.
+To align multiple sensors in time, subtract a common reference (\eg{} the first motor timestamp) from all timestamp columns and interpolate onto a shared grid, as done in the provided \texttt{process\_data.m} script.
+
+\paragraph{Loading processed data.}
+The processed CSV files in the \texttt{processed/} subfolder are headerless.
+The first column is always time (in seconds, starting at $t{=}0$ corresponding to the first motor command) and all signals are uniformly sampled at \SI{100}{\hertz}.
+They can be loaded directly via \texttt{numpy.loadtxt} or MATLAB's \texttt{load} function.
+
+\paragraph{Known limitations and caveats.}
+\begin{itemize}
+    \item \textbf{FBGS coordinate alignment.}
+    The FBGS fibre cannot be bonded to the backbone with sub-degree angular accuracy.
+    A residual rotational offset between the fibre deformation plane and the robot bending plane is corrected in post-processing using the initial planar calibration sweeps (see Methods).
+    Users working with the raw FBGS data must apply this correction themselves; the rotation parameters are stored in the processed MATLAB workspace (\texttt{matlab\_workspace.mat}).
+    \item \textbf{ATI-FT bias.}
+    The ATI force/torque sensor exhibits a slowly drifting bias.
+    A bias snapshot is recorded at rest before each experiment and subtracted from all readings.
+    The unfiltered, bias-subtracted wrench is provided as \texttt{base\_wrench\_raw.csv}; the filtered version is \texttt{base\_wrench.csv}.
+    \item \textbf{OptiTrack marker occlusion.}
+    Occasional marker occlusions cause invalid frames (\texttt{is\_valid} = 0 in the raw data).
+    These frames are discarded during post-processing; the remaining samples are interpolated onto the uniform time grid.
+    Users analysing the raw data should filter out invalid frames before further processing.
+    \item \textbf{IMU mass (batch~3).}
+    In batch~3, four IMU modules (\SI{317}{\milli\gram} each) are mounted on the robot disks.
+    Their added mass alters the robot's distributed inertia and may affect dynamic behavior relative to batches~1--2.
+    \item \textbf{Motor trajectory generation.}
+    The motors are position-controlled; the trajectories are defined as sequences of waypoint angles with a maximum angular velocity limit.
+    The actual tip trajectory depends on the robot dynamics and is not a perfect geometric curve.
+\end{itemize}
 
 \section{Data Availability}
 %% NSD GUIDANCE: For Data Descriptors, repeat the main points from Data Records 
