@@ -10,6 +10,7 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{multirow}
+\usepackage{longtable}
 \usepackage{parskip}
 
 
@@ -208,32 +209,30 @@ at \SI{115200}{baud} and polled continuously using a request--response protocol.
 The effective sampling rate, limited by the serial round-trip latency, was
 approximately \SI{335}{\hertz} per gauge.
 The output was recorded directly in newtons.
+A dedicated Python script (one instance per gauge) opens the serial port via \texttt{pyserial},
+sends an ASCII query command, parses the returned numeric string, and timestamps each reading with the system wall clock (\texttt{time.time()}).
+All samples are buffered in a pre-allocated NumPy array and written to a CSV file at the end
+of the recording.
 
 
 
-\subsubsection{FBGS}
-%% TODO (Tongjia/Spencer): fiber type, number of gratings, grating spacing, 
-%% wavelength range, interrogator model and sampling rate, spatial resolution, 
-%% strain resolution, how the fiber is routed along the robot backbone, 
-%% shape reconstruction method (briefly — detail in Methods or cite).
-% Tongjia/Spencer: Add specifics for the FBGS sensor
-% Tp measure the shape of the continuum robot, we placed a Fiber Bragg Grating Sensor in the internal hole of its tubular backbone.
-% The fiber measures $0.5$ m and has $26$ gratings measures. 
-% The calibration files was provided by the manufacturer.
+% \subsubsection{FBGS}
 
 
-Distributed strain sensing along the robot backbone was performed using an FBGS multicore fiber (MCF)
-shape sensing system (FBGS International, Geel, Belgium; \url{https://www.fbgs.com}).
-The sensing fiber (ID: F13421-0007-003) is a four-core MCF with an outer diameter of \SI{250}{\micro\meter},
-featuring draw-tower gratings (DTGs) inscribed during the fiber drawing process.
-Each core contains 26 FBG gratings uniformly spaced at \SI{20}{\milli\meter} intervals,
-yielding an active sensing length of \SI{500}{\milli\meter}.
-The individual grating wavelengths span approximately \SIrange{1512}{1587}{\nano\meter} within the C-band,
-with a minimum inter-grating spacing of \SI{0.8}{\nano\meter}.
-The core-to-center distance is \SI{36.9}{\micro\meter} and the gauge factor is
-${0.777}${$\mu\varepsilon^{-1}$}.
-Three of the four cores are used for shape reconstruction (core~2 omitted),
-enabling the decoupling of bending curvature, bending direction, and temperature along the fiber length.
+
+% Distributed strain sensing along the robot backbone was performed using an FBGS multicore fiber (MCF)
+% shape sensing system (FBGS International, Geel, Belgium; \url{https://www.fbgs.com}).
+% The sensing fiber (ID: F13421-0007-003) is a four-core MCF with an outer diameter of \SI{250}{\micro\meter},
+% featuring draw-tower gratings (DTGs) inscribed during the fiber drawing process.
+% Each core contains 26 FBG gratings uniformly spaced at \SI{20}{\milli\meter} intervals,
+% yielding an active sensing length of \SI{500}{\milli\meter}.
+% The individual grating wavelengths span approximately \SIrange{1512}{1587}{\nano\meter} within the C-band,
+% with a minimum inter-grating spacing of \SI{0.8}{\nano\meter}.
+% The core-to-center distance is \SI{36.9}{\micro\meter} and the gauge factor is
+% ${0.777}${$\mu\varepsilon^{-1}$}.
+% Three of the four cores are used for shape reconstruction (core~2 omitted),
+% enabling the decoupling of bending curvature, bending direction, and temperature along the fiber length.
+
 
 % The fiber was interrogated by an FBG-Scan~904 spectrometer-based interrogator (FBGS),
 % which features four optical channels over a \SIrange{1510}{1590}{\nano\meter} wavelength range
@@ -243,90 +242,41 @@ enabling the decoupling of bending curvature, bending direction, and temperature
 % an absolute wavelength accuracy of \SI{10}{\pico\meter},
 % and a dynamic range exceeding \SI{30}{\decibel}.
 % Raw spectral data were processed by the ILLumiSense Shape~CORE software (v1.1, FBGS),
-% which performs peak detection on the acquired spectra and computes curvature, bending angle,
+% which runs as a background process on the acquisition computer, receives spectra from the
+% interrogator via USB, performs peak detection, and computes curvature, bending angle,
 % three-dimensional shape, and temperature at each grating location.
 % The reconstructed shape is output as three-dimensional Cartesian coordinates
 % with \SI{1}{\milli\meter} arc-length resolution.
 % With shape reconstruction enabled, the maximum achievable output rate of the Shape~CORE
 % software is \SI{100}{\hertz}, which was used throughout all experiments.
+
+% Shape~CORE streams its output over a TCP connection on the local machine (port~50012).
+% A custom C++ client connects to this stream, receives curvature, bending angle, and
+% shape arrays at each time step, timestamps each sample using the system high-resolution
+% clock (\texttt{std::chrono::high\_resolution\_clock}), and stores all data in memory.
+% At the end of the recording, the buffered data is written to a CSV file.
+% In this work, we only account for the reconstructed shape, while the curvature and bending angle can be used as detailed in \cite{Moore2012}.
+
 % Prior to measurements, the fiber was calibrated following the manufacturer's two-step procedure:
 % a straight calibration to establish the reference wavelengths in the absence of bending strain,
 % and a planar calibration to determine the reference twist of the fiber.
 
-% The manufacturer specifies the position of the last grating with a tolerance of $\pm\SI{5}{\milli\meter}$.
+% The manufacturer specifies the position of the last grating with a tolerance of $\pm$\,\SI{5}{\milli\meter}.
 % To determine this position with millimetre-level accuracy, a hot-wire contact was applied along the
 % fibre starting from the distal end and advanced towards the base.
 % Because the interrogator reports strain and temperature at each grating location,
 % the last grating that registered a change in temperature upon contact was identified as the
 % distal sensing point.
 % This procedure yielded the arc-length coordinate of the last measured grating to within
-% $\sim\SI{1}{\milli\meter}$, providing an accurate reference for shape reconstruction along the robot backbone.
+% ${\sim}$\,\SI{1}{\milli\meter}, providing an accurate reference for shape reconstruction along the robot backbone.
 % Once the distal grating was located, it was aligned with the tip disk of the continuum robot.
-% The fibre was then fixed in place at both the base and the tip disk, ensuring a stable and repeatable routing along the backbone for all subsequent experiments.
+% The fibre was then fixed in place at both the base and the tip disk, ensuring a stable and repeatable
+% routing along the backbone for all subsequent experiments.
 
 
+\subsubsection{FBGS}
+\label{sec:fbgs}
 
-
-
-
-% Distributed strain sensing along the robot backbone was performed using an FBGS multicore fiber (MCF)
-% shape sensing system (FBGS International, Geel, Belgium; \url{https://www.fbgs.com}).
-% The sensing fiber (ID: F13421-0007-003) is a four-core MCF with an outer diameter of \SI{XXX}{\micro\meter},
-% featuring draw-tower gratings (DTGs) inscribed during the fiber drawing process.
-% Each core contains 26 FBG gratings uniformly spaced at \SI{2}{\milli\meter} intervals,
-% yielding an active sensing length of \SI{50}{\milli\meter}.
-% The individual grating wavelengths span approximately \SIrange{1512}{1587}{\nano\meter} within the C-band,
-% with a minimum inter-grating spacing of \SI{0.8}{\nano\meter}.
-% The core-to-center distance is \SI{36.9}{\micro\meter} and the gauge factor is
-% $0.777\;\mu\varepsilon^{-1}$.
-% Three of the four cores are used for shape reconstruction (core~2 omitted),
-% enabling the decoupling of bending curvature, bending direction, and temperature along the fiber length.
-
-The fiber was interrogated by an FBG-Scan~904 spectrometer-based interrogator (FBGS),
-which features four optical channels over a \SIrange{1510}{1590}{\nano\meter} wavelength range
-with LC/APC connectors.
-The interrogator provides a wavelength precision of \SI{0.3}{\pico\meter} ($1\sigma$),
-a wavelength linearity of \SI{3}{\pico\meter},
-an absolute wavelength accuracy of \SI{10}{\pico\meter},
-and a dynamic range exceeding \SI{30}{\decibel}.
-Raw spectral data were processed by the ILLumiSense Shape~CORE software (v1.1, FBGS),
-which runs as a background process on the acquisition computer, receives spectra from the
-interrogator via USB, performs peak detection, and computes curvature, bending angle,
-three-dimensional shape, and temperature at each grating location.
-The reconstructed shape is output as three-dimensional Cartesian coordinates
-with \SI{1}{\milli\meter} arc-length resolution.
-With shape reconstruction enabled, the maximum achievable output rate of the Shape~CORE
-software is \SI{100}{\hertz}, which was used throughout all experiments.
-
-Shape~CORE streams its output over a TCP connection on the local machine (port~50012).
-A custom C++ client connects to this stream, receives curvature, bending angle, and
-shape arrays at each time step, timestamps each sample using the system high-resolution
-clock (\texttt{std::chrono::high\_resolution\_clock}), and stores all data in memory.
-At the end of the recording, the buffered data is written to a CSV file.
-In this work, we only account for the reconstructed shape, while the curvature and bending angle can be used as detailed in \cite{Moore2012}.
-
-Prior to measurements, the fiber was calibrated following the manufacturer's two-step procedure:
-a straight calibration to establish the reference wavelengths in the absence of bending strain,
-and a planar calibration to determine the reference twist of the fiber.
-
-The manufacturer specifies the position of the last grating with a tolerance of $\pm$\,\SI{5}{\milli\meter}.
-To determine this position with millimetre-level accuracy, a hot-wire contact was applied along the
-fibre starting from the distal end and advanced towards the base.
-Because the interrogator reports strain and temperature at each grating location,
-the last grating that registered a change in temperature upon contact was identified as the
-distal sensing point.
-This procedure yielded the arc-length coordinate of the last measured grating to within
-${\sim}$\,\SI{1}{\milli\meter}, providing an accurate reference for shape reconstruction along the robot backbone.
-Once the distal grating was located, it was aligned with the tip disk of the continuum robot.
-The fibre was then fixed in place at both the base and the tip disk, ensuring a stable and repeatable
-routing along the backbone for all subsequent experiments.
-
-
-\subsubsection{FBGS --- Summary}
-\label{sec:fbgs_summary}
-%% This subsection provides a concise overview of the FBGS system.
-%% The detailed technical description, commented-out alternatives, and
-%% calibration procedure are preserved in the preceding \subsubsection{FBGS}.
 
 Distributed strain along the robot backbone is measured with an FBGS four-core multicore fibre
 (MCF, ID: F13421-0007-003; FBGS International, Belgium) featuring 26 draw-tower gratings per
@@ -342,9 +292,8 @@ A C++ client receives the TCP stream (port~50012), timestamps each sample with
 \texttt{std::chrono::high\_resolution\_clock}, and writes the buffered data to CSV after
 the recording.
 
-Prior to use, the fibre was calibrated (straight + planar calibration per FBGS procedure).
-The distal grating was located to $\sim$\,\SI{1}{\milli\meter} via a hot-wire contact
-procedure and aligned with the tip disk; the fibre is fixed at the base and tip.
+Prior to use, the fibre was calibrated straight.
+The distal grating was located to $\sim$\,\SI{1}{\milli\meter} via a hot-wire contact procedure and aligned with the tip disk; the fibre is fixed at the base and tip.
 A residual angular offset between the fibre and robot bending planes is corrected
 in post-processing using the initial planar calibration sweeps
 (see Section~\ref{sec:kin_cross_val}).
@@ -440,6 +389,10 @@ $\theta^*$ are commanded directly over CAN, with shaft angle, velocity, and outp
 returned as real-time feedback at each control cycle. 
 Angles are computed relative to the home position, which is initialized as the reading angle at the motor startup.
 The resulting tendon displacement $\Delta l = r_s \, \theta^*$, where $r_s = \SI{20}{\milli\metre}$ is the spool winding radius, is a geometric byproduct of the motor rotation.
+The CAN bus is accessed from the host PC through a USB--CAN adapter (Canable / \texttt{candle} interface) using the \texttt{python-can} library.
+A custom Python script, built on the open-source Cybergear driver~\cite{CybergearDocs}, instantiates four \texttt{CANMotorController} objects, sets each motor to position mode, and commands target angles in a sequential loop.
+At each control cycle the script reads back the shaft angle, velocity, and torque from every motor and timestamps the sample with the system wall clock (\texttt{time.time()}).
+The feedback data is buffered in memory and saved to a single CSV file at the end of the recording.
 
 \subsubsection{Motion Capture System}
 %% TODO (Spencer): OptiTrack system model, number of cameras, capture 
@@ -878,59 +831,41 @@ The profile is equipped with two motion capture frames to identify its pose and 
 %%  --- TABLE OF EXPERIMENTS ---
 
 \begin{table}[ht]
+\scriptsize
 \centering
-\caption{Summary of the experiments included in the dataset.
-Each trajectory is executed at two actuator speed limits: slow ($\omega_{\max} = 1$~rad/s) and fast ($\omega_{\max} = 3$~rad/s).
-The motor amplitude is $\pi$~rad ($180^\circ$) for all trajectories, with the antagonistic motor in each pair commanding $0.85\,\pi$~rad.
-Recording duration is 30~s per trial.
-}
+\caption{Sensors active per trajectory and batch.
+Each dynamic trajectory (batches 2--4) is executed at two actuator speed limits:
+slow ($\omega_{\max} = 1$~rad/s) and fast ($\omega_{\max} = 3$~rad/s).
+Recording duration is 30~s per trial; motor amplitude is $\pi$~rad for all trajectories.}
 \label{tab:experiments}
-\renewcommand{\arraystretch}{1.25}
+\renewcommand{\arraystretch}{1.3}
 \footnotesize
-\begin{tabular}{@{} l l p{5.2cm} l c @{}}
+\begin{tabular}{@{} l p{3.8cm} p{2.1cm} p{2.1cm} p{2.2cm} p{2.2cm} @{}}
 \toprule
-\textbf{Batch} & \textbf{Trajectory} & \textbf{Description} & \textbf{Sensors} & \textbf{Prep.} \\
+\textbf{Trajectory} & \textbf{Description}
+  & \textbf{B1} \newline \textbf{Quasi-static}
+  & \textbf{B2} \newline \textbf{Dynamic}
+  & \textbf{B3} \newline \textbf{Dyn.\,+\,IMU}
+  & \textbf{B4} \newline \textbf{Dyn.\,+\,contact} \\
 \midrule
-%
-\multirow{6}{*}{1 -- Quasi-static}
-  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E & No \\
-  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E & No \\
-  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E & No \\
-  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E & Yes \\
-  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E & Yes \\
-  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E & No \\
-\midrule
-%
-\multirow{6}{*}{2 -- Dynamic}
-  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E & No \\
-  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E & No \\
-  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E & No \\
-  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E & Yes \\
-  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E & Yes \\
-  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E & No \\
-\midrule
-%
-\multirow{6}{*}{3 -- Dynamic + IMU}
-  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E, I & No \\
-  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E, I & No \\
-  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E, I & No \\
-  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E, I & Yes \\
-  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E, I & Yes \\
-  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E, I & No \\
-\midrule
-%
-\multirow{6}{*}{4 -- Dynamic + contact}
-  & plane\_x  & Planar oscillation in the $x$--$z$ plane & M, F, A, O, E, R & No \\
-  & plane\_y  & Planar oscillation in the $y$--$z$ plane & M, F, A, O, E, R & No \\
-  & plane\_xy & Diagonal planar oscillation ($x{+}y$)   & M, F, A, O, E, R & No \\
-  & circle    & Circular path (8 waypoints at $45^\circ$ steps) & M, F, A, O, E, R & Yes \\
-  & Lissajous & 2:1 Lissajous figure-eight (16 waypoints) & M, F, A, O, E, R & Yes \\
-  & star      & Star/cross: $x$, $y$, and both diagonal planes & M, F, A, O, E, R & No \\
+\texttt{plane\_x}  & Planar oscillation in the $x$--$z$ plane
+  & M, F, A, O, E & M, F, A, O, E & M, F, A, O, E, I & M, F, A, O, E, R \\
+\texttt{plane\_y}  & Planar oscillation in the $y$--$z$ plane
+  & M, F, A, O, E & M, F, A, O, E & M, F, A, O, E, I & M, F, A, O, E, R \\
+\texttt{plane\_xy} & Diagonal planar oscillation ($x$+$y$)
+  & M, F, A, O, E & M, F, A, O, E & M, F, A, O, E, I & M, F, A, O, E, R \\
+\texttt{circle}    & Circular path (8 waypoints, $45^\circ$ steps)
+  & N/A & M, F, A, O, E & M, F, A, O, E, I & M, F, A, O, E, R \\
+\texttt{Lissajous} & 2:1 Lissajous figure-eight (16 waypoints)
+  & N/A & M, F, A, O, E & M, F, A, O, E, I & M, F, A, O, E, R \\
+\texttt{star}      & Star/cross: $x$, $y$, and both diagonals
+  & N/A & M, F, A, O, E & M, F, A, O, E, I & M, F, A, O, E, R \\
 \bottomrule
 \end{tabular}
 \par\vspace{4pt}
-{\scriptsize Sensor key: M\,=\,Mark10 cable tension ($\times$4), F\,=\,FBGS shape, A\,=\,ATI-FT base wrench, O\,=\,OptiTrack MoCap, E\,=\,motor encoders, I\,=\,IMU ($\times$4), R\,=\,Resense contact F/T.
-Prep.\,=\,calibration preamble (planar sweeps in $x$ then $y$) executed before the target trajectory.}
+{\scriptsize Sensor key: M\,=\,Mark10 cable tension ($\times$4), F\,=\,FBGS shape,
+A\,=\,ATI-FT base wrench, O\,=\,OptiTrack MoCap, E\,=\,motor encoders,
+I\,=\,IMU ($\times$4, batch~3 only), R\,=\,Resense contact F/T (batch~4 only).}
 \end{table}
 
 %%  --- ALIGNMENT AND CALIBRATION PROTOCOL ---
@@ -1056,8 +991,7 @@ timestamps each sample using the system high-resolution clock
 until the recording is complete, at which point it writes a single CSV file.
 %
 The OptiTrack motion capture system is driven by Motive~3.4 (NaturalPoint, USA)
-running on a dedicated Windows host PC connected to seven cameras
-(five PrimeX\,13 and two PrimeX\,13W) via GigE/PoE.
+running on a dedicated Windows host PC.
 Motive processes and solves the 3-D rigid-body poses at \SI{120}{\hertz} and
 exposes them through the NatNet~4.4 SDK in unicast UDP mode.
 A dedicated Python script on the acquisition machine receives each frame over a
@@ -1075,17 +1009,17 @@ The synchronization accuracy is bounded by the OS thread-scheduling jitter, on t
 \subsubsection{Post processing}
 The raw sensor data is post-processed in MATLAB (\texttt{process\_data.m}).
 
-For the motion capture data, frames in which one or more markers are occluded are first discarded using the validity flag provided by the tracking software (a value of zero indicates occlusion).
+% For the motion capture data, frames in which one or more markers are occluded are first discarded using the validity flag provided by the tracking software (a value of zero indicates occlusion).
 The remaining samples are converted from position ($x$, $y$, $z$) and quaternion to $\mathrm{SE}(3)$ poses.
 Because these poses are expressed in the global motion-capture frame, they are re-expressed as transformations relative to the base disk (disk~0).
-A static rigid-body transformation is then applied to orient the $z$-axis downward (the gravity direction) and to align the $x$- and $y$-axes with the bending-plane convention of the robot.
+%A static rigid-body transformation is then applied to orient the $z$-axis downward (the gravity direction) and to align the $x$- and $y$-axes with the bending-plane convention of the robot.
 
 The FBGS data requires an additional alignment step.
 The interrogator software reconstructs the fibre shape with the arc-length parameter evolving along its internal $x$-axis, whereas the physical robot hangs along negative~$z$; a rigid rotation is therefore applied to map the FBGS coordinate frame to the robot body frame.
 Furthermore, because the fibre cannot be bonded to the backbone with sub-degree angular accuracy, a residual rotational offset exists between the fibre deformation plane and the true robot bending plane.
 To characterise this offset, a singular-value decomposition is performed on the tip trajectory during the initial planar calibration sweep of each batch: the principal directions of the tip motion identify the bending-plane normal and the primary deflection axis, yielding the correction rotation that aligns the FBGS output to the robot frame.
 
-All signals are then low-pass filtered with a fourth-order Butterworth filter (cutoff frequency \SI{20}{\hertz}) applied in the forward and reverse directions (\texttt{filtfilt} in MATLAB) to achieve zero-phase distortion.
+All signals are then low-pass filtered with a fourth-order Butterworth filter (cutoff frequency \SI{20}{\hertz} \textbf{Angela: add rationale cutoff frequency with spctral analysis}) applied in the forward and reverse directions (\texttt{filtfilt} in MATLAB) to achieve zero-phase distortion.
 The filter's normalised cutoff is computed per signal using each sensor's native sampling rate, estimated from the median inter-sample interval.
 The filtered signals are aligned in time by expressing all timestamps relative to the first actuator timestamp; because every sensor starts recording before the motors, these relative timestamps are initially negative.
 All signals are then resampled onto a uniform \SI{100}{\hertz} grid spanning $t = 0$ to the end of the actuator recording using linear interpolation (\texttt{interp1}).
@@ -1101,297 +1035,91 @@ Both the raw and processed datasets are released.
 
 
 \section{Data Records}
-%% NSD GUIDANCE: "explain what the dataset contains, including the repository 
-%% where the dataset is hosted, an overview of the data files and their 
-%% formats, and any folder structure. Each external dataset should be cited 
-%% using our data citation format."
-%%
-%% This is a CRITICAL section for NSD. A reviewer will check that every 
-%% file in the repository is documented here.
-%%
-%% REQUIRED CONTENT:
-%%
-%% 1. Repository and citation:
-%%    - State the repository (figshare with DOI, or Zenodo — GitHub alone 
-%%      is not a recognized data repository for NSD; use GitHub for code, 
-%%      figshare/Zenodo for data).
-%%    - Provide a formal data citation in the reference list.
-%%
-%% 2. Dataset structure (figure or table):
-%%    - A directory-tree figure showing the folder hierarchy:
-%%        dataset/
-%%          batch_1_quasistatic/
-%%            experiment_001_plane_x_slow/
-%%              dataMotor.csv
-%%              dataMark10_+x.csv
-%%              ...
-%%              processed/
-%%                angles.csv
-%%                cable_tensions.csv
-%%                ...
-%%          batch_2_dynamic/
-%%            ...
-%%    - State total number of experiments, total number of files, total 
-%%      size (GB).
-%%
-%% 3. File format descriptions (one table per file type):
-%%    For EACH CSV file type, state:
-%%      - Column names and units
-%%      - What each column represents
-%%      - Sampling rate (raw vs processed)
-%%      - Any conventions (e.g., tension is positive when cable is pulled)
-%%
-%%    Example table for dataMotor.csv:
-%%      Column         | Unit  | Description
-%%      timestamp      | s     | CPU wall-clock time (POSIX)
-%%      target1_rad    | rad   | Commanded angle, motor 1
-%%      rel_angle1_rad | rad   | Measured angle, motor 1
-%%      ...            | ...   | ...
-%%
-%%    Repeat for: dataMark10_*.csv, dataATIFT.csv, dataOptiTrack.csv, 
-%%    dataFBGS.csv, and all processed/*.csv files.
-%%
-%% 4. Processed data:
-%%    - State what processing was applied (refer to Methods > Data Collection).
-%%    - State the uniform sampling rate (100 Hz).
-%%    - Explain the column layout for each processed file:
-%%        angles.csv: [time, angle1, angle2, angle3, angle4]
-%%        cable_tensions.csv: [time, T1(+x), T2(+y), T3(-x), T4(-y)]
-%%        base_wrench.csv: [time, Fx, Fy, Fz, Tx, Ty, Tz]
-%%        optitrack_frames.csv: [time, x, y, z, roll, pitch, yaw] x N_disks
-%%
-% ── Repository ──
-The dataset is hosted on figshare at
-\url{https://doi.org/10.6084/m9.figshare.XXXXXXX} (Ref.~[XX]).
-%% TODO: replace the DOI placeholder above once the figshare deposit is finalized.
-The acquisition and post-processing code is available on GitHub (see the Code Availability section).
 
-% ── Overall organization ──
-The repository is organized into four top-level folders, one per experimental batch:
+The dataset is hosted on figshare at \url{https://doi.org/10.6084/m9.figshare.XXXXXXX} (Ref.~[XX]); acquisition and post-processing code is available on GitHub (see Code Availability).
+%% TODO: replace the DOI placeholder once the figshare deposit is finalized.
+The repository is organised into four top-level batches: \texttt{batch\_1} (quasi-static, no contact), \texttt{batch\_2} (dynamic, no contact), \texttt{batch\_3} (dynamic, body-mounted IMUs), and \texttt{batch\_4} (dynamic, with external contact).
+Within each batch, sub-folders are named \texttt{<trajectory>\_<speed>}, where \texttt{<trajectory>} $\in \{$\texttt{plane\_x}, \texttt{plane\_y}, \texttt{plane\_xy}, \texttt{circle}, \texttt{Lissajous}, \texttt{star}$\}$ and \texttt{<speed>} $\in \{$\texttt{slow} ($\omega_{\max} = 1$\,rad/s), \texttt{fast} ($\omega_{\max} = 3$\,rad/s)$\}$.
+Every experiment folder contains the raw sensor CSV files, a \texttt{processed/} sub-folder with data filtered and uniformly resampled at \SI{100}{\hertz} (time origin $t = 0$ at the first motor command), and a \texttt{gvs/} sub-folder with GVS forward-dynamics simulation outputs.
+All raw CSV files carry a header row with explicit column names and units; timestamps are POSIX wall-clock seconds drawn from a single OS clock shared across all sensor processes.
+Table~\ref{tab:data_records} documents every file type, its columns, units, and content.
 
-\begin{enumerate}
-    \item[\texttt{batch\_1/}] Quasi-static motions (no IMUs, no contact).
-    \item[\texttt{batch\_2/}] Dynamic motions (no IMUs, no contact).
-    \item[\texttt{batch\_3/}] Dynamic motions with body-mounted IMUs.
-    \item[\texttt{batch\_4/}] Dynamic motions with contact with an object in the workspace.
-\end{enumerate}
-
-Each batch folder contains one subfolder per experiment, named according to the trajectory type and speed:
-\texttt{<trajectory>\_<speed>}, where \texttt{<trajectory>} is one of
-\texttt{plane\_x},
-\texttt{plane\_y},
-\texttt{plane\_xy},
-\texttt{circle},
-\texttt{Lissajous}, or
-\texttt{star},
-and \texttt{<speed>} is either \texttt{slow} ($\omega_{\max} = 1$~rad/s) or \texttt{fast} ($\omega_{\max} = 3$~rad/s).
-
-%% TODO: update the list above once the final set of trajectories is confirmed;
-%% remove "star" if it will not be included or add any additional trajectory types.
-
-% ── Per-experiment directory layout ──
-Every experiment folder shares the same internal layout, illustrated in Table~\ref{tab:dir_layout}.
-
-\begin{table}[ht]
-\centering
-\caption{Per-experiment directory layout. Each experiment folder contains the raw sensor recordings, quick-look plots, and two subfolders with post-processed data and GVS simulation results.}
-\label{tab:dir_layout}
-\renewcommand{\arraystretch}{1.15}
-\footnotesize
-\begin{tabular}{@{} l l @{}}
+\begin{longtable}{@{} p{3.8cm} p{4.8cm} p{1.2cm} p{5.6cm} @{}}
+\caption{Complete file and column documentation for each experiment folder.
+Subscript $n \in \{1,2,3,4\}$ denotes motor index (motors 1\,\&\,3 form the $x$-plane pair; 2\,\&\,4 the $y$-plane pair).
+Subscript $k \in \{0,\ldots,4\}$ denotes disk index from base to tip.
+Raw files include a header row; processed files are headerless.}
+\label{tab:data_records}\\
 \toprule
-\textbf{File / folder} & \textbf{Description} \\
+\textbf{File} & \textbf{Column(s)} & \textbf{Unit} & \textbf{Description} \\
 \midrule
-\texttt{dataATIFT.csv}       & Raw base force/torque (ATI Mini40) \\
-\texttt{dataATIFT.png}       & Quick-look plot of the ATI recording \\
-\texttt{dataFBGS.csv}        & Raw FBGS shape, curvature, and bending-angle data \\
-\texttt{dataMark10\_+x.csv}  & Raw cable tension, $+x$ tendon \\
-\texttt{dataMark10\_+y.csv}  & Raw cable tension, $+y$ tendon \\
-\texttt{dataMark10\_-x.csv}  & Raw cable tension, $-x$ tendon \\
-\texttt{dataMark10\_-y.csv}  & Raw cable tension, $-y$ tendon \\
-\texttt{dataMark10\_*.png}   & Quick-look plots of each tension recording \\
-\texttt{dataMotor.csv}       & Raw motor feedback (angles, velocities, torques) \\
-\texttt{dataMotor.png}       & Quick-look plot of the motor recording \\
-\texttt{dataOptiTrack.csv}   & Raw OptiTrack 6-DoF poses for all tracked rigid bodies \\
-\midrule
-\texttt{processed/}          & Post-processed data (filtered, resampled at 100~Hz) \\
-\quad \texttt{angles.csv}    & Motor shaft angles \\
-\quad \texttt{cable\_tensions.csv} & Filtered cable tensions \\
-\quad \texttt{base\_wrench.csv}    & Filtered base wrench \\
-\quad \texttt{base\_wrench\_raw.csv} & Unfiltered (bias-subtracted only) base wrench \\
-\quad \texttt{mocap\_frames.csv}   & Motion-capture disk poses \\
-\quad \texttt{fbgs\_shapes.csv}    & FBGS reconstructed 3-D shapes \\
-\quad \texttt{RMSEs.txt}          & RMSE summary (tip position, cable displacements) \\
-\quad \texttt{matlab\_workspace.mat} & Full MATLAB workspace \\
-\quad \texttt{figures/}           & Diagnostic plots (\texttt{.fig} + \texttt{.png}) \\
-\midrule
-\texttt{gvs/}                & GVS forward-dynamics simulation outputs \\
-\quad \texttt{simulation\_results.mat} & Simulated shape and base wrench \\
-\quad \texttt{figures/}           & Comparison plots (\texttt{.fig} + \texttt{.png}) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-\subsection*{Raw data files}
-
-All raw CSV files use a header row with explicit column names and units.
-Timestamps are POSIX wall-clock times (seconds since epoch) and share the same operating-system clock source across all sensors.
-
-\paragraph{Motor data (\texttt{dataMotor.csv}).}
-Table~\ref{tab:cols_motor} lists the columns.
-Angles are in radians, velocities in rad/s, and torques in N\,m.
-The \texttt{phase\_index} column encodes the current phase of the commanded trajectory (0~=~idle, subsequent integers correspond to successive motion segments).
-The \texttt{home$n$} flag indicates whether motor~$n$ has completed its homing routine.
-
-\begin{table}[ht]
-\centering
-\caption{Columns in \texttt{dataMotor.csv}. The block of six columns is repeated for motors~1--4 (subscript $n \in \{1,2,3,4\}$). Motors 1\,\&\,3 form the $x$-plane antagonistic pair; motors 2\,\&\,4 form the $y$-plane pair.}
-\label{tab:cols_motor}
-\renewcommand{\arraystretch}{1.15}
-\footnotesize
-\begin{tabular}{@{} l l l @{}}
+\endfirsthead
+\multicolumn{4}{c}{\small\tablename~\thetable\ \textit{(continued)}}\\[2pt]
 \toprule
-\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
+\textbf{File} & \textbf{Column(s)} & \textbf{Unit} & \textbf{Description} \\
 \midrule
-\texttt{timestamp}           & s     & CPU wall-clock (POSIX) \\
-\texttt{phase\_index}        & --    & Current trajectory phase \\
-\texttt{home$n$}             & bool  & Homing flag, motor $n$ \\
-\texttt{target$n$\_rad}      & rad   & Commanded shaft angle, motor $n$ \\
-\texttt{abs\_angle$n$\_rad}  & rad   & Absolute encoder reading, motor $n$ \\
-\texttt{rel\_angle$n$\_rad}  & rad   & Relative angle (from home), motor $n$ \\
-\texttt{velocity$n$\_rad\_s} & rad/s & Shaft angular velocity, motor $n$ \\
-\texttt{torque$n$\_Nm}       & N\,m  & Output torque, motor $n$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Cable tension (\texttt{dataMark10\_*.csv}).}
-Four files are recorded per experiment, one per tendon, named by the tendon direction ($+x$, $-x$, $+y$, $-y$).
-Each file contains two columns:
-
-\begin{table}[ht]
-\centering
-\caption{Columns in each \texttt{dataMark10\_*.csv} file.}
-\label{tab:cols_mark10}
-\renewcommand{\arraystretch}{1.15}
-\footnotesize
-\begin{tabular}{@{} l l l @{}}
-\toprule
-\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
+\endhead
 \midrule
-\texttt{timestamp}     & s  & CPU wall-clock (POSIX) \\
-\texttt{tension (N)}   & N  & Measured tendon tension \\
+\multicolumn{4}{r@{}}{\small\textit{Continued on next page}}\\
+\endfoot
 \bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Base force/torque (\texttt{dataATIFT.csv}).}
-
-\begin{table}[ht]
-\centering
-\caption{Columns in \texttt{dataATIFT.csv}.}
-\label{tab:cols_atift}
-\renewcommand{\arraystretch}{1.15}
-\footnotesize
-\begin{tabular}{@{} l l l @{}}
-\toprule
-\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
-\midrule
-\texttt{timestamp}  & s            & CPU wall-clock (POSIX) \\
-\texttt{Fx (N)}     & N            & Force along $x$ \\
-\texttt{Fy (N)}     & N            & Force along $y$ \\
-\texttt{Fz (N)}     & N            & Force along $z$ \\
-\texttt{Tx (Nm)}    & N\,m         & Torque about $x$ \\
-\texttt{Ty (Nm)}    & N\,m         & Torque about $y$ \\
-\texttt{Tz (Nm)}    & N\,m         & Torque about $z$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Motion capture (\texttt{dataOptiTrack.csv}).}
-The file contains one timestamp column followed by nine columns per tracked rigid body (five disks, indexed 0--4 from base to tip).
-%% TODO: if batch 4 adds a 6th rigid body for the contact object, update this description.
-
-\begin{table}[ht]
-\centering
-\caption{Columns in \texttt{dataOptiTrack.csv}. The block of nine columns is repeated for each disk $k \in \{0,1,2,3,4\}$.}
-\label{tab:cols_optitrack}
-\renewcommand{\arraystretch}{1.15}
-\footnotesize
-\begin{tabular}{@{} l l l @{}}
-\toprule
-\textbf{Column} & \textbf{Unit} & \textbf{Description} \\
-\midrule
-\texttt{timestamp\_s}             & s    & CPU wall-clock (POSIX) \\
-\texttt{disk\_$k$\_frame\_number} & --   & Motive frame counter \\
-\texttt{disk\_$k$\_is\_valid}     & bool & Tracking validity (0\,=\,occluded) \\
-\texttt{disk\_$k$\_x}            & m    & Position, $x$ \\
-\texttt{disk\_$k$\_y}            & m    & Position, $y$ \\
-\texttt{disk\_$k$\_z}            & m    & Position, $z$ \\
-\texttt{disk\_$k$\_qx}           & --   & Quaternion, $x$ \\
-\texttt{disk\_$k$\_qy}           & --   & Quaternion, $y$ \\
-\texttt{disk\_$k$\_qz}           & --   & Quaternion, $z$ \\
-\texttt{disk\_$k$\_qw}           & --   & Quaternion, $w$ (scalar-last) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{FBGS shape sensing (\texttt{dataFBGS.csv}).}
-This is the largest raw file.
-It contains 1559 columns: one timestamp, 26 curvature values (one per grating), 26 bending-angle values, and $26 \times 58 = 1506$ shape coordinates (the 3-D reconstructed shape output by ILLumiSense Shape~CORE at \SI{1}{\milli\meter} arc-length resolution, stored as a flattened array of $[x, y, z]$ triplets along the fibre).
-
-\begin{table}[ht]
-\centering
-\caption{Column groups in \texttt{dataFBGS.csv}.}
-\label{tab:cols_fbgs}
-\renewcommand{\arraystretch}{1.15}
-\footnotesize
-\begin{tabular}{@{} l l l l @{}}
-\toprule
-\textbf{Column range} & \textbf{Count} & \textbf{Unit} & \textbf{Description} \\
-\midrule
-\texttt{Timestamp}                  & 1    & s             & CPU wall-clock (POSIX) \\
-\texttt{Curvature\_0}\,...\,\texttt{Curvature\_25} & 26 & 1/m & Curvature at each grating \\
-\texttt{Angle\_0}\,...\,\texttt{Angle\_25}         & 26 & rad & Bending angle at each grating \\
-\texttt{Shape\_0}\,...\,\texttt{Shape\_1505}       & 1506 & m & Flattened 3-D shape ($x,y,z$ triplets) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-\subsection*{Processed data files}
-
-All processed CSV files are headerless and uniformly sampled at \SI{100}{\hertz}.
-The first column is always time (in seconds), starting at $t = 0$ corresponding to the first motor command.
-The processing steps (filtering, resampling, coordinate alignment) are described in the Methods section.
-
-\paragraph{Motor angles (\texttt{processed/angles.csv}).}
-Five columns: time~(s), $\theta_1$~(rad), $\theta_2$~(rad), $\theta_3$~(rad), $\theta_4$~(rad).
-Angles are relative to the home position.
-
-\paragraph{Cable tensions (\texttt{processed/cable\_tensions.csv}).}
-Five columns: time~(s), $T_{+x}$~(N), $T_{+y}$~(N), $T_{-x}$~(N), $T_{-y}$~(N).
-
-\paragraph{Base wrench (\texttt{processed/base\_wrench.csv} and \texttt{base\_wrench\_raw.csv}).}
-Seven columns: time~(s), $F_x$~(N), $F_y$~(N), $F_z$~(N), $T_x$~(N\,m), $T_y$~(N\,m), $T_z$~(N\,m).
-The \texttt{base\_wrench.csv} file contains the low-pass filtered wrench; \texttt{base\_wrench\_raw.csv} contains the bias-subtracted but unfiltered wrench, provided for users who wish to apply their own filtering.
-
-\paragraph{Motion-capture frames (\texttt{processed/mocap\_frames.csv}).}
-%% TODO: confirm exact column count once the processed data layout is finalized.
-Each row contains the time followed by, for each of the five tracked disks, the position ($x$, $y$, $z$) in metres, the orientation as a quaternion ($q_x$, $q_y$, $q_z$, $q_w$), and the arc-length coordinate~(m) of the disk along the backbone.
-All poses are expressed in the robot base frame.
-
-\paragraph{FBGS shapes (\texttt{processed/fbgs\_shapes.csv}).}
-Each row contains the time followed by the 3-D reconstructed shape of the fibre after alignment to the robot body frame.
-The shape is stored as a sequence of $[x, y, z]$ coordinate triplets at \SI{1}{\milli\meter} arc-length intervals along the backbone.
-
-\paragraph{RMSE summary (\texttt{processed/RMSEs.txt}).}
-A plain-text file reporting root-mean-square errors for the tip position (OptiTrack vs.\ FBGS, in metres and as a percentage of the motion range) and for the cable displacements (encoder vs.\ motion-capture reconstruction, in metres and as a percentage of the motion range).
-
-\paragraph{GVS simulation outputs (\texttt{gvs/}).}
-The \texttt{simulation\_results.mat} file contains the GVS forward-dynamics simulation results (predicted tip trajectory and base wrench) used for the force--kinematics consistency check described in Section~\ref{sec:force_kin_consistency}.
-The accompanying \texttt{figures/} subfolder contains comparison plots of simulated vs.\ measured tip position, cable displacement, and base torque.
+\endlastfoot
+%% ── Raw files ──────────────────────────────────────────────────────────────
+\multicolumn{4}{@{}l}{\textbf{Raw sensor files}} \\[2pt]
+\texttt{dataMotor.csv}
+  & \texttt{timestamp}                       & s     & CPU wall-clock (POSIX) \\
+  & \texttt{phase\_index}                    & --    & Trajectory phase (0\,=\,idle; successive integers = motion segments) \\
+  & \texttt{home$n$} \quad ($n=1$--$4$)      & bool  & Homing completed flag, motor $n$ \\
+  & \texttt{target$n$\_rad}                  & rad   & Commanded shaft angle, motor $n$ \\
+  & \texttt{abs\_angle$n$\_rad}              & rad   & Absolute encoder reading, motor $n$ \\
+  & \texttt{rel\_angle$n$\_rad}              & rad   & Relative angle from home, motor $n$ \\
+  & \texttt{velocity$n$\_rad\_s}             & rad/s & Shaft angular velocity, motor $n$ \\
+  & \texttt{torque$n$\_Nm}                   & N\,m  & Output torque, motor $n$ \\[4pt]
+\texttt{dataMark10\_$\ast$.csv} \newline (4 files: \texttt{+x}, \texttt{-x}, \texttt{+y}, \texttt{-y})
+  & \texttt{timestamp}                       & s     & CPU wall-clock (POSIX) \\
+  & \texttt{tension (N)}                     & N     & Tendon tension; file suffix indicates tendon direction \\[4pt]
+\texttt{dataATIFT.csv}
+  & \texttt{timestamp}                       & s     & CPU wall-clock (POSIX) \\
+  & \texttt{Fx (N)}, \texttt{Fy (N)}, \texttt{Fz (N)}       & N     & Base reaction force along $x$, $y$, $z$ \\
+  & \texttt{Tx (Nm)}, \texttt{Ty (Nm)}, \texttt{Tz (Nm)}    & N\,m  & Base reaction torque about $x$, $y$, $z$ \\[4pt]
+\texttt{dataOptiTrack.csv}
+  & \texttt{timestamp\_s}                    & s     & CPU wall-clock (POSIX) \\
+  & \texttt{disk\_$k$\_frame\_number}        & --    & Motive software frame counter \\
+  & \texttt{disk\_$k$\_is\_valid}            & bool  & Tracking validity (0\,=\,occluded) \\
+  & \texttt{disk\_$k$\_x/y/z}               & m     & 3-D position of disk $k$ \\
+  & \texttt{disk\_$k$\_q[xyzw]}             & --    & Orientation quaternion, scalar-last convention \\[4pt]
+\texttt{dataFBGS.csv} \newline (1\,559 columns total)
+  & \texttt{Timestamp}                       & s     & CPU wall-clock (POSIX) \\
+  & \texttt{Curvature\_0}\,--\,\texttt{\_25} (26) & 1/m & Curvature at each of the 26 fibre gratings \\
+  & \texttt{Angle\_0}\,--\,\texttt{\_25} (26)    & rad  & Bending angle at each grating \\
+  & \texttt{Shape\_0}\,--\,\texttt{\_1505} (1\,506) & m & Flattened $[x,y,z]$ triplets of the reconstructed 3-D backbone shape at \SI{1}{\milli\meter} arc-length resolution (ILLumiSense Shape\,CORE output) \\[6pt]
+%% ── Processed files ────────────────────────────────────────────────────────
+\multicolumn{4}{@{}l}{\textbf{Processed files (\texttt{processed/}) — headerless CSV, 100\,Hz, $t=0$ at first motor command}} \\[2pt]
+\texttt{angles.csv}
+  & col\,1: \texttt{time}                    & s     & Time \\
+  & cols\,2--5: $\theta_1, \theta_2, \theta_3, \theta_4$ & rad & Motor shaft angles relative to home \\[4pt]
+\texttt{cable\_tensions.csv}
+  & col\,1: \texttt{time}                    & s     & Time \\
+  & cols\,2--5: $T_{+x}, T_{+y}, T_{-x}, T_{-y}$ & N & Low-pass filtered tendon tensions \\[4pt]
+\texttt{base\_wrench.csv} \newline \texttt{base\_wrench\_raw.csv}
+  & col\,1: \texttt{time}                    & s     & Time \\
+  & cols\,2--4: $F_x, F_y, F_z$              & N     & Base reaction force \\
+  & cols\,5--7: $T_x, T_y, T_z$             & N\,m  & Base reaction torque; \texttt{\_raw} variant is bias-subtracted only (no low-pass filter) \\[4pt]
+\texttt{mocap\_frames.csv}
+  & col\,1: \texttt{time}                    & s     & Time \\
+  & $x_k, y_k, z_k$ \,($k=0$--$4$)          & m     & Disk position in robot base frame \\
+  & $q_{x,k},q_{y,k},q_{z,k},q_{w,k}$       & --    & Disk orientation quaternion \\
+  & $s_k$                                    & m     & Arc-length coordinate of disk $k$ \\[4pt]
+\texttt{fbgs\_shapes.csv}
+  & col\,1: \texttt{time}                    & s     & Time \\
+  & cols\,2--175: $[x_i,y_i,z_i]$, $i=0$--$57$ & m & Reconstructed 3-D backbone at \SI{1}{\milli\meter} resolution, aligned to robot base frame \\[4pt]
+\texttt{RMSEs.txt}
+  & \multicolumn{3}{p{11.6cm}@{}}{Plain-text report: tip-position RMSE (OptiTrack vs.\ FBGS, in m and \% of motion range) and cable-displacement RMSE (encoder vs.\ motion-capture reconstruction, in m and \%)} \\[4pt]
+%% ── GVS outputs ────────────────────────────────────────────────────────────
+\multicolumn{4}{@{}l}{\textbf{Simulation outputs (\texttt{gvs/})}} \\[2pt]
+\texttt{simulation\_results.mat}
+  & \multicolumn{3}{p{11.6cm}@{}}{MATLAB workspace containing GVS forward-dynamics outputs (predicted tip trajectory and base wrench) used for the force--kinematics consistency check (Section~\ref{sec:force_kin_consistency})} \\
+\end{longtable}
 
 % \section{Data Overview (optional)}
 \section{Technical Validation}
@@ -1763,29 +1491,28 @@ The post-processing pipeline (\texttt{process\_data.m}) was developed and tested
 The GVS simulation code (\texttt{test\_trajectories.m}) additionally requires the MATLAB ODE solvers.
 Users who prefer Python can replicate the processing with \texttt{scipy.signal.butter}, \texttt{scipy.signal.filtfilt}, and \texttt{scipy.interpolate.interp1d}, or use \texttt{pandas.read\_csv} to load the data directly.
 
-\paragraph{Loading raw data.}
-Each raw CSV contains a header row with column names and units.
-Timestamps are recorded as POSIX wall-clock seconds.
-To align multiple sensors in time, subtract a common reference (\eg{} the first motor timestamp) from all timestamp columns and interpolate onto a shared grid, as done in the provided \texttt{process\_data.m} script.
+% \paragraph{Loading raw data.}
+% Each raw CSV contains a header row with column names and units.
+% Timestamps are recorded as POSIX wall-clock seconds.
+% To align multiple sensors in time, subtract a common reference (\eg{} the first motor timestamp) from all timestamp columns and interpolate onto a shared grid, as done in the provided \texttt{process\_data.m} script.
 
-\paragraph{Loading processed data.}
-The processed CSV files in the \texttt{processed/} subfolder are headerless.
-The first column is always time (in seconds, starting at $t{=}0$ corresponding to the first motor command) and all signals are uniformly sampled at \SI{100}{\hertz}.
-They can be loaded directly via \texttt{numpy.loadtxt} or MATLAB's \texttt{load} function.
+% \paragraph{Loading processed data.}
+% The processed CSV files in the \texttt{processed/} subfolder are headerless.
+% The first column is always time (in seconds, starting at $t{=}0$ corresponding to the first motor command) and all signals are uniformly sampled at \SI{100}{\hertz}.
+% They can be loaded directly via \texttt{numpy.loadtxt} or MATLAB's \texttt{load} function.
 
 \paragraph{Known limitations and caveats.}
 \begin{itemize}
     \item \textbf{FBGS coordinate alignment.}
     The FBGS fibre cannot be bonded to the backbone with sub-degree angular accuracy.
     A residual rotational offset between the fibre deformation plane and the robot bending plane is corrected in post-processing using the initial planar calibration sweeps (see Methods).
-    Users working with the raw FBGS data must apply this correction themselves; the rotation parameters are stored in the processed MATLAB workspace (\texttt{matlab\_workspace.mat}).
+    Users working with the raw FBGS data must apply this correction themselves.
     \item \textbf{ATI-FT bias.}
     The ATI force/torque sensor exhibits a slowly drifting bias.
     A bias snapshot is recorded at rest before each experiment and subtracted from all readings.
     The unfiltered, bias-subtracted wrench is provided as \texttt{base\_wrench\_raw.csv}; the filtered version is \texttt{base\_wrench.csv}.
     \item \textbf{OptiTrack marker occlusion.}
     Occasional marker occlusions cause invalid frames (\texttt{is\_valid} = 0 in the raw data).
-    These frames are discarded during post-processing; the remaining samples are interpolated onto the uniform time grid.
     Users analysing the raw data should filter out invalid frames before further processing.
     \item \textbf{IMU mass (batch~3).}
     In batch~3, four IMU modules (\SI{317}{\milli\gram} each) are mounted on the robot disks.

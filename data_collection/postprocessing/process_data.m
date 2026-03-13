@@ -5,7 +5,7 @@ clc;
 addpath("outils\")
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack","20260304/","plane_y_fast/");
+folder = fullfile("..", "dataCollectionPack","20260304/","Lissajous_fast/");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -15,7 +15,7 @@ samplingHz = 100;
 
 
 %   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
-bending_axis = 'y';        % 'y' for plane_y experiments, 'x' for plane_x
+bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for plane_x
 
 %   Plots
 plot_filtered = false;
