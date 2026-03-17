@@ -5,7 +5,7 @@ clc;
 addpath("outils\")
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack","20260304/","Lissajous_fast/");
+folder = fullfile("..", "dataCollectionPack/data","20260317/","star_fast/");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -15,7 +15,7 @@ samplingHz = 100;
 
 
 %   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
-bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for plane_x
+bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for all rest
 
 %   Plots
 plot_filtered = false;
@@ -36,28 +36,6 @@ ati = readtable(fullfile(folder, "dataATIFT.csv"));
 filename = fullfile(folder, "dataOptiTrack.csv");
 [N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename);
 
-%%  TODO: Check convention frames in mocap data processing
-
-
-% 
-% %  Extract the data from the static measures
-% filename = "dataCollectionPack\20260310\static_test\dataOptiTrack.csv";
-% [N_disks_static, mocap_timestamps_static, poses_disks_static, rel_poses_disks_static, rel_kinematics_disks_static] = data_optitrack(filename);
-% 
-% %% ====== CORRECT LOCAL-FRAME BIAS (STATIC CALIBRATION) ======
-% %   Straight rod => ideal pose is pure z-translation.
-% %   Bias lives in local frame: T_meas = T_true * T_bias
-% %   => T_corrected = T_dyn * inv(T_bias)
-% for it = 2:N_disks
-%     T_static = mean(rel_poses_disks_static(:,:,it,:), 4);
-%     T_ideal  = eye(4);  T_ideal(3,4) = T_static(3,4);
-%     inv_T_bias = T_static \ T_ideal;          % = inv(T_bias)
-%     rel_poses_disks(:,:,it,:) = pagemtimes(rel_poses_disks(:,:,it,:), inv_T_bias);
-%     %   Recompute kinematics for this disk
-%     R_corr = squeeze(rel_poses_disks(1:3,1:3,it,:));
-%     r_corr = squeeze(rel_poses_disks(1:3,4,it,:));
-%     rel_kinematics_disks(:,:,it) = [rotm2eul(R_corr,'XYZ')  r_corr'];
-% end
 
 
 filename = fullfile(folder, "dataFBGS.csv");
@@ -102,16 +80,11 @@ for t = 1:N_time_fbgs
 end
 
 
-if strcmpi(bending_axis, 'y')
-    fbgs_shapes(1, :, :) = - fbgs_shapes(1, :, :);
-else
-    fbgs_shapes(2, :, :) = - fbgs_shapes(2, :, :);
-end
-
 
 %   Extract plotting slices from the rotated shapes
 XYZ_xyz_disk = rel_kinematics_disks(:, :, 5);
-index = 480;
+% XYZ_xyz_disk_corr = rel_kinematics_disks_corrected(:, :, 5);
+index = 482;
 xyz_FBGS     = squeeze(fbgs_shapes(:, index, :));
 xyz_FBGS_end = squeeze(fbgs_shapes(:, end, :));
 
@@ -124,6 +97,7 @@ for it = 1:3
     plot(mocap_timestamps, XYZ_xyz_disk(:, it + 3), "g", "LineWidth", 2.0)
     hold on
     plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+    % plot(mocap_timestamps, XYZ_xyz_disk_corr(:, it + 3), "b", "LineWidth", 2.0)
     % plot(fbgs_time - fbgs_time(1), xyz_FBGS_end(it, :), "r", "LineWidth", 2.0)
 
     grid on
@@ -141,7 +115,6 @@ for it = 1:3
 end
 
 legend('OptiTrack', 'FBGS')
-
 
 %% ====== EXTRACT MOTOR SIGNALS ======
 time_actuators = motor.timestamp;                     
@@ -539,10 +512,19 @@ mkdir(saving_fig_folder);
 
 
 %%  Plot robot tip
+
+%   FBGS and Mocap
+%   Extract plotting slices from the rotated shapes
+XYZ_xyz_disk = interp_rel_kinematics_disks(:, :, 5);
+index = 482;
+xyz_FBGS     = squeeze(interp_fbgs_shapes(:, index, :));
+
+
 interp_xy_tip = interp_rel_kinematics_disks(:, 4:5, 5);
 fig = figure("Name", "Tip Trajectory xy plane");
 plot(interp_xy_tip(:, 1), interp_xy_tip(:, 2), 'LineWidth', 1)
-grid on
+hold on
+plot(xyz_FBGS(1, :), xyz_FBGS(2, :), "r", "LineWidth", 1.0)
 grid on
 xlim([-.35 .35])
 ylim([-.35 .35])
@@ -556,11 +538,7 @@ saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 %%  On the processed data, perform comparisons
 
-%   FBGS and Mocap
-%   Extract plotting slices from the rotated shapes
-XYZ_xyz_disk = interp_rel_kinematics_disks(:, :, 5);
-index = 480;
-xyz_FBGS     = squeeze(interp_fbgs_shapes(:, index, :));
+
 
 fig = figure("Name", "Tip Position Interpolated");
 vars = {'p_x', 'p_y', 'p_z'};
@@ -599,7 +577,8 @@ RMSE_tip_perc_motion = (RMSE_tip./range_tip)*100
 
 
 %   Mocap and cables
-[delta_cable_measured, delta_cable_computed] = compare_cable_lenght(interp_rel_kinematics_disks, interp_angles, sampling_time);
+N_interp = 10;
+[delta_cable_measured, delta_cable_computed] = compare_cable_lenght(interp_rel_kinematics_disks, interp_angles, sampling_time, N_interp);
 
 cable_labels = {'+x', '+y', '-x', '-y'};
 pairs = {[1 3], [2 4]};          % x-pair, y-pair
@@ -617,7 +596,7 @@ for p = 1:2
         grid on; ylabel('\DeltaL [mm]')
         title(['Cable ' cable_labels{c}])
         if k == 1
-            legend('MoCap (computed)', 'Motor (measured)', 'Location', 'best')
+            legend('MoCap (computed)', 'Motor (measured)', 'Mocap (10)''Location', 'best')
         end
         if k == 2, xlabel('Time [s]'); end
     end

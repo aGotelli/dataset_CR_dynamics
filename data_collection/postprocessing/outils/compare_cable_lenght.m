@@ -1,8 +1,8 @@
-function [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(disk_kinematics, angles_data, time)
+function [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(disk_kinematics, angles_data, time, N_interp)
     %% ====== SETTINGS ======
     
     d = 0.0375;       % cable offset from backbone center [m] (37.5 mm)
-    N_interp = 40;    % interpolation points along backbone (from 5 disks)
+    % N_interp = 40;    % interpolation points along backbone (from 5 disks)
     r_spool = 0.02;   % spool radius [m] — SET to your actual spool radius
     
     N_disks = 5;

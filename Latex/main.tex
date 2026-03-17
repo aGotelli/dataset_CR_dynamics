@@ -965,6 +965,18 @@ The calibration sweeps characterize this offset, allowing it to be corrected in 
 \end{figure}
 
 
+\subsection{Initial Calibration}
+In order to ensure the validity of the results, before running any subset, the robot undergoes manual calibration.
+First, the robot base is leveled using "una bolla".
+Secondly, the robot is ensured to be in a straight position using a laser level positioned on a leveled ground. 
+For this aim, we used a Bosh XX.YY level laser.
+In order to conpensate for some residual bending on the robot, one cable has been pulled until straight configuration is reached.
+In this configuration, the mocap frames have been ensured to be aligned while, in the ShapeCore software, the "set straight" option was selected.
+
+With these adjustments, the robot is ensured to be straight and algined with the sensors measurements.
+In the data secording, the cables are pretensioned to avoid slacking. 
+With the so proposed straight calibration any consequent bending on the robot will be registered by the sensors and will be adequately recorded. 
+
 %%  --- ACQUISITION PIPELINE ---
 \subsubsection{Acquisition pipeline}
 For each experiment, a Windows batch script orchestrates the acquisition.
@@ -1309,6 +1321,9 @@ The two estimates are compared directly in the time domain; agreement between th
 Since the scope of this section is to show the consistency of the measured cable lenght with the deformation, we provide a comparison with the motion on the $x$ and $y$ plane.
 Such comparison is presented in Figure \ref{fig:cable lenght}.
 \textbf{Add RMSE}
+
+Consider computing the tendon lenght as straight lines between the disks and not as a smooth path
+cite paper Jessica from teaching
 
 
 \subsection{Force--kinematics consistency}
