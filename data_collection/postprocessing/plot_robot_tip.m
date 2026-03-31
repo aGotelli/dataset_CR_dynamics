@@ -5,7 +5,7 @@ clc
 
 
 %   Load the following folders
-folders = {'plane_x', 'plane_y', 'plane_xy', 'star', 'circle', 'Lissajous'};
+folders = {'plane_x', 'plane_y', 'star', 'circle', 'Lissajous'};
 
 save_path = "figures/";
 
@@ -21,16 +21,16 @@ for it=1:length(folders)
     f = figure("Name", name);
     for k=1:2
 
-        folder = fullfile("dataCollectionPack","20260304/", string(folders{it}) + string(traj{k}), "/processed/");
+        folder = fullfile("../dataCollectionPack","data/dynamic_motion/", string(folders{it}) + string(traj{k}), "/processed/");
     
-        mocap_frames = load(fullfile(folder , "vicon_frames.csv"));
+        mocap_frames = load(fullfile(folder , "mocap_frames.csv"));
     
     
         tip_position = mocap_frames(:, 33:35);
     
         
         
-        plot(tip_position(:, 1), tip_position(:, 2), 'LineWidth', 1, 'Color', col{k});
+        plot(tip_position(:, 1), tip_position(:, 2), 'LineWidth', 2, 'Color', col{k});
         hold on
         grid on
         xlim([-.35 .35])

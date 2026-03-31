@@ -3,18 +3,19 @@ clear all
 close all
 
 
-path = fullfile("..", "dataCollectionPack", "20260304", 'plane_y_fast/');
+path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'circle_slow/');
 load_path = fullfile(path, 'processed/');
 savepath = fullfile(path, "gvs/");
 saving_fig_folder = fullfile(savepath, "figures/");
 
-mkdir()
+mkdir(savepath)
+mkdir(saving_fig_folder)
 
 % ajoute le dossier outils
-addpath(genpath("Dyn_Essai_release_Beam_Andrea"))
-addpath('Dyn_Essai_release_Beam_Andrea/outils/')
-addpath('Dyn_Essai_release_Beam_Andrea/IDM/')
-addpath('Dyn_Essai_release_Beam_Andrea/methode spectral/')
+addpath(genpath("GVS_outils"))
+addpath('GVS_outils/outils/')
+addpath('GVS_outils/IDM/')
+addpath('GVS_outils/methode spectral/')
 
 Config.option=odeset('RelTol',10^(-8),'AbsTol',10^(-8));
 
@@ -27,12 +28,7 @@ Config.plot = false;
 Config.X_meas = [0, 0.1189, 0.2388, 0.3577, 0.48];
 % Config.observation_points = Config.X_meas/Config.L; %   Normalized domain
 
-writematrix(Config.X_meas, fullfile(path, 'test.txt'))
-writematrix(Config.X_meas, fullfile(load_path, 'test.txt'))
-writematrix(Config.X_meas, fullfile(savepath, 'test.txt'))
-writematrix(Config.X_meas, fullfile(saving_fig_folder, 'test.txt'))
 
-return;
 %%  Defining deformable DoFs
 % K1, K2, K3, ...
 Config.V_a = [ 0, 1, 1, 0, 0, 0];
@@ -72,8 +68,8 @@ Const.F1 = zeros(6,1);
 
 %%  Take data measurements
 
-cable_tensions = load(fullfile(path, "cable_tensions.csv"));
-time_angles_motor = load(fullfile(path, "angles.csv"));
+cable_tensions = load(fullfile(load_path, "cable_tensions.csv"));
+time_angles_motor = load(fullfile(load_path, "angles.csv"));
 
 
 
@@ -103,7 +99,7 @@ save(fullfile(savepath,"simulation_results"))
 close all
 load(fullfile(savepath, "simulation_results"))
 
-mocap_frames_stacked = load(fullfile(path, "mocap_frames.csv"));
+mocap_frames_stacked = load(fullfile(load_path, "mocap_frames.csv"));
 N_times_vicon = size(mocap_frames_stacked, 1);
 vicon_frames = reshape(mocap_frames_stacked, [N_times_vicon, 7, 5]);
 disk_num = 5;
@@ -111,10 +107,10 @@ time_kinematics_tip = vicon_frames(:, :, disk_num);
 time_simu = time_kinematics_tip(:, 1);
 
 
-time_base_wrench = load(fullfile(path, "base_wrench.csv"));
-fbgs_shapes_stacked = load(fullfile(path, "fbgs_shapes.csv"));
+time_base_wrench = load(fullfile(load_path, "base_wrench.csv"));
+fbgs_shapes_stacked = load(fullfile(load_path, "fbgs_shapes.csv"));
 
-time_base_wrench_raw = load(fullfile(path, "base_wrench_raw.csv"));
+time_base_wrench_raw = load(fullfile(load_path, "base_wrench_raw.csv"));
 
 
 tip_frame = squeeze( position_disks_simu(5, :, :) )';
@@ -144,7 +140,7 @@ subplot(3, 1, 3)
 plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 7), 'g', 'LineWidth', 1)
 hold on
 plot(time_fbgs, tip_fbgs(:, 3), 'b', 'LineWidth', 1)
-plot(Config.data.time, tip_frame(:, 3), 'r', 'LineWidth', 1)
+plot(Config.data.time, -tip_frame(:, 3), 'r', 'LineWidth', 1)
 grid on
 legend('OptiTrack', 'FBGS', 'Simulated')
 
@@ -157,7 +153,7 @@ subplot(2, 1, 1)
 plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
 hold on
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'g', 'LineWidth', 2)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'b', 'LineWidth', 2)
 
 
 
@@ -166,12 +162,10 @@ plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 hold on
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
 plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'g', 'LineWidth', 2)
-legend('Measured', 'Simulated')
+legend('Measured', '')
 
-name = fig.Name;
-savefig(fullfile(path, name))
-filename_png = [char(fullfile(path, name)), '.png'];
-exportgraphics(fig, filename_png, 'Resolution', 300); 
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 %   Plot the cable displacements
@@ -195,103 +189,11 @@ grid on
 
 legend('Measured', 'Simulated')
 
-name = fig.Name;
-savefig(fullfile(path, name))
-filename_png = [char(fullfile(path, name)), '.png'];
-exportgraphics(fig, filename_png, 'Resolution', 300); 
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 %%  Compute RMSE
 
-RMSE_tip = sqrt( (1/N_times_vicon)*sum( (time_kinematics_tip(:, 5:7) - tip_fbgs(:, 1:3)).^2 ) )
+% RMSE_tip = sqrt( (1/N_times_vicon)*sum( (time_kinematics_tip(:, 5:7) - tip_fbgs(:, 1:3)).^2 ) )
 
-
-% 
-% %%  Compare data with vicon
-% 
-% rod_positions = zeros(length(Config.X_meas), 3, Config.Nt);
-% for it_t=1:Config.Nt
-% 
-%     q_it = q(:, it_t);
-%     dq_it = q_dot(:, it_t);
-%     ddq_it = q_dot_dot(:, it_t);
-% 
-%     Const.q = q_it;
-%     Const.dq = dq_it;
-%     Const.ddq = ddq_it;
-% 
-%     CI = [Const.q_0;Const.r_0;Const.eta_0];
-% 
-%     [X X3] = ode45(@(t,y) Forward_eta(t,y,time,Const,Config), Config.X_meas,CI,Config.option); % Solve ODE
-% 
-% 
-%     rod_positions(:, :, it_t) = X3(:,5:7);
-% 
-% end
-% 
-% %%  Plots
-% 
-% close all
-% 
-% 
-% %plot vicon trajectory
-% disk_num = 5;
-% xyz_XYZ = rel_kinematics_disks{disk_num};
-% begin_release_plot = begin_release + 25;
-% tip_position_vicon = xyz_XYZ(begin_release_plot:end, 1:3)';
-% time_vicon_rel = time_vicon(begin_release_plot:end) - time_vicon(begin_release_plot);
-% 
-% 
-% 
-% 
-% %   Plot the tip position
-% tip_position = squeeze( rod_positions(end, :, :) );
-% 
-% last = find(time_vicon_rel > 10, 1, 'first');
-% 
-% tip_position_vicon = tip_position_vicon(:, 1:last);
-% time_vicon_plot = time_vicon_rel(1:last);
-% 
-% figure("Name","Tip Position")
-% subplot(3, 1, 1)
-% plot(time_vicon_plot, tip_position_vicon(1, :), '-b')
-% hold on;
-% plot(Config.time, tip_position(1, :), '-r')
-% grid on
-% xlabel("Time [s]")
-% ylabel("p_x [m]")
-% 
-% subplot(3, 1, 2)
-% plot(time_vicon_plot, tip_position_vicon(2, :), '-b')
-% hold on;
-% plot(Config.time, tip_position(2, :), '-r')
-% grid on
-% xlabel("Time [s]")
-% ylabel("p_y [m]")
-% 
-% subplot(3, 1, 3)
-% plot(time_vicon_plot, tip_position_vicon(3, :), '-b')
-% hold on;
-% plot(Config.time, tip_position(3, :), '-r')
-% grid on
-% xlabel("Time [s]")
-% ylabel("p_z [m]")
-% 
-% 
-% function error_norm = findConfig(q, Const, Config)
-% 
-%     positions_simu = rod_shape(0, q, Const, Config)';
-% 
-%     figure(1)
-%     plot3(positions_simu(1, :), positions_simu(2, :), positions_simu(3, :), '-r')
-%     hold on
-%     plot3(Const.position_data(1, :), Const.position_data(2, :), Const.position_data(3, :), '-b')
-%     grid on;
-%     xlim([-.5, .5]);
-%     ylim([-.5, .5]);
-%     zlim([-.5, .5]);
-%     drawnow;
-%     error = positions_simu - Const.position_data;
-%     error_norm = norm(error(:));
-% 
-% end

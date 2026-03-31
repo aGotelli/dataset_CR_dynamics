@@ -67,3 +67,7 @@ end
 
 rel_kinematics_disks_mean = mean(rel_kinematics_disks);
 rel_kinematics_disks_std = std(rel_kinematics_disks);
+
+%   Compose the poses
+r = rel_kinematics_disks_mean;
+R = eul2rotm(rel_kinematics_disks_std)

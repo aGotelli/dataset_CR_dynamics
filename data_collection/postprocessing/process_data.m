@@ -4,8 +4,11 @@ clc;
 
 addpath("outils\")
 
+
+%%  Load reference data
+
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack/data","20260317/","star_fast/");
+folder = fullfile("..", "dataCollectionPack/data","dynamic_motion/","star_slow");
 
 cutoffHz    = 30;   % Butterworth cutoff
 butterOrder = 4;
@@ -19,8 +22,12 @@ bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for all rest
 
 %   Plots
 plot_filtered = false;
-plot_interpolation = true;
+plot_interpolation = false;
 plot_disk_num = 5;
+
+FBGS_tip_index = 478;
+
+align_window_s = 10;
 
 
 %% ====== LOAD DATA ======
@@ -37,7 +44,6 @@ filename = fullfile(folder, "dataOptiTrack.csv");
 [N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename);
 
 
-
 filename = fullfile(folder, "dataFBGS.csv");
 [fbgs_time, fbgs_shapes] = data_fbgs(filename);
 
@@ -49,56 +55,163 @@ for t = 1:N_time_fbgs
     fbgs_shapes(:, :, t) = R_y * fbgs_shapes(:, :, t);
 end
 
+
+mocap_time_rel  = mocap_timestamps - mocap_timestamps(1);
+idx_align      = mocap_time_rel <= align_window_s;
+
+XYZ_xyz_disk = rel_kinematics_disks(:, :, 5);
+tip_xy_mocap  = XYZ_xyz_disk(idx_align, 4:5);            
+tip_xy_mocap_centered = tip_xy_mocap - mean(tip_xy_mocap, 1);
+[U_m, S_m, V_m] = svd(tip_xy_mocap_centered, 'econ');
+
+% alpha_mocap = atan2(U_xy_mocap(2,1), U_xy_mocap(1,1));
+% if strcmpi(bending_axis, 'y')
+%     theta_z_mocap = pi/2 - alpha_mocap;       % map onto y-axis
+% else
+%     theta_z_mocap = 0 - alpha_mocap;          % map onto x-axis
+% end
+
+R_m = eye(3);
+R_m(1:2, 1:2) = V_m;
+axang_m = rotm2axang(R_m);
+theta_z_mocap = axang_m(4);
+% theta_z_mocap = atan2(V_m(2,1), V_m(1,1));
+
+if strcmpi(bending_axis, 'y')
+    theta_z_mocap = pi/2 - theta_z_mocap;       % map onto y-axis
+else
+    theta_z_mocap = 0 - theta_z_mocap;          % map onto x-axis
+end
+
 %   The fiber now evolves in z, but bending leaks into both x and y.
 %   Use SVD on the tip x-y trajectory (first 10 s only, planar portion)
 %   to find the bending direction, then rotate about z.
-align_window_s = 10;
 fbgs_time_rel  = fbgs_time - fbgs_time(1);
 idx_align      = fbgs_time_rel <= align_window_s;
 
 tip_xy_all     = squeeze(fbgs_shapes(1:2, end, :));   % 2 x N_time
 tip_xy         = tip_xy_all(:, idx_align);            % 2 x N_align
 tip_xy_centered = tip_xy - mean(tip_xy, 2);
-[U_xy, ~, ~] = svd(tip_xy_centered, 'econ');
+[U_f, S_f, V_f] = svd(tip_xy_centered, 'econ');
+
+R_f = eye(3);
+R_f(1:2, 1:2) = U_f;
+axang_f = rotm2axang(R_f);
+theta_z_fbgs = axang_f(4);
+
+if strcmpi(bending_axis, 'y')
+    theta_z_fbgs = pi/2 - theta_z_fbgs;       % map onto y-axis
+else
+    theta_z_fbgs = 0 - theta_z_fbgs;          % map onto x-axis
+end
+
+% figure("Name", "Tip Align Window")
+% plot(tip_xy(1, :), tip_xy(2, :), 'b')
+% hold on 
+% plot([-U_f(1,1) U_f(1,1)], [-U_f(2,1) U_f(2,1)], 'r')
+% 
+% plot(tip_xy_mocap(:, 1), tip_xy_mocap(:, 2), 'g')
+% plot([-U_m(1,1) U_m(1,1)], [-U_m(2,1) U_m(2,1)], 'k')
+% grid on
+% xlim([-.35 .35])
+% ylim([-.35 .35])
+% xlabel("p_x [m]")
+% ylabel("p_y [m]")
+
+
+% figure("Name", "Shape Align Window")
+% 
+% for it_t=1:length(idx_align)
+% 
+%     shape = fbgs_shapes(:, :, it_t);
+% 
+%     plot3(shape(1, :), shape(2, :), shape(3, :), 'b')
+% 
+%     hold on
+% 
+% 
+% end
+% 
+% xlim([-.35 .35])
+% ylim([-.35 .35])
+% zlim([-.2 .5])
+% 
+% grid on;
+% xlabel("p_x [m]")
+% ylabel("p_y [m]")
+% zlabel("p_z [m]")
 
 %   U_xy(:,1) = principal direction of tip motion in the x-y plane.
 %   Rotate it onto the desired bending axis.
-alpha = atan2(U_xy(2,1), U_xy(1,1));
+% alpha = atan2(U_xy(2,1), U_xy(1,1));
+% if strcmpi(bending_axis, 'y')
+%     theta_z = pi/2 - alpha;       % map onto y-axis
+% else
+%     theta_z = 0 - alpha;          % map onto x-axis
+% end
+
 if strcmpi(bending_axis, 'y')
-    theta_z = pi/2 - alpha;       % map onto y-axis
+    theta_z = theta_z_fbgs + theta_z_mocap;
 else
-    theta_z = 0 - alpha;          % map onto x-axis
+    theta_z = theta_z_fbgs - theta_z_mocap;
 end
 
 
-R_z = [ cos(theta_z), -sin(theta_z), 0;
-        sin(theta_z),  cos(theta_z), 0;
-        0,              0,           1];
+
+R_z = axang2rotm([0 0 1 theta_z]);
+% R_z = [ cos(theta_z), -sin(theta_z), 0;
+%         sin(theta_z),  cos(theta_z), 0;
+%         0,              0,           1];
 
 for t = 1:N_time_fbgs
     fbgs_shapes(:, :, t) = R_z * fbgs_shapes(:, :, t);
 end
 
+% fbgs_shapes(2, :, :) = -fbgs_shapes(2, :, :);
 
 
 %   Extract plotting slices from the rotated shapes
 XYZ_xyz_disk = rel_kinematics_disks(:, :, 5);
 % XYZ_xyz_disk_corr = rel_kinematics_disks_corrected(:, :, 5);
-index = 482;
-xyz_FBGS     = squeeze(fbgs_shapes(:, index, :));
-xyz_FBGS_end = squeeze(fbgs_shapes(:, end, :));
 
+xyz_FBGS     = squeeze(fbgs_shapes(:, FBGS_tip_index, :));
+% xyz_FBGS_end = squeeze(fbgs_shapes(:, end, :));
+
+
+
+
+
+
+
+% %   Apply mocap shifts
+% rel_poses_disks_corr = 0*rel_poses_disks;
+% for it=1:N_disks
+% 
+% 
+%     rel_poses_disk = rel_poses_disks(:, :, it, :);
+% 
+%     rel_pose_ref = rel_poses_disks_ref(:, :, it, :);
+% 
+%     rel_poses_disks_corr(:, :, it, :) = pagemtimes(rel_poses_disk, inv_g(rel_pose_ref));
+% end
+% 
+% 
+% 
+% r_corr = squeeze(rel_poses_disks_corr(1:3, 4, 5, :));
+% 
+% 
+% 
 figure("Name", "Tip Position");
 vars = {'p_x', 'p_y', 'p_z'};
 for it = 1:3
     index_plot = it;
     subplot(3,1,index_plot)
 
-    plot(mocap_timestamps, XYZ_xyz_disk(:, it + 3), "g", "LineWidth", 2.0)
+    plot(mocap_timestamps, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
     hold on
     plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-    % plot(mocap_timestamps, XYZ_xyz_disk_corr(:, it + 3), "b", "LineWidth", 2.0)
-    % plot(fbgs_time - fbgs_time(1), xyz_FBGS_end(it, :), "r", "LineWidth", 2.0)
+    % plot(mocap_timestamps, r_corr(it, :), "g", "LineWidth", 2.0)
+
 
     grid on
     ylabel([vars{it} ' [m]'])
@@ -114,7 +227,11 @@ for it = 1:3
 
 end
 
+% legend('OptiTrack', 'FBGS', 'OptiTrack corrected')
 legend('OptiTrack', 'FBGS')
+
+% 
+% return;
 
 %% ====== EXTRACT MOTOR SIGNALS ======
 time_actuators = motor.timestamp;                     
@@ -147,23 +264,22 @@ ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
 %% ====== TIMESTAMP COMPARISON ======
 %   Check that all sensors start recording BEFORE the motors begin moving.
 %   Raw absolute timestamps are plotted so we can see which sensors lead/lag.
-
-figure("Name", "Timesteps Comparisons");
-plot(time_actuators,      'w',  'LineWidth', 1.5); hold on
-plot(time_cables{1},      'r',  'LineWidth', 1.5);
-plot(time_cables{2},      'g',  'LineWidth', 1.5);
-plot(time_cables{3},      'b',  'LineWidth', 1.5);
-plot(time_cables{4},      'c',  'LineWidth', 1.5);
-plot(tA,                  'y',  'LineWidth', 1.5);
-plot(fbgs_time,           'm',  'LineWidth', 1.5);
-% plot(mocap_timestamps,   'k',  'LineWidth', 1.5);   % uncomment when OptiTrack is enabled
-grid on
-xlabel("Sample index")
-ylabel("Absolute timestamp [s]")
-title("Raw timestamps – verify all sensors start before motors")
-legend("Motors", "Mark10 +x", "Mark10 +y", "Mark10 -x", "Mark10 -y", "ATI FT", "FBGS" ...
-       , 'Location', 'northwest')
-set(gca, 'Color', [0.15 0.15 0.15])   % dark background so white line is visible
+% 
+% figure("Name", "Timesteps Comparisons");
+% plot(time_actuators,      'w',  'LineWidth', 1.5); hold on
+% plot(time_cables{1},      'r',  'LineWidth', 1.5);
+% plot(time_cables{2},      'g',  'LineWidth', 1.5);
+% plot(time_cables{3},      'b',  'LineWidth', 1.5);
+% plot(time_cables{4},      'c',  'LineWidth', 1.5);
+% plot(tA,                  'y',  'LineWidth', 1.5);
+% plot(fbgs_time,           'm',  'LineWidth', 1.5);
+% % plot(mocap_timestamps,   'k',  'LineWidth', 1.5);   % uncomment when OptiTrack is enabled
+% grid on
+% xlabel("Sample index")
+% ylabel("Absolute timestamp [s]")
+% title("Raw timestamps – verify all sensors start before motors")
+% legend("Motors", "Mark10 +x", "Mark10 +y", "Mark10 -x", "Mark10 -y", "ATI FT", "FBGS" ...
+%        , 'Location', 'northwest')
 
 %% ====== FILTER (BUTTER + FILTFILT) ======
 measured_angles_f   = zeros(size(measured_angles));
@@ -516,8 +632,7 @@ mkdir(saving_fig_folder);
 %   FBGS and Mocap
 %   Extract plotting slices from the rotated shapes
 XYZ_xyz_disk = interp_rel_kinematics_disks(:, :, 5);
-index = 482;
-xyz_FBGS     = squeeze(interp_fbgs_shapes(:, index, :));
+xyz_FBGS     = squeeze(interp_fbgs_shapes(:, FBGS_tip_index, :));
 
 
 interp_xy_tip = interp_rel_kinematics_disks(:, 4:5, 5);
@@ -546,7 +661,7 @@ for it = 1:3
     index_plot = it;
     subplot(3,1,index_plot)
 
-    plot(sampling_time, XYZ_xyz_disk(:, it + 3), "g", "LineWidth", 2.0)
+    plot(sampling_time, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
     hold on
     plot(sampling_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
 
@@ -558,9 +673,9 @@ for it = 1:3
         xlabel("Time [s]")
     end
 
-    if it == 1
-        title("Raw")
-    end
+    % if it == 1
+    %     title("Raw")
+    % end
 
 end
 
@@ -574,7 +689,6 @@ RMSE_tip = rmse(xyz_FBGS', XYZ_xyz_disk(:, 4:6))
 range_tip = max(XYZ_xyz_disk(:, 4:6)) - min(XYZ_xyz_disk(:, 4:6));
 
 RMSE_tip_perc_motion = (RMSE_tip./range_tip)*100
-
 
 %   Mocap and cables
 N_interp = 10;
@@ -591,13 +705,13 @@ for p = 1:2
         ax = subplot(2,1,k);
         set(ax, 'Color', 'w');
         c = idx(k);
-        plot(sampling_time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 1.5);  hold on
-        plot(sampling_time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 1.5);
-        grid on; ylabel('\DeltaL [mm]')
+        plot(sampling_time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 2);  hold on
+        plot(sampling_time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 2);
+        grid on; ylabel('\Delta \ell_c [mm]')
         title(['Cable ' cable_labels{c}])
-        if k == 1
-            legend('MoCap (computed)', 'Motor (measured)', 'Mocap (10)''Location', 'best')
-        end
+        % if k == 1
+        %     legend('MoCap (computed)', 'Motor (measured)', 'Mocap (10)''Location', 'best')
+        % end
         if k == 2, xlabel('Time [s]'); end
     end
     savefig(saving_fig_folder + fig.Name)

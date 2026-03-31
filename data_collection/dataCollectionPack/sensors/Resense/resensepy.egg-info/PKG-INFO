@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: resensepy
+Version: 0.0.3
+Summary: Python library for interfacing with the WITTENSTEIN HEX force/torque sensors
+Home-page: http://resense.io/
+Author: WittensteinSE
+Author-email: elias.hoerner@wittenstein.de
+License: GPL-2.0
+License-File: LICENSE.txt
+Requires-Dist: numpy
+Requires-Dist: pyserial
+Requires-Dist: matplotlib
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: summary

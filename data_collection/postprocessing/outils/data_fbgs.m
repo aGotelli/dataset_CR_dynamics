@@ -21,9 +21,11 @@ function [time_fbgs, fbgs_shapes] = data_fbgs(filename)
         
 
         column = ['Curvature_' char( int2str(greating_index(it)) )];
-        curvatures(:, it) = fbgs_raw_data.( column );
-
-
+        curvature = fbgs_raw_data.( column );
+        %   Curvature is in 1/mm -> convert to 1/m
+        curvatures(:, it) = curvature*1000;
+        
+        %   Angle is already in radians
         column = ['Angle_' char( int2str(greating_index(it)) )];
         angles(:, it) = fbgs_raw_data.( column );
 

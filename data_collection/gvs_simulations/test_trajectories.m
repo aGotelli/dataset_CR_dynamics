@@ -3,7 +3,7 @@ clear all
 close all
 
 
-path = fullfile("..", "dataCollectionPack", "20260304", 'plane_y_fast/');
+path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'circle_slow/');
 load_path = fullfile(path, 'processed/');
 savepath = fullfile(path, "gvs/");
 saving_fig_folder = fullfile(savepath, "figures/");
@@ -150,18 +150,19 @@ saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 fig = figure("Name", "Torque");
 subplot(2, 1, 1)
-plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'b', 'LineWidth', 2)
 hold on
+plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'g', 'LineWidth', 2)
-
+grid on
 
 
 subplot(2, 1, 2)
-plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'b', 'LineWidth', 2)
 hold on
+plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
-plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'g', 'LineWidth', 2)
+grid on
 legend('Measured', 'Simulated')
 
 savefig(saving_fig_folder + fig.Name)

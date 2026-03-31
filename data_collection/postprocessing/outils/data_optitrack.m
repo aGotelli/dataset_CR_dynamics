@@ -237,7 +237,6 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
             view(3)   % standard 3D perspective: azimuth -37.5, elevation 30
             drawnow
             hold off
-        
         end
 
     end
