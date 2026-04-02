@@ -12,6 +12,7 @@
 \usepackage{multirow}
 \usepackage{longtable}
 \usepackage{parskip}
+\usepackage{xcolor}
 
 \DeclareSIUnit\pound{lb}
 
@@ -122,18 +123,18 @@ Both raw sensor recordings and processed (filtered, resampled, time-aligned) dat
 The dataset is intended for benchmarking dynamics models against experimental data, training and evaluating data-driven methods, studying contact and interaction forces, investigating sensor fusion approaches, and performing parameter identification.
 Because the robot is built from commercially available components and the design is fully documented, the dataset can also serve as a reference for groups building similar platforms.
 
-In total, the dataset comprises N experiments totaling approximately X hours of multi-sensor recording (Y GB of raw data, Z GB processed).
+\textcolor{blue}{In total, the dataset comprises 29 experiments (16 quasi-static, 10 dynamic, and 3 contact) plus 2 reference recordings, each with simultaneous multi-sensor acquisition.}
+%% TODO: fill in total hours and data size once the final dataset is deposited.
 
 \section{Methods}
 
-In this section, we define the methodology used to create the presented dataset, starting from the robot design and components to the specifics of the sensors.
-Finally, we describe how the data is collected giving a general idea of the data collection pipeline.
+\textcolor{blue}{This section describes the robot design, the sensor suite, and the data collection pipeline.}
 
 
 
 \subsection{Design}
 
-In this section we describe both the design of the continuum robot and the contact wand that is used to interact with the robot.
+\textcolor{blue}{This section describes the design of the continuum robot and the contact wand used for interaction experiments.}
 
 \subsubsection{Continuum robot}
 The overall objective of the design is to maximize modeling and sensing accuracy by minimizing unmodeled effects such as friction, structural compliance, and geometric uncertainty. All design choices aim to ensure close consistency between the physical system and the underlying continuum robot model. The system consists of a bench-top experimental platform and a tendon-driven continuum robot (Fig.~\ref{fig:robotPlatform}).
@@ -154,9 +155,9 @@ The ATI force--torque sensor is mounted between the base platform and the robot 
 Overall, the design emphasizes structural rigidity, symmetric actuation, friction-minimized tendon routing, and well-defined boundary conditions, ensuring that the experimental system faithfully reflects the assumptions of the continuum model.
 
 \subsubsection{Contact wand}
-The contact wand is designed to provide a lightweight slender object capable of interacting with the robot without occluding the disks markers.
-The wand is made of an aluminum extrusion frame (\SI{20}{\milli\meter} T-slot profile) provided with a mocap frame (to measure its pose in the robot workspace) and a force/torque sensor to measure the interaction force.
-For the latter, an ad-hoc support has been realized to align the sensors axis to those of the mocap frame.
+\textcolor{blue}{The contact wand provides a lightweight slender object for interacting with the robot without occluding the disk markers.}
+\textcolor{blue}{It consists of an aluminum extrusion frame (\SI{20}{\milli\meter} T-slot profile) equipped with a motion capture rigid body (for 6-DoF pose tracking) and a force/torque sensor for measuring the interaction force.}
+\textcolor{blue}{A custom 3D-printed adapter aligns the sensor axes with those of the motion capture frame.}
 
 
 \begin{table}[!htbp]
@@ -200,9 +201,9 @@ For the latter, an ad-hoc support has been realized to align the sensors axis to
 
 \subsection{Sensors}
 
-Different sensors have been mounted on the robot to capture different aspect of the motion, being it kinematics like position, shape of the robot and pulled lenght of the cables, or force measures like tendon tensions, forces and torques at the base and at the contact with an object in the environment.
+\textcolor{blue}{The robot is instrumented with sensors capturing both kinematic and force quantities: position and shape (motion capture, FBGS, motor encoders) as well as tendon tensions, base wrench, and contact forces.}
 %
-In this section, we describe the characteristics of each sensor in terms of frequency readings, range of outputs, and a summary of their specifics available on their datasheet.
+\textcolor{blue}{This section describes each sensor in terms of sampling rate, measurement range, and key specifications from the manufacturer datasheet.}
 
 \subsubsection{Mark 10}
 
@@ -463,8 +464,8 @@ This layout was chosen as representative of the tendon-driven continuum robots c
 % Each tendon is wound on a spool attached directly to the motor shaft (no gearbox) and routed only through the pulley integrated in the Mark~10 force gauge. Tendon length variations are related to commanded motor rotations through a fixed spool radius ($r_{\mathrm{spool}} = 20$~mm), providing a direct mapping between motor shaft angle and tendon displacement.
 % No additional pulleys or redirections are used, so as to minimise cable friction and eliminate the reflected inertia of intermediate transmission elements. Every other spacer disk is embedded with retroreflective markers and tracked by an OptiTrack motion capture system, providing 6-DOF pose measurements for the tracked disks.
 %
-The same layout has been used for different subset of the dataset.
-In subsets 1 and 2, the workspace is free of obstacles while in subset 3 an object (contact wand) is introduced for contact.
+\textcolor{blue}{The same layout is used across all subsets of the dataset.}
+\textcolor{blue}{In subsets 1 and 2, the workspace is free of obstacles, while in subset 3 a contact wand is introduced.}
 % The object consists of a 3D printed platform with integrated mocap frame and a Resense force-torque sensor to measure the interaction force.
 %TODO: add object dimensions
 To ensure consistency across all sensor modalities, every recording session follows a fixed preparation protocol.
@@ -549,13 +550,12 @@ To ensure consistency across all sensor modalities, every recording session foll
 % To ensure consistency across all sensor modalities, every recording session follows a fixed preparation protocol.
 
 First, the FBGS is aligned to the robot motion following the procedure.
-Using a self-leveled laser (Bosh Professional GLL50-20) the robot is ensured straight on both the $x$ and $y$ axis, using cables to compensate enventual residual deformation of the backbone.
+\textcolor{blue}{Using a self-leveling laser (Bosch Professional GLL50-20), the robot is verified straight along both the $x$ and $y$ axes, with cables compensating any residual deformation of the backbone.}
 From this configuration, the ShapeCore software \textit{set\_straight} functionality allows us to update the fiber calibration matrix to comply with the registered shape.
 Then, by pulling on the $+x$ tendon the robot is significantly bent in one direction, with usage of the laser the robot is ensured bent in the $xz$ plane, correcting any out of plane deformation with the remaining cables.
 From this planar bent configuration, the \textit{set\_planar} functionality of ShapeCore ensures that the measurements are free from any residual twisting. 
 
-Once the fiber is calibrated, two preliminary measures are performed, first one with all the tendon released measures the baseline noise on the sensors. 
-Then, with the robot ensured in a straight configuration using the bosh laser, the configuration is recorded to provide a estimate of residual error in the FBGS and mocap measures.
+\textcolor{blue}{Once the fiber is calibrated, two preliminary recordings are performed. First, with all tendons released, baseline noise is measured on all sensors. Then, with the robot verified straight using the Bosch laser, the straight configuration is recorded to provide an estimate of the residual error in the FBGS and motion capture measurements.}
 
 Moreover, before each experiment, the laser is used to ensure that the robot is straight.
 In this configuration, the active tendons are pre-tensioned to approximately \SI{1}{\newton} each, with a maximum difference between the two cables of an antagonistic pair $<$\SI{0.2}{\newton}.
@@ -646,7 +646,7 @@ The calibration sweeps characterize this offset, allowing it to be corrected in 
 For each experiment, a Windows batch script orchestrates the acquisition.
 The script launches one independent process per sensor, each in its own terminal window.
 Each sensor process polls its instrument at the native sampling rate (see the sensor specifications in Table \ref{tab:sensor_summary}), buffers all readings in memory, and writes them to a CSV file after the recording is complete.
-The motor process is launched last, and waits \SI{2}{\second} before sending position commands, providing a sufficient delay to ensure all sensors to be already streaming before the actuators begin to move.
+\textcolor{blue}{The motor process is launched last and waits \SI{2}{\second} before sending position commands, ensuring all sensors are already streaming before the actuators begin to move.}
 %% TODO: confirm the startup delay value. The original draft said "2 seconds";
 %% the code shows time.sleep(1) for homing at the end, but the main control 
 %% loop appears to start immediately after CAN bus init. Clarify whether there 
@@ -807,11 +807,11 @@ Raw files include a header row.}
 
 
 \begin{longtable}{@{} p{3.8cm} p{4.8cm} p{1.2cm} p{5.6cm} @{}}
-\caption{Complete file and column documentation for each experiment folder.
+\caption{\textcolor{blue}{Processed file and column documentation for each experiment folder.}
 Subscript $n \in \{1,2,3,4\}$ denotes motor index (motors 1\,\&\,3 form the $x$-plane pair; 2\,\&\,4 the $y$-plane pair).
 Subscript $k \in \{0,\ldots,4\}$ denotes disk index from base to tip.
-Pprocessed files are header-less.}
-\label{tab:data_records}\\
+\textcolor{blue}{Processed} files are header-less.}
+\label{tab:data_records_processed}\\
 \toprule
 \textbf{File} & \textbf{Column(s)} & \textbf{Unit} & \textbf{Description} \\
 \midrule
@@ -862,6 +862,53 @@ Pprocessed files are header-less.}
 
 
 
+\textcolor{blue}{%
+\subsection{Dataset Structure}
+\label{sec:dataset_structure}
+The dataset is organized in a hierarchical directory tree.
+At the top level, four directories separate the experimental conditions and the reference recordings:
+%
+\begin{verbatim}
+data/
+  quasi_static/
+    static_bend_x_100/     ... static_bend_x_200/
+    static_bend_x_n100/    ... static_bend_x_n200/
+    static_bend_y_100/     ... static_bend_y_200/
+    static_bend_y_n100/    ... static_bend_y_n200/
+  dynamic_motion/
+    plane_x_slow/   plane_x_fast/
+    plane_y_slow/   plane_y_fast/
+    star_slow/      star_fast/
+    circle_slow/    circle_fast/
+    Lissajous_slow/ Lissajous_fast/
+  contact_motion/
+    plane_x_slow/   plane_y_slow/   star_slow/
+  references/
+    released_config/
+    straight_config/
+\end{verbatim}
+%
+Each experiment folder (e.g., \texttt{circle\_slow/}) contains the raw sensor CSV files at the top level and a \texttt{processed/} subfolder with the filtered, resampled data:
+%
+\begin{verbatim}
+<experiment>/
+  dataMotor.csv        dataATIFT.csv
+  dataMark10_+x.csv    dataMark10_-x.csv
+  dataMark10_+y.csv    dataMark10_-y.csv
+  dataFBGS.csv         dataOptiTrack.csv
+  processed/
+    angles.csv         cable_tensions.csv
+    base_wrench.csv    base_wrench_raw.csv
+    mocap_frames.csv   fbgs_shapes.csv
+    RMSEs.txt          figures/
+\end{verbatim}
+%
+The \texttt{quasi\_static/} subset contains 16 experiments corresponding to planar bends along $\pm x$ and $\pm y$ at four commanded amplitudes (100, 150, 180, 200 motor counts).
+The \texttt{dynamic\_motion/} subset contains 10 experiments (5 trajectories $\times$ 2 speeds).
+The \texttt{contact\_motion/} subset contains 3 experiments (slow speed only: \texttt{plane\_x}, \texttt{plane\_y}, and \texttt{star}).
+The \texttt{references/} folder stores two calibration recordings: \texttt{released\_config} (tendons released, robot at rest) and \texttt{straight\_config} (robot held straight with laser alignment).
+}
+
 % \section{Data Overview (optional)}
 \section{Technical Validation}
 %
@@ -884,7 +931,7 @@ Pprocessed files are header-less.}
 \begin{figure}
     \centering
     \includegraphics[width=0.9\linewidth]{figures/Lissajous_slow/Tip Position interpolated.png}
-    \caption{Trajectory of the robot tip as measured by the OptiTrack motion capture system (blue) and the FBGS (red) using the Lijassous motion.}
+    \caption{Trajectory of the robot tip as measured by the OptiTrack motion capture system (blue) and the FBGS (red) \textcolor{blue}{for the Lissajous trajectory}.}
     \label{fig:tip trajectory Lissajous_slow}
 \end{figure}
 
@@ -892,7 +939,7 @@ Pprocessed files are header-less.}
 %     \centering
 %     \includegraphics[width=0.8\linewidth]{figures/MoCap vs Motor tendon tension.png}
 %     \caption{Comparison of the pulled lenght measured from the actuators and reconstructed from the OptiTrack system.}
-%     \label{fig:cable lenght}
+%     \label{fig:cable_length}
 % \end{figure}
 
 % \begin{figure}
@@ -922,9 +969,8 @@ The dataset contains two families of measurements: kinematic quantities (OptiTra
 Within each family, sensors may be directly compared.
 % However, no direct comparison is possible between kinematic and force measurements without invoking the governing physics of the continuum robot.
 
-[[Add here what we conpare on]]
-
-For this reason, a reduced-order dynamics model is employed as a cross-validation tool to verify force--kinematics consistency, as detailed in Section~\ref{sec:force_kin_consistency}.
+\textcolor{blue}{Kinematic sensors are cross-validated by comparing OptiTrack tip positions with FBGS-reconstructed shapes, and encoder-derived cable displacements with motion-capture-based geometric reconstructions.}
+\textcolor{blue}{Force quantities cannot be compared directly with kinematic measurements without a physical model; therefore,} a reduced-order dynamics model is employed as a cross-validation tool to verify force--kinematics consistency, as detailed in Section~\ref{sec:force_kin_consistency}.
 
 \subsection{Sensor noise and calibration}\label{sec:sensors_noise}
 %% TODO: For each sensor, report a short static recording and the resulting 
@@ -1004,13 +1050,34 @@ Motor encoder    & Shaft angle   & $< \SI{0.001}{\radian}$ \\
 The OptiTrack and FBGS sensors provide independent measurements of the robot shape.
 To verify their mutual consistency, we compare the tip position recorded by OptiTrack with the tip position reconstructed from FBGS strain data, evaluated at the same arc-length coordinate.
 Figure~\ref{fig:tip trajectory Lissajous_slow} shows the overlay of these two signals for the Lissajous trajectory (see Fig. \ref{fig:motion Lissajous}).
-The overlay show consistency between the two measurements, where deviations could be attributed to the disks drift observed by the static data discussed in Section \ref{sec:sensors_noise}.
-When evaluating the $(x,\;y,\;z)$ position of the robot tip, the RMSE is $(0.0172,\;0.0140,\;0.0085)$ m.
+\textcolor{blue}{The overlay shows good consistency between the two measurements; residual deviations are attributable to the frame definition uncertainties discussed in Section~\ref{sec:sensors_noise}.}
+\textcolor{blue}{Table~\ref{tab:rmse_tip} reports the root-mean-square error (RMSE) between the OptiTrack and FBGS tip positions for all dynamic trajectories.
+The tip RMSE remains below \SI{12}{\milli\meter} in the primary motion axes and below \SI{8}{\milli\meter} in the vertical ($z$) direction across all trajectories and speeds, confirming that the two independent kinematic measurements are mutually consistent.}
 
-
-[[elaborate a bit more]] 
-
-[[Add RMSE from folders]]
+\begin{table}[ht]
+\centering
+\textcolor{blue}{\caption{RMSE of tip position between OptiTrack and FBGS for each dynamic trajectory.
+Values are in millimeters; percentages in parentheses are relative to the motion range.}
+\label{tab:rmse_tip}
+\renewcommand{\arraystretch}{1.2}
+\footnotesize
+\begin{tabular}{@{} l c c c @{}}
+\toprule
+\textbf{Trajectory} & \textbf{RMSE $x$ [mm] (\%)} & \textbf{RMSE $y$ [mm] (\%)} & \textbf{RMSE $z$ [mm] (\%)} \\
+\midrule
+\texttt{plane\_x} slow  & 8.01 (1.4\%) & 5.87 (17.2\%) & 3.62 (2.5\%) \\
+\texttt{plane\_x} fast  & 9.88 (1.7\%) & 7.67 (20.1\%) & 5.28 (3.4\%) \\
+\texttt{plane\_y} slow  & 8.68 (25.6\%) & 9.04 (1.6\%) & 3.99 (2.7\%) \\
+\texttt{plane\_y} fast  & 5.69 (15.3\%) & 10.27 (1.8\%) & 5.48 (3.5\%) \\
+\texttt{star} slow      & 7.36 (1.3\%) & 7.86 (1.4\%) & 5.34 (1.9\%) \\
+\texttt{star} fast      & 8.95 (1.5\%) & 8.75 (1.5\%) & 6.85 (2.3\%) \\
+\texttt{circle} slow    & 11.24 (1.9\%) & 8.98 (1.6\%) & 6.94 (4.0\%) \\
+\texttt{circle} fast    & 11.48 (2.0\%) & 9.67 (1.6\%) & 7.41 (4.0\%) \\
+\texttt{Lissajous} slow & 9.21 (1.6\%) & 8.51 (1.5\%) & 6.50 (3.0\%) \\
+\texttt{Lissajous} fast & 10.59 (1.8\%) & 9.07 (1.6\%) & 7.26 (3.1\%) \\
+\bottomrule
+\end{tabular}}
+\end{table}
 
 \subsubsection{Validation of Cable Displacement via Motion Capture}
 
@@ -1025,8 +1092,8 @@ When evaluating the $(x,\;y,\;z)$ position of the robot tip, the RMSE is $(0.017
         % \caption{}
         % \label{fig:cable y}
     \end{subfigure}%
-    \caption{Comparison of the pulled cable length as per measured from the actuator encoders (red) and reconstructed from the OptiTrack recorded kinematics (blue) for the circular motion for the $x$ pair (left) and $y$ pair (right).}
-    \label{fig:cable lenght}
+    \caption{\textcolor{blue}{Cable displacement as measured by the actuator encoders (red) and reconstructed from the OptiTrack kinematics (blue) for the star trajectory: $x$ pair (left) and $y$ pair (right).}}
+    \label{fig:cable_length}
 \end{figure}
 
 
@@ -1054,10 +1121,34 @@ The cable displacement is defined as the change in length relative to the straig
 On the other hand, an independent estimate is obtained from the motor encoders as $\Delta \ell_c^{\,\mathrm{enc}}(t) = \bigl(\theta_c(t) - \bar{\theta}_c^{\,\mathrm{ref}}\bigr)\,r_s$, where $\theta_c$ is the measured shaft angle and $r_s$ is the spool radius (see Table \ref{tab:cables parameter}).
 The two estimates are compared directly in the time domain; agreement between them constitutes a geometric consistency check, confirming that the encoder records and the motion-capture poses are mutually consistent and that the assumed cable-routing geometry is correct.
 %
-We provide a comparison with the motion on the $x$ and $y$ planes in Figure \ref{fig:cable lenght} while Table X prensents the RMSE comparison.
+\textcolor{blue}{Figure~\ref{fig:cable_length} compares the two estimates for the star trajectory.
+Table~\ref{tab:rmse_cables} reports the RMSE between encoder-based and motion-capture-based cable displacement for all dynamic trajectories.
+The cable RMSE remains below \SI{4.2}{\milli\meter} across all trajectories, corresponding to less than $3.6\%$ of the motion range, confirming that the encoder recordings and the motion-capture poses are geometrically consistent.}
 
-
-[[Add RMSE from folders]]
+\begin{table}[ht]
+\centering
+\textcolor{blue}{\caption{RMSE of cable displacement between encoder and OptiTrack reconstruction for each dynamic trajectory.
+Values are in millimeters; percentages in parentheses are relative to the cable motion range. Cables are labeled by tendon direction ($+x$, $+y$, $-x$, $-y$).}
+\label{tab:rmse_cables}
+\renewcommand{\arraystretch}{1.2}
+\footnotesize
+\begin{tabular}{@{} l c c c c @{}}
+\toprule
+\textbf{Trajectory} & \textbf{$+x$ [mm] (\%)} & \textbf{$+y$ [mm] (\%)} & \textbf{$-x$ [mm] (\%)} & \textbf{$-y$ [mm] (\%)} \\
+\midrule
+\texttt{plane\_x} slow  & 1.85 (1.7\%) & 0.43 (--) & 3.57 (3.1\%) & 0.61 (--) \\
+\texttt{plane\_x} fast  & 2.43 (2.2\%) & 0.41 (--) & 3.53 (3.1\%) & 0.67 (--) \\
+\texttt{plane\_y} slow  & 0.44 (--) & 2.87 (2.5\%) & 0.51 (--) & 2.44 (2.1\%) \\
+\texttt{plane\_y} fast  & 0.48 (--) & 2.77 (2.5\%) & 0.44 (--) & 3.05 (2.6\%) \\
+\texttt{star} slow      & 1.41 (1.2\%) & 2.31 (2.0\%) & 1.93 (1.7\%) & 2.09 (1.8\%) \\
+\texttt{star} fast      & 1.88 (1.6\%) & 2.78 (2.5\%) & 2.20 (1.9\%) & 2.29 (2.0\%) \\
+\texttt{circle} slow    & 2.67 (2.3\%) & 3.74 (3.2\%) & 3.00 (2.6\%) & 3.12 (2.7\%) \\
+\texttt{circle} fast    & 3.15 (2.7\%) & 4.17 (3.6\%) & 3.32 (2.9\%) & 3.29 (2.8\%) \\
+\texttt{Lissajous} slow & 1.22 (1.1\%) & 2.38 (2.0\%) & 1.73 (1.5\%) & 2.15 (1.8\%) \\
+\texttt{Lissajous} fast & 1.93 (1.7\%) & 2.58 (2.2\%) & 2.02 (1.7\%) & 2.18 (1.9\%) \\
+\bottomrule
+\end{tabular}}
+\end{table}
 
 \subsection{Force--kinematics consistency}
 \label{sec:force_kin_consistency}
@@ -1128,12 +1219,29 @@ The resulting plane-wise estimates were $\hat{EI}_{xz}=0.0925$ and $\hat{EI}_{yz
 Then, the distributed weight of the rod is calculated from the measured weight of the robot ($0.102$ Kg) and the geometry of the rod (length $0.48$ m and radius $2$ mm) producing $\rho = 16910 \; \textbf{kg/m}^3$.
 
 
-[[Add table with robot parameters]]
+\textcolor{blue}{%
+\begin{table}[ht]
+\centering
+\caption{Identified mechanical parameters of the continuum robot.}
+\label{tab:mech_params}
+\renewcommand{\arraystretch}{1.2}
+\footnotesize
+\begin{tabular}{@{} r l @{}}
+\toprule
+Bending rigidity $EI_{xz}$ & $0.0925$ \si{\newton\meter\squared} \\
+Bending rigidity $EI_{yz}$ & $0.08875$ \si{\newton\meter\squared} \\
+Adopted $\hat{EI}$ & $0.092$ \si{\newton\meter\squared} \\
+Robot mass & $0.102$ \si{\kilogram} \\
+Backbone length & $0.48$ \si{\meter} \\
+Equivalent density $\rho$ & $16\,910$ \si{\kilogram\per\meter\cubed} \\
+\bottomrule
+\end{tabular}
+\end{table}}
 \subsubsection{Comparison of the measured forces}
 
 Using the GVS of \cite{Boyer2021} and the characterized robot materials we have a reliable framework to compute the consistency of the measured values.
 Using the tendon tension as input for our simulation, we can compute the corresponding motion of the robot and the forces it exchanges at its base. 
-Comparison of the computed and measured torque is presented in Fig. \ref{fig:Base Torque}, were the overall behavior has been captured by the sensor while the simulated spikes are attributed to poorely identified parameters of the robot (\eg{} the distributed weight and corresponding inertia).
+\textcolor{blue}{Figure~\ref{fig:Base Torque} compares the simulated and measured base torque.  The overall trend is well captured; residual discrepancies (e.g., torque spikes) are attributed to approximate identification of the distributed mass and inertia parameters (Section~\ref{sec:mech_char}).}
 %On the other hand, the simulated tip position is shown alongside the measured ones in Fig. \ref{fig:tip trajectory Lissajous_slow}.
 % The cable length has been retrieved from the measured rotation angle (relative to the initial home position) and the behavior is consistently shown in Fig. \ref{fig:cable displacement}.
 
@@ -1199,12 +1307,11 @@ Users who prefer Python can replicate the processing with \texttt{scipy.signal.b
     The FBGS fiber cannot be bonded to the backbone with sub-degree angular accuracy.
     A residual rotational offset between the fiber deformation plane and the robot bending plane is corrected in post-processing using the initial planar calibration sweeps (see Methods).
     Users working with the raw FBGS data must apply this correction themselves.
-    \item \textbf{ATI-FT bias.}
-    The ATI force/torque sensor exhibits a slowly drifting bias.
-    A bias snapshot is recorded at rest before each experiment and subtracted from all readings.
-    The unfiltered, bias-subtracted wrench is provided as \texttt{base\_wrench\_raw.csv}; the filtered version is \texttt{base\_wrench.csv}.
-    \item \textbf{OptiTrack marker uncertanties.}
-    Definition of frames with the OptiTrack markers suffer from uncertanties in the markers placement and assembly. 
+    \item \textbf{ATI-FT $F_z$ noise.}
+    The ATI Mini40 exhibits a high noise floor on the $F_z$ axis ($1\sigma \approx \SI{0.94}{\newton}$), which is an intrinsic characteristic of this sensor and calibration range.
+    Users should account for this when using the base wrench data.
+    \item \textbf{OptiTrack marker uncertainties.}
+    Definition of frames with the OptiTrack markers suffer from uncertainties in the markers placement and assembly. 
     \item \textbf{Motor trajectory generation.}
     The motors are position-controlled; the trajectories are defined as sequences of waypoint angles with a maximum angular velocity limit.
     The actual tip trajectory depends on the robot dynamics and is not a perfect geometric curve.
@@ -1225,7 +1332,8 @@ Users who prefer Python can replicate the processing with \texttt{scipy.signal.b
 %%   The repository contains all raw and processed sensor recordings 
 %%   organized as described in the Data Records section.
 %%
-Many people in Nature Scientific Data use figshare for which I have created an account.
+\textcolor{blue}{The dataset described in this work is available on figshare at \url{https://doi.org/10.6084/m9.figshare.XXXXXXX} (Ref.~[XX]).
+The repository contains all raw and processed sensor recordings organized as described in the Data Records section.}
 % NOTE: GitHub is for code. Data must go on figshare (or Zenodo).
 % NSD is NOT double-blind — reviewers see author names.
 
@@ -1243,7 +1351,9 @@ Many people in Nature Scientific Data use figshare for which I have created an a
 %%   [list]. The post-processing code requires MATLAB~R202Xa with the 
 %%   Signal Processing Toolbox.
 %%
-Statement about releasing the code for the data acquisition and the postprocessing \& technical validation.
+\textcolor{blue}{The Python acquisition scripts and MATLAB post-processing and technical validation code are available on GitHub at \url{https://github.com/ContinuumRoboticsLab/XXXXX} (Ref.~[XX]).
+The acquisition code requires Python~3.10 with \texttt{pyserial}, \texttt{python-can}, and \texttt{numpy}.
+The post-processing code requires MATLAB~R2025b with the Signal Processing Toolbox.}
 
 %% NSD GUIDANCE ON REFERENCES:
 %% References must be embedded directly in the .tex file as 

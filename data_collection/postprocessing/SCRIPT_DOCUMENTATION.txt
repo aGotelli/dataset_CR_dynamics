@@ -1,0 +1,168 @@
+================================================================================
+ANALYZE_REFERENCE_NOISE.M - SENSOR NOISE CHARACTERIZATION SCRIPT
+================================================================================
+
+LOCATION:
+/sessions/keen-sleepy-curie/mnt/dataset_CR_dynamics/data_collection/postprocessing/analyze_reference_noise.m
+
+DESCRIPTION:
+This MATLAB script analyzes static reference sensor recordings to characterize
+sensor noise characteristics. The data comes from sensors at rest, which allows
+computation of pure noise statistics (no signal present).
+
+INPUT DATA:
+Reads CSV files from:
+/sessions/keen-sleepy-curie/mnt/dataset_CR_dynamics/data_collection/dataCollectionPack/data/references/released_config/
+
+Files processed:
+1. dataATIFT.csv (7 columns: timestamp + 6 channels)
+   - Fx, Fy, Fz (force in Newtons)
+   - Tx, Ty, Tz (torque in Newton-meters)
+
+2. dataMark10_+x.csv, dataMark10_+y.csv, dataMark10_-x.csv, dataMark10_-y.csv
+   - Each has: timestamp, tension (N)
+   - 4 independent tension gauges
+
+3. dataOptiTrack.csv (mocap system)
+   - 5 disks tracked simultaneously
+   - For each disk: frame_number, is_valid, x, y, z, qx, qy, qz, qw
+   - Position in meters, orientation as quaternion
+
+4. dataFBGS.csv (30 MB file - large!)
+   - Curvature sensors: Curvature_0 to Curvature_25 (26 gratings)
+   - Angle sensors: Angle_0 to Angle_25 (26 gratings)
+   - Shape data: Shape_0 to Shape_1505 (1506 values = 502 points x 3 coordinates)
+   - Shape encodes 502 points along the arc (1mm resolution)
+
+================================================================================
+ANALYSIS PERFORMED
+================================================================================
+
+1. MARK10 TENSION GAUGES
+   For each of 4 gauges:
+   - Compute mean and standard deviation
+   - Report per-gauge statistics
+   - Provide overall combined statistics
+   
+   Output: Mean and std deviation in Newtons for each gauge
+
+2. ATI-FT FORCE/TORQUE SENSOR
+   For each of 6 channels (Fx, Fy, Fz, Tx, Ty, Tz):
+   - Compute mean and standard deviation
+   - Report individual channel noise
+   - Compute combined noise across all channels
+   
+   Output: Mean and std for forces (N) and torques (Nm)
+
+3. OPTITRACK MOCAP SYSTEM
+   For each of 5 disks:
+   - Position noise: std of x, y, z coordinates (converted to mm)
+   - Orientation noise: std of quaternion variations (converted to degrees)
+   
+   Method: Compute relative rotations from mean quaternion
+           Convert relative quaternions to angle deviations
+           Report std of angle deviations
+   
+   Output: Per-disk and average position/orientation noise
+
+4. FBGS CURVATURE SENSOR
+   
+   a) Curvature analysis:
+      - For each of 26 gratings: compute std across time
+      - Report average std across all gratings
+      - Units: inverse meters (m^-1) or similar
+   
+   b) Angle analysis:
+      - For each of 26 gratings: compute std across time
+      - Report average std (converted to degrees)
+   
+   c) Shape analysis:
+      - Extract 502 points (x,y,z triplets)
+      - For each point along arc: compute position std
+      - Report average position std across all points (converted to mm)
+      - Report tip position (last point) noise specifically
+   
+   Output: Per-point and average shape noise statistics
+
+================================================================================
+OUTPUT
+================================================================================
+
+1. Console Output:
+   - Detailed statistics for each sensor type
+   - LaTeX-formatted table ready for inclusion in papers
+   - Table format:
+     \begin{table}[h]
+     \centering
+     \caption{Sensor Noise Characterization (Static Recordings)}
+     \label{tab:sensor_noise}
+     \begin{tabular}{|l|c|c|}
+     ... [all measurements] ...
+     \end{tabular}
+     \end{table}
+
+2. Output File:
+   analyze_reference_noise_results.mat
+   
+   Contains MATLAB structures:
+   - mark10_stats: Per-gauge and overall statistics
+   - ati_stats: Per-channel F/T sensor statistics  
+   - opti_stats: Per-disk position and orientation noise
+   - fbgs_stats: Per-grating and average curvature/angle/shape noise
+   
+   Can be loaded in MATLAB with: load('analyze_reference_noise_results.mat')
+
+================================================================================
+FEATURES
+================================================================================
+
+1. Robust data handling:
+   - Automatically detects and removes NaN values
+   - Uses readtable with importoptions for reliable CSV parsing
+   - Handles large files (FBGS: 30 MB)
+
+2. Quaternion processing:
+   - Proper quaternion normalization
+   - Accurate quaternion multiplication
+   - Converts quaternion variations to interpretable angle deviations
+
+3. Units conversion:
+   - Position/shape data reported in mm (from meters)
+   - Orientation reported in degrees (from radians)
+   - Maintains original units in internal storage
+
+4. LaTeX integration:
+   - Console output includes ready-to-use LaTeX table code
+   - Proper escape sequences for backslashes and special characters
+   - Multi-row table for organized presentation
+
+5. Error handling:
+   - Creates output folder if it doesn't exist
+   - Graceful handling of missing or zero values
+   - Informative console messages for debugging
+
+================================================================================
+USAGE
+================================================================================
+
+In MATLAB:
+>> cd /sessions/keen-sleepy-curie/mnt/dataset_CR_dynamics/data_collection/postprocessing/
+>> analyze_reference_noise
+
+Or batch mode:
+$ matlab -batch analyze_reference_noise
+
+Expected runtime: ~5-10 minutes (depending on system performance, mostly due
+to reading the 30 MB FBGS file and processing 502 shape points)
+
+================================================================================
+SCRIPT STATISTICS
+================================================================================
+
+Lines of code: 443
+Main sections: 9
+Functions defined: 1 (quaternion_multiply)
+Data files read: 7
+Output files created: 1 (.mat file)
+
+================================================================================

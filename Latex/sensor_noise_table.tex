@@ -1,0 +1,40 @@
+\begin{table}[ht]
+\centering
+\caption{Static noise characterisation.
+Values are standard deviations computed over the reference recording with the robot at rest.
+Mark-10 gauges output a quantised reading at \SI{0.02}{\newton} resolution; no variation was observed in the static recording.}
+\label{tab:sensor_noise}
+\renewcommand{\arraystretch}{1.2}
+\footnotesize
+\begin{tabular}{@{} l l r @{}}
+\toprule
+\textbf{Sensor} & \textbf{Quantity} & \textbf{Static noise ($1\sigma$)} \\
+\midrule
+Mark-10 ($+x$) & Cable tension & $<\SI{0.02}{\newton}$ \\
+Mark-10 ($+y$) & Cable tension & $<\SI{0.02}{\newton}$ \\
+Mark-10 ($-x$) & Cable tension & $<\SI{0.02}{\newton}$ \\
+Mark-10 ($-y$) & Cable tension & $<\SI{0.02}{\newton}$ \\
+\midrule
+ATI-FT & $F_x$ & \SI{0.013}{\newton} \\
+       & $F_y$ & \SI{0.017}{\newton} \\
+       & $F_z$ & \SI{0.944}{\newton} \\
+       & $T_x$ & \SI{7.1e-4}{\newton\meter} \\
+       & $T_y$ & \SI{4.3e-4}{\newton\meter} \\
+       & $T_z$ & \SI{7.9e-3}{\newton\meter} \\
+\midrule
+\multirow{2}{*}{OptiTrack disk~0} & Position ($x,y,z$) [mm]    & $(0.005,\ 0.005,\ 0.003)$ \\
+                                  & Orientation ($X,Y,Z$) [deg] & $(0.0043,\ 0.0034,\ 0.0049)$ \\
+\multirow{2}{*}{OptiTrack disk~1} & Position ($x,y,z$) [mm]    & $(0.005,\ 0.005,\ 0.004)$ \\
+                                  & Orientation ($X,Y,Z$) [deg] & $(0.0022,\ 0.0029,\ 0.0032)$ \\
+\multirow{2}{*}{OptiTrack disk~2} & Position ($x,y,z$) [mm]    & $(0.007,\ 0.008,\ 0.008)$ \\
+                                  & Orientation ($X,Y,Z$) [deg] & $(0.0049,\ 0.0126,\ 0.0071)$ \\
+\multirow{2}{*}{OptiTrack disk~3} & Position ($x,y,z$) [mm]    & $(0.008,\ 0.008,\ 0.003)$ \\
+                                  & Orientation ($X,Y,Z$) [deg] & $(0.0034,\ 0.0032,\ 0.0049)$ \\
+\multirow{2}{*}{OptiTrack disk~4} & Position ($x,y,z$) [mm]    & $(0.011,\ 0.013,\ 0.005)$ \\
+                                  & Orientation ($X,Y,Z$) [deg] & $(0.0068,\ 0.0109,\ 0.0077)$ \\
+\midrule
+\multirow{2}{*}{FBGS} & Avg.\ shape noise along arc ($x,y,z$) [mm] & $(0.002,\ 0.194,\ 0.233)$ \\
+                      & Tip position noise ($x,y,z$) [mm]           & $(0.006,\ 0.476,\ 0.508)$ \\
+\bottomrule
+\end{tabular}
+\end{table}

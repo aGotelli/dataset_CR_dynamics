@@ -1,0 +1,83 @@
+close all; clear; clc;
+
+addpath("outils\")
+
+%% ====== PATHS ======
+folder = fullfile("..", "dataCollectionPack/data/references/released_config");
+
+%% ====== LOAD DATA ======
+mk_px = readtable(fullfile(folder, "dataMark10_+x.csv"));
+mk_py = readtable(fullfile(folder, "dataMark10_+y.csv"));
+mk_nx = readtable(fullfile(folder, "dataMark10_-x.csv"));
+mk_ny = readtable(fullfile(folder, "dataMark10_-y.csv"));
+
+ati = readtable(fullfile(folder, "dataATIFT.csv"));
+
+[~, ~, ~, ~, rel_kinematics_disks] = data_optitrack(fullfile(folder, "dataOptiTrack.csv"));
+
+[~, fbgs_shapes] = data_fbgs(fullfile(folder, "dataFBGS.csv"));
+
+%% ====== MARK10: std of tension (N) ======
+std_mk = [
+    std(mk_px.("tension_N"))
+    std(mk_py.("tension (N)"))
+    std(mk_nx.("tension (N)"))
+    std(mk_ny.("tension (N)"))
+];
+
+%% ====== ATI-FT: std per channel ======
+std_ati = [
+    std(ati.("Fx (N)"))
+    std(ati.("Fy (N)"))
+    std(ati.("Fz (N)"))
+    std(ati.("Tx (Nm)"))
+    std(ati.("Ty (Nm)"))
+    std(ati.("Tz (Nm)"))
+];
+
+%% ====== OPTITRACK: std of position per disk (mm) ======
+% rel_kinematics_disks is [N_time x 6 x N_disks], columns 4:6 are x,y,z
+N_disks = size(rel_kinematics_disks, 3);
+std_mocap = zeros(N_disks, 3);
+for d = 1:N_disks
+    xyz = rel_kinematics_disks(:, 4:6, d);  % [N x 3]
+    std_mocap(d, :) = std(xyz) * 1000;      % convert to mm
+end
+
+%% ====== FBGS: avg std of curvature along arc length, tip position noise ======
+% fbgs_shapes is [3 x 502 x N_time]
+N_time = size(fbgs_shapes, 3);
+
+% Std of position at each arc-length point across time -> [3 x 502]
+shape_std = std(fbgs_shapes, 0, 3);         % std over time dimension
+
+% Average std along arc length (mm)
+avg_shape_std = mean(shape_std, 2) * 1000;  % [3 x 1], mm
+
+% Tip (last point)
+tip_std = shape_std(:, end) * 1000;         % mm
+
+%% ====== PRINT FOR LATEX TABLE ======
+fprintf('\n%% --- Paste into LaTeX sensor noise table ---\n\n');
+
+fprintf('Mark-10 ($+x$)   & Cable tension & $%.3f$ \\\\\n', std_mk(1));
+fprintf('Mark-10 ($+y$)   & Cable tension & $%.3f$ \\\\\n', std_mk(2));
+fprintf('Mark-10 ($-x$)   & Cable tension & $%.3f$ \\\\\n', std_mk(3));
+fprintf('Mark-10 ($-y$)   & Cable tension & $%.3f$ \\\\\n', std_mk(4));
+fprintf('\\midrule\n');
+fprintf('ATI-FT & $F_x$ & $%.4f$ \\\\\n', std_ati(1));
+fprintf('       & $F_y$ & $%.4f$ \\\\\n', std_ati(2));
+fprintf('       & $F_z$ & $%.4f$ \\\\\n', std_ati(3));
+fprintf('       & $T_x$ & $%.5f$ \\\\\n', std_ati(4));
+fprintf('       & $T_y$ & $%.5f$ \\\\\n', std_ati(5));
+fprintf('       & $T_z$ & $%.5f$ \\\\\n', std_ati(6));
+fprintf('\\midrule\n');
+for d = 1:N_disks
+    fprintf('OptiTrack disk~%d & Position ($x,y,z$) & $(%.3f,\\;%.3f,\\;%.3f)$ mm \\\\\n', ...
+        d-1, std_mocap(d,1), std_mocap(d,2), std_mocap(d,3));
+end
+fprintf('\\midrule\n');
+fprintf('FBGS & Avg shape std ($x,y,z$) & $(%.3f,\\;%.3f,\\;%.3f)$ mm \\\\\n', ...
+    avg_shape_std(1), avg_shape_std(2), avg_shape_std(3));
+fprintf('     & Tip position std ($x,y,z$) & $(%.3f,\\;%.3f,\\;%.3f)$ mm \\\\\n', ...
+    tip_std(1), tip_std(2), tip_std(3));
