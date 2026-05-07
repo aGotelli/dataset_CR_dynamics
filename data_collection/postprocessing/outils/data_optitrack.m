@@ -1,9 +1,13 @@
-function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename)
+function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense)
     
 
     mocap = readtable(filename);
     
-    disk_names = {'disk_0', 'disk_1', 'disk_2', 'disk_3', 'disk_4'};
+    if use_resense
+        disk_names = {'disk_0', 'disk_1', 'disk_2', 'disk_3', 'disk_4', 'disk_5'};
+    else
+        disk_names = {'disk_0', 'disk_1', 'disk_2', 'disk_3', 'disk_4'};
+    end
     N_disks = length(disk_names);
 
 
@@ -73,7 +77,7 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
         poses_disks(:, :, it, :) = g_disk_abs;
         
         if(plots)
-            subplot(5, 1, it)
+            subplot(N_disks, 1, it)
             time = timestamps - timestamps(1);
             plot(time, x_data, 'r', 'LineWidth', 2)
             hold on
@@ -81,6 +85,12 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
             plot(time, z_data, 'b', 'LineWidth', 2)
             title(disk)
         end
+    end
+
+
+    if(plots)
+        figure("Name", "Timestamps")
+        plot(timestamps)
     end
 
     
@@ -137,6 +147,7 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     rel_poses_disks = zeros(size(poses_disks));
 
     rel_kinematics_disks = zeros(N_time, 6, N_disks);
+
     
     if(plots)
         figure("Name", "Position Disks (Relative)")
@@ -162,7 +173,7 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
         disk = disk_names{it};
         
         if(plots)
-            subplot(5, 1, it)
+            subplot(N_disks, 1, it)
             time = timestamps - timestamps(1);
             plot(time, r_disk(1, :), 'r', 'LineWidth', 2)
             hold on
@@ -180,24 +191,27 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     rel_poses_disks = rel_poses_disks(:, :, :, 1:end-1);
     rel_kinematics_disks = rel_kinematics_disks(1:end-1, :, :);
 
-
+    
     
     plot_poses = rel_poses_disks;
     if make_video
 
+        % timestamps = timestamps - timestamps(1);
+
         axis_len = 0.05; % length of frame axes in meters
 
 
-        fig = figure("Name", "Video Shape");
+        
         % set(fig, 'Color', 'k');
 
-        for it_t = 1:N_time
+        for it_t = 460:N_time
     
             time = timestamps(it_t) - timestamps(1);
     
             % ax = gca;
             % set(ax, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'ZColor', 'w');
-            hold on
+            figure(1);
+            cla;
 
             % x_ref = R_ref(:, 1);
             % y_ref = R_ref(:, 2);
@@ -207,7 +221,7 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
             % quiver3(r_ref(1), r_ref(2), r_ref(3), y_ref(1)*2*axis_len, y_ref(2)*2*axis_len, y_ref(3)*2*axis_len, 'g', 'LineWidth', 4, 'AutoScale', 'off');
             % quiver3(r_ref(1), r_ref(2), r_ref(3), z_ref(1)*2*axis_len, z_ref(2)*2*axis_len, z_ref(3)*2*axis_len, 'b', 'LineWidth', 4, 'AutoScale', 'off');
             % 
-
+            
             for it = 1:N_disks
                 g = plot_poses(:, :, it, it_t);   % 4x4 relative pose
                 p = g(1:3, 4);                          % origin
@@ -219,24 +233,57 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     
                 % Plot frame axes: X=red, Y=green, Z=blue
                 quiver3(p(1), p(2), p(3), x_ax(1)*axis_len, x_ax(2)*axis_len, x_ax(3)*axis_len, 'r', 'LineWidth', 2, 'AutoScale', 'off');
+                hold on;
                 quiver3(p(1), p(2), p(3), y_ax(1)*axis_len, y_ax(2)*axis_len, y_ax(3)*axis_len, 'g', 'LineWidth', 2, 'AutoScale', 'off');
                 quiver3(p(1), p(2), p(3), z_ax(1)*axis_len, z_ax(2)*axis_len, z_ax(3)*axis_len, 'b', 'LineWidth', 2, 'AutoScale', 'off');
     
                 % Label with disk number (0-indexed)
                 % text(p(1), p(2), p(3), sprintf('  %d', it-1), 'Color', 'w', 'FontSize', 10);
             end
+
+
+            g_wand = plot_poses(:, :, 6, it_t);   % 4x4 relative pose
+
+            R_fix_x = axang2rotm([1 0 0 pi/2]);
+            R_fix_z = axang2rotm([0 0 1 pi/6]);
+            R_fix = R_fix_x*R_fix_z;
+            r_fix = [
+                0
+               -0.1137
+                0
+            ];
+            g_fix = [
+                    R_fix r_fix
+                    0 0 0   1
+                ];
+            g = g_wand*g_fix;
+            p = g(1:3, 4);                          % origin
+            R = g(1:3, 1:3);                        % rotation matrix
+
+            x_ax = R(:, 1);
+            y_ax = R(:, 2);
+            z_ax = R(:, 3);
+
+            % Plot frame axes: X=red, Y=green, Z=blue
+            axis_len_sensor = .5*axis_len;
+            quiver3(p(1), p(2), p(3), x_ax(1)*axis_len_sensor, x_ax(2)*axis_len_sensor, x_ax(3)*axis_len_sensor, 'r', 'LineWidth', 2, 'AutoScale', 'off');
+            hold on;
+            quiver3(p(1), p(2), p(3), y_ax(1)*axis_len_sensor, y_ax(2)*axis_len_sensor, y_ax(3)*axis_len_sensor, 'g', 'LineWidth', 2, 'AutoScale', 'off');
+            quiver3(p(1), p(2), p(3), z_ax(1)*axis_len_sensor, z_ax(2)*axis_len_sensor, z_ax(3)*axis_len_sensor, 'b', 'LineWidth', 2, 'AutoScale', 'off');
+
+
     
             grid on
-            xlim([-0.5, 0.5])
-            ylim([-0.5, 0.5])
-            zlim([-0.5, 0.5])
+            xlim([-0.8, 0.8])
+            ylim([-0.8, 0.8])
+            zlim([-0.8, 0.8])
             xlabel('X', 'Color', 'w')
             ylabel('Y', 'Color', 'w')
             zlabel('Z', 'Color', 'w')
-            title("Time " + num2str(time, '%.2f') + " s", 'Color', 'w')
+            title("Time " + num2str(time, '%.2f') + " s")
             view(3)   % standard 3D perspective: azimuth -37.5, elevation 30
-            drawnow
-            hold off
+            drawnow;
+            
         end
 
     end

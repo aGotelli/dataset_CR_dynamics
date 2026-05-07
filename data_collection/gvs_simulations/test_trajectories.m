@@ -3,7 +3,7 @@ clear all
 close all
 
 
-path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'circle_slow/');
+path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'Lissajous_fast');
 load_path = fullfile(path, 'processed/');
 savepath = fullfile(path, "gvs/");
 saving_fig_folder = fullfile(savepath, "figures/");
@@ -196,5 +196,19 @@ saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 %%  Compute RMSE
 
-% RMSE_tip = sqrt( (1/N_times_vicon)*sum( (time_kinematics_tip(:, 5:7) - tip_fbgs(:, 1:3)).^2 ) )
+torque_ati = time_base_wrench_raw(:, 5:6);
+torque_simu = [-simulated_wrench_at_base(:, 3) -simulated_wrench_at_base(:, 2)];
+RMSE_Torques = rmse(torque_simu, torque_ati)
 
+%   Compute range of motion
+range_torques = max(torque_ati) - min(torque_ati);
+
+RMSE_torques_perc_range = (RMSE_Torques./range_torques)*100
+
+% Save RMSEs
+fid = fopen(fullfile(load_path , "RMSEs_torques.txt"), 'w');
+fprintf(fid, 'RMSE_tip = [%s]\n', strjoin(string(RMSE_Torques), ', '));
+fprintf(fid, 'RMSE_torques_perc_range = [%s]\n', strjoin(string(RMSE_torques_perc_range), ', '));
+
+% 3. Close the file
+fclose(fid);
