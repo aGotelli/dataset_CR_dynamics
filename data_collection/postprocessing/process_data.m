@@ -1026,9 +1026,130 @@ fclose(fid);
 %     interp_rel_kinematics_disks, interp_fbgs_shapes, FBGS_tip_index, saving_fig_folder);
 % 
 
+
+fs_actuators = 1 / median(diff(time_actuators));
+angles_nomralized = measured_angles - mean(measured_angles);
+
+[c13, lags13] = xcorr(angles_nomralized(:, 1), -angles_nomralized(:, 3), 'normalized');
+[c24, lags24] = xcorr(angles_nomralized(:, 2), -angles_nomralized(:, 4), 'normalized');
+
+max_lag_13 = lags13(find(c13 == max(c13)))/fs_actuators * 1000;
+max_lag_24 = lags24(find(c24 == max(c24)))/fs_actuators * 1000;
+
+
+
+%   Now compare mocap with actuators
+tip_mocap = interp_rel_kinematics_disks(:, 4:6, 5);
+tip_mocap_normalized = tip_mocap - mean(tip_mocap);
+
+interp_angles_nomralized = interp_angles - mean(interp_angles);
+
+[c1_x, lags1_x] = xcorr(interp_angles_nomralized(:, 1), tip_mocap_normalized(:, 1), 'normalized');
+[~, idx]  = max(abs(c1_x));
+lag_MO_1x_ms = lags1_x(idx) / samplingHz * 1000;
+r_MO_1x      = c1_x(idx);
+
+
+[c1_y, lags1_y] = xcorr(interp_angles_nomralized(:, 1), tip_mocap_normalized(:, 2), 'normalized');
+[~, idx]  = max(abs(c1_y));
+lag_MO_1y_ms = lags1_y(idx) / samplingHz * 1000;
+r_MO_1y      = c1_y(idx);
+
+
+[c1_z, lags1_z] = xcorr(interp_angles_nomralized(:, 1), tip_mocap_normalized(:, 3), 'normalized');
+[~, idx]  = max(abs(c1_z));
+lag_MO_1z_ms = lags1_z(idx) / samplingHz * 1000;
+r_MO_1z      = c1_z(idx);
+
+
+
+
+[c2_x, lags2_x] = xcorr(interp_angles_nomralized(:, 2), tip_mocap_normalized(:, 1), 'normalized');
+[~, idx]  = max(abs(c2_x));
+lag_MO_2x_ms = lags2_x(idx) / samplingHz * 1000;
+r_MO_2x      = c2_x(idx);
+
+
+[c2_y, lags2_y] = xcorr(interp_angles_nomralized(:, 2), tip_mocap_normalized(:, 2), 'normalized');
+[~, idx]  = max(abs(c2_y));
+lag_MO_2y_ms = lags2_y(idx) / samplingHz * 1000;
+r_MO_2y      = c2_y(idx);
+
+
+[c2_z, lags2_z] = xcorr(interp_angles_nomralized(:, 2), tip_mocap_normalized(:, 3), 'normalized');
+[~, idx]  = max(abs(c2_z));
+lag_MO_2z_ms = lags2_z(idx) / samplingHz * 1000;
+r_MO_2z      = c2_z(idx);
+
+
+
+%   Now compare fbgs with actuators
+xyz_FBGS_normalized = xyz_FBGS' - mean(xyz_FBGS');
+
+
+[c1_x, lags1_x] = xcorr(interp_angles_nomralized(:, 1), xyz_FBGS_normalized(:, 1), 'normalized');
+[~, idx]  = max(abs(c1_x));
+lag_FBGS_1x_ms = lags1_x(idx) / samplingHz * 1000;
+r_FBGS_1x      = c1_x(idx);
+
+
+[c1_y, lags1_y] = xcorr(interp_angles_nomralized(:, 1), xyz_FBGS_normalized(:, 2), 'normalized');
+[~, idx]  = max(abs(c1_y));
+lag_FBGS_1y_ms = lags1_y(idx) / samplingHz * 1000;
+r_FBGS_1y      = c1_y(idx);
+
+
+[c1_z, lags1_z] = xcorr(interp_angles_nomralized(:, 1), xyz_FBGS_normalized(:, 3), 'normalized');
+[~, idx]  = max(abs(c1_z));
+lag_FBGS_1z_ms = lags1_z(idx) / samplingHz * 1000;
+r_FBGS_1z      = c1_z(idx);
+
+
+
+
+[c2_x, lags2_x] = xcorr(interp_angles_nomralized(:, 2), xyz_FBGS_normalized(:, 1), 'normalized');
+[~, idx]  = max(abs(c2_x));
+lag_FBGS_2x_ms = lags2_x(idx) / samplingHz * 1000;
+r_FBGS_2x      = c2_x(idx);
+
+
+[c2_y, lags2_y] = xcorr(interp_angles_nomralized(:, 2), xyz_FBGS_normalized(:, 2), 'normalized');
+[~, idx]  = max(abs(c2_y));
+lag_FBGS_2y_ms = lags2_y(idx) / samplingHz * 1000;
+r_FBGS_2y      = c2_y(idx);
+
+
+[c2_z, lags2_z] = xcorr(interp_angles_nomralized(:, 2), xyz_FBGS_normalized(:, 3), 'normalized');
+[~, idx]  = max(abs(c2_z));
+lag_FBGS_2z_ms = lags2_z(idx) / samplingHz * 1000;
+r_FBGS_2z      = c2_z(idx);
+
+
+
+%   Now compare mocap and fbgs
+[c_x, lags_x] = xcorr(tip_mocap_normalized(:, 1), xyz_FBGS_normalized(:, 1), 'normalized');
+[~, idx]  = max(abs(c_x));
+lag_MO_FBGS_x_ms = lags_x(idx) / samplingHz * 1000;
+r_MO_FBGS_x      = c_x(idx);
+
+
+[c_y, lags_y] = xcorr(tip_mocap_normalized(:, 2), xyz_FBGS_normalized(:, 2), 'normalized');
+[~, idx]  = max(abs(c_y));
+lag_MO_FBGS_y_ms = lags_y(idx) / samplingHz * 1000;
+r_MO_FBGS_y      = c_y(idx);
+
+
+[c_z, lags_z] = xcorr(tip_mocap_normalized(:, 3), xyz_FBGS_normalized(:, 3), 'normalized');
+[~, idx]  = max(abs(c_z));
+lag_MO_FBGS_z_ms = lags_z(idx) / samplingHz * 1000;
+r_MO_FBGS_z      = c_z(idx);
+
 sync_results = check_temporal_sync(time_actuators, measured_angles, ...
     mocap_timestamps, rel_kinematics_disks_corr, ...
-    fbgs_time, fbgs_shapes, FBGS_tip_index, saving_fig_folder);
+    fbgs_time, fbgs_shapes, FBGS_tip_index, saving_folder);
+
+
+
 
 return;
 %%  Save the interpolated data
