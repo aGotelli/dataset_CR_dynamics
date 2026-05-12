@@ -4,6 +4,8 @@ clc
 %%
 
 
+
+
 %   Load the following folders
 folders = {'plane_x', 'plane_y', 'star', 'circle', 'Lissajous'};
 
@@ -31,12 +33,13 @@ for it=1:length(folders)
         
         
         plot(tip_position(:, 1), tip_position(:, 2), 'LineWidth', 2, 'Color', col{k});
+        set(gca,"FontSize",20)
         hold on
         grid on
         xlim([-.35 .35])
         ylim([-.35 .35])
-        xlabel("p_x [m]")
-        ylabel("p_y [m]")
+        xlabel("p_x [m]", "FontSize", 20)
+        ylabel("p_y [m]", "FontSize", 20)
     
         savefig(save_path + f.Name)
         saveas(f, save_path + f.Name, 'png')

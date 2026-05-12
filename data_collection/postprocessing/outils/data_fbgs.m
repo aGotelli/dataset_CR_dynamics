@@ -1,4 +1,4 @@
-function [time_fbgs, fbgs_shapes] = data_fbgs(filename)
+function [time_fbgs, fbgs_shapes, curvatures, angles] = data_fbgs(filename)
 
     number_of_grating = 26;
     greating_index = 0:1:(number_of_grating-1);

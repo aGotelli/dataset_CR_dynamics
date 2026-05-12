@@ -46,22 +46,22 @@ for d = 1:3
     [lag_OF(d), r_OF(d)] = peak_lag(tip_moc(:,d), fbg_on_moc(:,d), ml_moc, fs_moc);
 end
 
-% ── print ────────────────────────────────────────────────────────────────────
-hdr = @(s) fprintf('\n=== %s ===\n         %8s    %8s    %8s\n', s, pos_lbl{:});
-row = @(lbl, lag, r) fprintf('  %-5s : %+7.1f ms  %+7.1f ms  %+7.1f ms    r = [%+.2f  %+.2f  %+.2f]\n', ...
-    lbl, lag(1), lag(2), lag(3), r(1), r(2), r(3));
-
-hdr('Motor -> Mocap [ms]');
-row(mot_lbl{1}, lag_MM(1,:), r_MM(1,:));
-row(mot_lbl{2}, lag_MM(2,:), r_MM(2,:));
-
-hdr('Motor -> FBGS  [ms]');
-row(mot_lbl{1}, lag_MF(1,:), r_MF(1,:));
-row(mot_lbl{2}, lag_MF(2,:), r_MF(2,:));
-
-hdr('Mocap  -> FBGS [ms]');
-fprintf('         %+7.1f ms  %+7.1f ms  %+7.1f ms    r = [%+.2f  %+.2f  %+.2f]\n', ...
-    lag_OF(1), lag_OF(2), lag_OF(3), r_OF(1), r_OF(2), r_OF(3));
+% % ── print ────────────────────────────────────────────────────────────────────
+% hdr = @(s) fprintf('\n=== %s ===\n         %8s    %8s    %8s\n', s, pos_lbl{:});
+% row = @(lbl, lag, r) fprintf('  %-5s : %+7.1f ms  %+7.1f ms  %+7.1f ms    r = [%+.2f  %+.2f  %+.2f]\n', ...
+%     lbl, lag(1), lag(2), lag(3), r(1), r(2), r(3));
+% 
+% hdr('Motor -> Mocap [ms]');
+% row(mot_lbl{1}, lag_MM(1,:), r_MM(1,:));
+% row(mot_lbl{2}, lag_MM(2,:), r_MM(2,:));
+% 
+% hdr('Motor -> FBGS  [ms]');
+% row(mot_lbl{1}, lag_MF(1,:), r_MF(1,:));
+% row(mot_lbl{2}, lag_MF(2,:), r_MF(2,:));
+% 
+% hdr('Mocap  -> FBGS [ms]');
+% fprintf('         %+7.1f ms  %+7.1f ms  %+7.1f ms    r = [%+.2f  %+.2f  %+.2f]\n', ...
+%     lag_OF(1), lag_OF(2), lag_OF(3), r_OF(1), r_OF(2), r_OF(3));
 
 % ── save ─────────────────────────────────────────────────────────────────────
 if ~isempty(saving_folder)

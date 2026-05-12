@@ -114,29 +114,7 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     ];
     rel_transf_pages = repmat(rel_transf, [1 1 1 N_time]);
 
-    % %%  Compute relative kinematics
-    % %   Frame 0 is at base
-    % 
-    % 
-    % %   From this we obtain the set of poses for the mocap system 
-    % %   Knowing that the frame at the base does not move, we can compute
-    % %   the relative poses at each time-step
-    % 
-    % pose_disk_0 = poses_disks(:, :, 1, :);
-    % 
-    % R_0 = pose_disk_0(1:3, 1:3, 1, :);
-    % r_0 = pose_disk_0(1:3, 4, 1, :);
-    % 
-    % R_0T = pagetranspose(R_0);
-    % r_0i = -pagemtimes(R_0T, r_0);
-    % bottom = repmat([0 0 0 1], 1, 1, 1, N_time);
-    % inv_pose_disk_0 = [
-    %   R_0T  r_0i
-    %   bottom
-    % ];
-    % 
-    % 
-    % 
+    
     %   OptiTrack/Motion software defines Z pointing down;
     R_fix = axang2rotm([0 1 0 pi/2]);
     g_fix = eye(4);
