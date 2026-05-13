@@ -3,7 +3,7 @@ clear all
 close all
 
 
-path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'Lissajous_fast');
+path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'circle_slow');
 load_path = fullfile(path, 'processed/');
 savepath = fullfile(path, "gvs/");
 saving_fig_folder = fullfile(savepath, "figures/");
@@ -101,10 +101,12 @@ load(fullfile(savepath, "simulation_results"))
 
 mocap_frames_stacked = load(fullfile(load_path, "mocap_frames.csv"));
 N_times_vicon = size(mocap_frames_stacked, 1);
-vicon_frames = reshape(mocap_frames_stacked, [N_times_vicon, 7, 5]);
+time_simu = mocap_frames_stacked(:, 1);
+mocap_frames_stacked = mocap_frames_stacked(:, 2:end);
+vicon_frames = reshape(mocap_frames_stacked, [N_times_vicon, 6, 5]);
 disk_num = 5;
 time_kinematics_tip = vicon_frames(:, :, disk_num);
-time_simu = time_kinematics_tip(:, 1);
+
 
 
 time_base_wrench = load(fullfile(load_path, "base_wrench.csv"));
@@ -120,32 +122,32 @@ tip_index_fbgs = 476;
 tip_start_col = 3*(tip_index_fbgs - 1) + 1;
 tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
 
-
-fig = figure("Name", "Tip Position");
-subplot(3, 1, 1)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 5), 'g', 'LineWidth', 1)
-hold on
-plot(time_fbgs, tip_fbgs(:, 1), 'b', 'LineWidth', 1)
-plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
-grid on
-
-subplot(3, 1, 2)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 6), 'g', 'LineWidth', 1)
-hold on
-plot(time_fbgs, tip_fbgs(:, 2), 'b', 'LineWidth', 1)
-plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
-grid on
-
-subplot(3, 1, 3)
-plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 7), 'g', 'LineWidth', 1)
-hold on
-plot(time_fbgs, tip_fbgs(:, 3), 'b', 'LineWidth', 1)
-plot(Config.data.time, -tip_frame(:, 3), 'r', 'LineWidth', 1)
-grid on
-legend('OptiTrack', 'FBGS', 'Simulated')
-
-savefig(saving_fig_folder + fig.Name)
-saveas(fig, saving_fig_folder + fig.Name, 'png')
+% 
+% fig = figure("Name", "Tip Position");
+% subplot(3, 1, 1)
+% plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 5), 'g', 'LineWidth', 1)
+% hold on
+% plot(time_fbgs, tip_fbgs(:, 1), 'b', 'LineWidth', 1)
+% plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
+% grid on
+% 
+% subplot(3, 1, 2)
+% plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 6), 'g', 'LineWidth', 1)
+% hold on
+% plot(time_fbgs, tip_fbgs(:, 2), 'b', 'LineWidth', 1)
+% plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
+% grid on
+% 
+% subplot(3, 1, 3)
+% plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 7), 'g', 'LineWidth', 1)
+% hold on
+% plot(time_fbgs, tip_fbgs(:, 3), 'b', 'LineWidth', 1)
+% plot(Config.data.time, -tip_frame(:, 3), 'r', 'LineWidth', 1)
+% grid on
+% legend('OptiTrack', 'FBGS', 'Simulated')
+% 
+% savefig(saving_fig_folder + fig.Name)
+% saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 fig = figure("Name", "Torque");
@@ -154,7 +156,9 @@ plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'b', 'LineWidth', 2)
 hold on
 plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
+set(gca,"FontSize",20)
 grid on
+ylabel("T_x [Nm]", "FontSize", 20)
 
 
 subplot(2, 1, 2)
@@ -162,8 +166,11 @@ plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'b', 'LineWidth', 2)
 hold on
 plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
+set(gca,"FontSize",20)
 grid on
-legend('Measured', 'Simulated')
+% legend('Measured', 'Simulated')
+ylabel("T_y [Nm]", "FontSize", 20)
+xlabel("Time [s]", "FontSize", 20)
 
 savefig(saving_fig_folder + fig.Name)
 saveas(fig, saving_fig_folder + fig.Name, 'png')

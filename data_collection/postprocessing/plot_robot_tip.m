@@ -28,22 +28,26 @@ for it=1:length(folders)
         mocap_frames = load(fullfile(folder , "mocap_frames.csv"));
     
     
-        tip_position = mocap_frames(:, 33:35);
+        tip_position = mocap_frames(:, 29:31);
     
         
         
         plot(tip_position(:, 1), tip_position(:, 2), 'LineWidth', 2, 'Color', col{k});
-        set(gca,"FontSize",20)
+        set(gca,"FontSize",40)
         hold on
         grid on
-        xlim([-.35 .35])
-        ylim([-.35 .35])
-        xlabel("p_x [m]", "FontSize", 20)
-        ylabel("p_y [m]", "FontSize", 20)
+
     
-        savefig(save_path + f.Name)
-        saveas(f, save_path + f.Name, 'png')
+
 
     end
+
+    xlim([-.35 .35])
+    ylim([-.35 .35])
+    xlabel("p_x [m]", "FontSize", 40)
+    ylabel("p_y [m]", "FontSize", 40)
+
+    savefig(save_path + f.Name)
+    saveas(f, save_path + f.Name, 'png')
 
 end

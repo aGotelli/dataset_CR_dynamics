@@ -8,7 +8,7 @@ addpath("outils\")
 %%  Load reference data
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack/data","dynamic_motion/","plane_x_slow/");
+folder = fullfile("..", "dataCollectionPack/data","dynamic_motion/","circle_slow/");
 
 cutoffHz    = 20;   % Butterworth cutoff
 butterOrder = 4;
@@ -89,7 +89,7 @@ R_m(1:2, 1:2) = V_m;
 axang_m = rotm2axang(R_m);
 theta_z_mocap = axang_m(4);
 
-theta_z_mocap = atan2(R_m(1, 2), R_m(1, 1));
+% theta_z_mocap = atan2(R_m(1, 2), R_m(1, 1));
 
 if strcmpi(bending_axis, 'y')
     theta_z_mocap = pi/2 - theta_z_mocap;       % map onto y-axis
@@ -204,10 +204,10 @@ time_cables = cell(1,4);
 cable_tensions  = cell(1,4);
 
 
-time_cables{1} = mk_1_x.timestamp;       cable_tensions{1} = mk_1_x.tension_N_;
-time_cables{2} = mk_2_y.timestamp;       cable_tensions{2} = mk_2_y.tension_N_;
-time_cables{3} = mk_1_negx.timestamp;    cable_tensions{3} = mk_1_negx.tension_N_;
-time_cables{4} = mk_2_negy.timestamp;    cable_tensions{4} = mk_2_negy.tension_N_;
+time_cables{1} = mk_1_x.timestamp;       cable_tensions{1} = mk_1_x.tension_N_/2;
+time_cables{2} = mk_2_y.timestamp;       cable_tensions{2} = mk_2_y.tension_N_/2;
+time_cables{3} = mk_1_negx.timestamp;    cable_tensions{3} = mk_1_negx.tension_N_/2;
+time_cables{4} = mk_2_negy.timestamp;    cable_tensions{4} = mk_2_negy.tension_N_/2;
 
 %% ====== EXTRACT ATI FT (RAW TIME) ======
 tA = ati.timestamp;
@@ -870,15 +870,17 @@ for it = 1:3
     subplot(3,1,index_plot)
 
     plot(sampling_time, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
+    set(gca,"FontSize",20)
     hold on
     plot(sampling_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+    set(gca,"FontSize",20)
 
     grid on
-    ylabel([vars{it} ' [m]'])
+    ylabel([vars{it} ' [m]'], "FontSize", 20)
 
 
     if it == 3
-        xlabel("Time [s]")
+        xlabel("Time [s]", "FontSize", 20)
     end
 
     % if it == 1
@@ -887,7 +889,7 @@ for it = 1:3
 
 end
 
-legend('OptiTrack', 'FBGS')
+% legend('OptiTrack', 'FBGS')
 savefig(saving_fig_folder + fig.Name)
 saveas(fig, saving_fig_folder + fig.Name, 'png')
 

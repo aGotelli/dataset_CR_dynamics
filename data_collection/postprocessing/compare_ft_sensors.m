@@ -5,7 +5,7 @@ clc;
 addpath("outils\")
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack/data/","contact_motion/","push_retract/");
+folder = fullfile("..", "dataCollectionPack/data/","contact_motion/","push_retract/"); % touching_base
 
 
 cutoffHz    = 30;   % Butterworth cutoff
@@ -14,6 +14,7 @@ butterOrder = 4;
 
 samplingHz = 100;
 
+saving_fig_folder = "figures/";
 
 
 %% ====== LOAD DATA ======
@@ -21,10 +22,10 @@ samplingHz = 100;
 ati = readtable(fullfile(folder, "dataATIFT.csv"));
 
 resense = readtable(fullfile(folder, "dataResenseFT.csv"));
-
+use_resense = true;
 
 filename = fullfile(folder, "dataOptiTrack.csv");
-[N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename);
+[N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, true);
 
 %% ====== EXTRACT ATI FT (RAW TIME) ======
 tA = ati.timestamp;
@@ -137,33 +138,33 @@ for it=1:N_disks
         interp_rel_kinematics_disks(:, k, it) = interp1(relative_time_mocap, rel_kinematics_disks_f(:, k, it), sampling_time);
     end
 end
-
-figure("Name", "Position base")
-subplot(3, 1, 1)
-plot(relative_time_mocap, rel_kinematics_disks(:, 4, 1), 'b')
-hold on
-plot(relative_time_mocap, rel_kinematics_disks_f(:, 4, 1), 'r')
-plot(sampling_time, interp_rel_kinematics_disks(:, 4, 1), 'g')
-ylabel("p_x [m]")
-grid on
-
-subplot(3, 1, 2)
-plot(relative_time_mocap, rel_kinematics_disks(:, 5, 1), 'b')
-hold on
-plot(relative_time_mocap, rel_kinematics_disks_f(:, 5, 1), 'r')
-plot(sampling_time, interp_rel_kinematics_disks(:, 5, 1), 'g')
-ylabel("p_y [m]")
-grid on
-
-subplot(3, 1, 3)
-plot(relative_time_mocap, rel_kinematics_disks(:, 6, 1), 'b')
-hold on
-plot(relative_time_mocap, rel_kinematics_disks_f(:, 6, 1), 'r')
-plot(sampling_time, interp_rel_kinematics_disks(:, 6, 1), 'g')
-ylabel("p_z [m]")
-grid on
-xlabel("Time [s]")
-legend('measured', 'filtered', 'interp.')
+% 
+% figure("Name", "Position base")
+% subplot(3, 1, 1)
+% plot(relative_time_mocap, rel_kinematics_disks(:, 4, 1), 'b')
+% hold on
+% plot(relative_time_mocap, rel_kinematics_disks_f(:, 4, 1), 'r')
+% plot(sampling_time, interp_rel_kinematics_disks(:, 4, 1), 'g')
+% ylabel("p_x [m]")
+% grid on
+% 
+% subplot(3, 1, 2)
+% plot(relative_time_mocap, rel_kinematics_disks(:, 5, 1), 'b')
+% hold on
+% plot(relative_time_mocap, rel_kinematics_disks_f(:, 5, 1), 'r')
+% plot(sampling_time, interp_rel_kinematics_disks(:, 5, 1), 'g')
+% ylabel("p_y [m]")
+% grid on
+% 
+% subplot(3, 1, 3)
+% plot(relative_time_mocap, rel_kinematics_disks(:, 6, 1), 'b')
+% hold on
+% plot(relative_time_mocap, rel_kinematics_disks_f(:, 6, 1), 'r')
+% plot(sampling_time, interp_rel_kinematics_disks(:, 6, 1), 'g')
+% ylabel("p_z [m]")
+% grid on
+% xlabel("Time [s]")
+% legend('measured', 'filtered', 'interp.')
 
 
 interp_wrench_wand = zeros(N_samples, 6);
@@ -213,131 +214,150 @@ for it_t=1:length(sampling_time)
     wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
 end
 
+% 
+% figure("Name", "Wrench Resense")
+% subplot(3, 2, 1)
+% plot(tresense_rel, resense.Fx, 'b', 'LineWidth', 2)
+% ylabel('F_x [N]')
+% grid on
+% 
+% subplot(3, 2, 3)
+% plot(tresense_rel, resense.Fy, 'b', 'LineWidth', 2)
+% ylabel('F_y [N]')
+% grid on
+% 
+% subplot(3, 2, 5)
+% plot(tresense_rel, resense.Fz, 'b', 'LineWidth', 2)
+% ylabel('F_z [mNm]')
+% grid on
+% 
+% subplot(3, 2, 2)
+% plot(tresense_rel, resense.Tx, 'b', 'LineWidth', 2)
+% ylabel('T_x [mNm]')
+% grid on
+% 
+% subplot(3, 2, 4)
+% plot(tresense_rel, resense.Ty, 'b', 'LineWidth', 2)
+% ylabel('T_y [mNm]')
+% grid on
+% 
+% subplot(3, 2, 6)
+% plot(tresense_rel, resense.Tz, 'b', 'LineWidth', 2)
+% ylabel('T_z [mNm]')
+% grid on
+% 
+% 
 
-figure("Name", "Wrench Resense")
-subplot(3, 2, 1)
-plot(tresense_rel, resense.Fx, 'b', 'LineWidth', 2)
-ylabel('F_x [N]')
-grid on
-
-subplot(3, 2, 3)
-plot(tresense_rel, resense.Fy, 'b', 'LineWidth', 2)
-ylabel('F_y [N]')
-grid on
-
-subplot(3, 2, 5)
-plot(tresense_rel, resense.Fz, 'b', 'LineWidth', 2)
-ylabel('F_z [mNm]')
-grid on
-
-subplot(3, 2, 2)
-plot(tresense_rel, resense.Tx, 'b', 'LineWidth', 2)
-ylabel('T_x [mNm]')
-grid on
-
-subplot(3, 2, 4)
-plot(tresense_rel, resense.Ty, 'b', 'LineWidth', 2)
-ylabel('T_y [mNm]')
-grid on
-
-subplot(3, 2, 6)
-plot(tresense_rel, resense.Tz, 'b', 'LineWidth', 2)
-ylabel('T_z [mNm]')
-grid on
 
 
-
-
-
-figure("Name", "Forces")
-subplot(3, 1, 1)
+fig = figure("Name", "FT_Forces");
+subplot(2, 1, 1)
 plot(tA_rel, ati.Fx_N_, 'b')
 hold on
-plot(tresense_rel, resense.Fx, 'r')
+plot(tresense_rel, -resense.Fx, 'r')
+set(gca,"FontSize",30)
 grid on
+xlim([0, 20])
+ylabel("F_x [N]", "FontSize", 30)
 
-subplot(3, 1, 2)
+subplot(2, 1, 2)
 plot(tA_rel, ati.Fy_N_, 'b')
 hold on
 plot(tresense_rel, -resense.Fz, 'r')
+xlim([0, 20])
+set(gca,"FontSize",30)
 grid on
-
-subplot(3, 1, 3)
-plot(tA_rel, ati.Fz_N_, 'b')
-hold on
-plot(tresense_rel, resense.Fy, 'r')
-grid on
-
-legend('ATI', 'Resense')
+ylabel("F_y [N]", "FontSize", 30)
 
 
+xlabel("Time [s]", "FontSize", 30)
+
+
+% savefig(saving_fig_folder + fig.Name)
+% saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 
-figure("Name", "Forces (interp)")
-subplot(3, 1, 1)
-plot(sampling_time, interp_base_wrench_raw(:, 1), 'b')
-hold on
-plot(sampling_time, interp_wrench_wand(:, 1), 'r')
-grid on
 
-subplot(3, 1, 2)
-plot(sampling_time, interp_base_wrench_raw(:, 2), 'b')
-hold on
-plot(sampling_time, -interp_wrench_wand(:, 3), 'r')
-grid on
+% 
+% 
+% figure("Name", "Forces (interp)")
+% subplot(3, 1, 1)
+% plot(sampling_time, interp_base_wrench_raw(:, 1), 'b')
+% hold on
+% plot(sampling_time, interp_wrench_wand(:, 1), 'r')
+% grid on
+% 
+% subplot(3, 1, 2)
+% plot(sampling_time, interp_base_wrench_raw(:, 2), 'b')
+% hold on
+% plot(sampling_time, -interp_wrench_wand(:, 3), 'r')
+% grid on
+% 
+% subplot(3, 1, 3)
+% plot(sampling_time, interp_base_wrench_raw(:, 3), 'b')
+% hold on
+% plot(sampling_time, interp_wrench_wand(:, 2), 'r')
+% grid on
+% 
+% legend('ATI', 'Resense')
 
-subplot(3, 1, 3)
-plot(sampling_time, interp_base_wrench_raw(:, 3), 'b')
-hold on
-plot(sampling_time, interp_wrench_wand(:, 2), 'r')
-grid on
 
-legend('ATI', 'Resense')
-
-
-figure("Name", "Forces (Ad_g)")
-subplot(3, 1, 1)
+fig = figure("Name", "Forces (Ad_g)");
+subplot(2, 1, 1)
 plot(sampling_time, interp_base_wrench_raw(:, 1), 'b')
 hold on
 plot(sampling_time, wrench_at_base(1, :), 'r')
+set(gca,"FontSize",30)
 grid on
+ylabel("F_x [N]", "FontSize", 30)
 
-subplot(3, 1, 2)
+subplot(2, 1, 2)
 plot(sampling_time, interp_base_wrench_raw(:, 2), 'b')
 hold on
 plot(sampling_time, wrench_at_base(2, :), 'r')
+set(gca,"FontSize",30)
 grid on
+ylabel("F_y [N]", "FontSize", 30)
+xlabel("Time [s]", "FontSize", 30)
 
-subplot(3, 1, 3)
-plot(sampling_time, interp_base_wrench_raw(:, 3), 'b')
-hold on
-plot(sampling_time, wrench_at_base(3, :), 'r')
-grid on
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
-legend('ATI', 'Ad_g Resense')
+% subplot(3, 1, 3)
+% plot(sampling_time, interp_base_wrench_raw(:, 3), 'b')
+% hold on
+% plot(sampling_time, wrench_at_base(3, :), 'r')
+% grid on
+% 
+% legend('ATI', 'Ad_g Resense')
 
 
 figure("Name", "Torques (Ad_g)")
-subplot(3, 1, 1)
+subplot(2, 1, 1)
 plot(sampling_time, interp_base_wrench_raw(:, 4), 'b')
 hold on
 plot(sampling_time, wrench_at_base(4, :), 'r')
+set(gca,"FontSize",30)
 grid on
+ylabel("T_x [N]", "FontSize", 30)
 
-subplot(3, 1, 2)
+subplot(2, 1, 2)
 plot(sampling_time, interp_base_wrench_raw(:, 5), 'b')
 hold on
 plot(sampling_time, wrench_at_base(5, :), 'r')
+set(gca,"FontSize",30)
 grid on
+ylabel("T_y [N]", "FontSize", 30)
+xlabel("Time [s]", "FontSize", 30)
 
-subplot(3, 1, 3)
-plot(sampling_time, interp_base_wrench_raw(:, 6), 'b')
-hold on
-plot(sampling_time, wrench_at_base(6, :), 'r')
-grid on
-
-legend('ATI', 'Ad_g Resense')
+% subplot(3, 1, 3)
+% plot(sampling_time, interp_base_wrench_raw(:, 6), 'b')
+% hold on
+% plot(sampling_time, wrench_at_base(6, :), 'r')
+% grid on
+% 
+% legend('ATI', 'Ad_g Resense')
 
 
 
