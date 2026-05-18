@@ -1079,7 +1079,7 @@ sync_results = check_temporal_sync(time_actuators, measured_angles, ...
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
 interp_time_base_wrench = [sampling_time interp_base_wrench];
-interp_time_base_wrench_raw = [sampling_time interp_base_wrench_raw];
+% interp_time_base_wrench_raw = [sampling_time interp_base_wrench_raw];
 % interp_time_mocap_frames = reshape(interp_rel_kinematics_disks, [N_samples, 6*N_disks]);
 interp_time_mocap_frames_corr = reshape(interp_rel_kinematics_disks_corr, [N_samples, 6*N_disks]);
 % interp_time_mocap_frames = [sampling_time interp_time_mocap_frames];
@@ -1095,7 +1095,7 @@ end
 writematrix(interp_time_angles, fullfile(saving_folder , "angles.csv"));
 writematrix(interp_time_tensions, fullfile(saving_folder ,"cable_tensions.csv"));
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
-writematrix(interp_time_base_wrench_raw, fullfile(saving_folder , "base_wrench_raw.csv"));
+% writematrix(interp_time_base_wrench_raw, fullfile(saving_folder , "base_wrench_raw.csv"));
 % writematrix(interp_time_mocap_frames, fullfile(saving_folder , "mocap_frames.csv"));
 writematrix(interp_time_mocap_frames_corr, fullfile(saving_folder , "mocap_frames.csv"));
 
