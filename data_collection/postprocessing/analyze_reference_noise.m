@@ -66,6 +66,85 @@ tip_std = shape_std(:, end) * 1000;         % mm
 
 
 
+%% ====== FBGS TIP NOISE: HISTOGRAM (GAUSSIANITY CHECK) ======
+tip_data = squeeze(fbgs_shapes(:, end, :))' * 1000;  % [N_time x 3], mm
+% Remove mean (center the noise)
+%tip_data = tip_data - mean(tip_data, 1);
+
+labels = {'x', 'y', 'z'};
+colors = {'#0072BD', '#D95319', '#77AC30'};
+
+figure;
+for i = 1:3
+    subplot(1, 3, i);
+    histogram(tip_data(:, i), 'Normalization', 'pdf', ...
+              'FaceColor', colors{i}, 'EdgeColor', 'none', 'FaceAlpha', 0.7);
+    hold on;
+    % Overlay fitted Gaussian
+    mu    = mean(tip_data(:, i));
+    sigma = std(tip_data(:, i));
+    x_range = linspace(min(tip_data(:, i)), max(tip_data(:, i)), 200);
+    plot(x_range, normpdf(x_range, mu, sigma), 'k-', 'LineWidth', 1.5);
+    xlabel(sprintf('Tip %s noise [mm]', labels{i}));
+    ylabel('Probability density');
+    title(sprintf('%s  (\\sigma = %.3f mm)', labels{i}, sigma));
+    legend('Measured', 'Gaussian fit', 'Location', 'best');
+    grid on; box on;
+end
+sgtitle('FBGS tip position noise — gaussianity check');
+
+
+
+%% ====== FBGS ANGLE & CURVATURE NOISE: HISTOGRAM AT SELECTED GRATINGS ======
+grating_idx = [8, 13, 18];
+grating_labels = arrayfun(@(g) sprintf('grating %d', g), grating_idx, 'UniformOutput', false);
+
+% --- Bending angles ---
+figure;
+for i = 1:numel(grating_idx)
+    g = grating_idx(i);
+    data = angles(:, g);
+    %data = data - mean(data);   % centre
+
+    subplot(1, numel(grating_idx), i);
+    histogram(data, 'Normalization', 'pdf', ...
+              'FaceColor', '#0072BD', 'EdgeColor', 'none', 'FaceAlpha', 0.7);
+    hold on;
+    mu    = mean(data);
+    sigma = std(data);
+    x_range = linspace(min(data), max(data), 200);
+    plot(x_range, normpdf(x_range, mu, sigma), 'k-', 'LineWidth', 1.5);
+    xlabel(sprintf('Angle noise [rad] — %s', grating_labels{i}));
+    ylabel('Probability density');
+    title(sprintf('%s  (\\sigma = %.4f rad)', grating_labels{i}, sigma));
+    legend('Measured', 'Gaussian fit', 'Location', 'best');
+    grid on; box on;
+end
+sgtitle('FBGS bending angle noise — gaussianity check');
+
+% --- Curvatures ---
+figure;
+for i = 1:numel(grating_idx)
+    g = grating_idx(i);
+    data = curvatures(:, g);
+    %data = data - mean(data);   % centre
+
+    subplot(1, numel(grating_idx), i);
+    histogram(data, 'Normalization', 'pdf', ...
+              'FaceColor', '#D95319', 'EdgeColor', 'none', 'FaceAlpha', 0.7);
+    hold on;
+    mu    = mean(data);
+    sigma = std(data);
+    x_range = linspace(min(data), max(data), 200);
+    plot(x_range, normpdf(x_range, mu, sigma), 'k-', 'LineWidth', 1.5);
+    xlabel(sprintf('Curvature noise [1/mm] — %s', grating_labels{i}));
+    ylabel('Probability density');
+    title(sprintf('%s  (\\sigma = %.4f 1/mm)', grating_labels{i}, sigma));
+    legend('Measured', 'Gaussian fit', 'Location', 'best');
+    grid on; box on;
+end
+sgtitle('FBGS curvature noise — gaussianity check');
+
 
 %% ====== PRINT FOR LATEX TABLE ======
 fprintf('\n%% --- Paste into LaTeX sensor noise table ---\n\n');

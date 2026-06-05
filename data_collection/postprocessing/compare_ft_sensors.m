@@ -5,7 +5,7 @@ clc;
 addpath("outils\")
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack/data/","contact_motion/","push_retract/"); % touching_base
+folder = fullfile("..", "dataCollectionPack/figshare/data/","contact_motion/","push_retract/"); 
 
 
 cutoffHz    = 30;   % Butterworth cutoff
@@ -45,6 +45,68 @@ t_0 = max(tA(1), time_resense(1));
 tA_rel = tA - t_0;
 tresense_rel = time_resense - t_0;
 relative_time_mocap = mocap_timestamps - t_0;
+
+
+
+%%  Correct pose mocap (only frame of the robot)
+idx_init      = relative_time_mocap <= 3.0;
+
+rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
+mocap_time_rel_init = relative_time_mocap(idx_init);
+
+%   Remove residual offset
+pos_disks = [
+    0    0    0    0    0
+    0    0    0    0    0
+    0    0.12 0.24 0.36 0.48
+];
+
+N_disks_robot = 5;
+
+g_correction = zeros(4, 4, N_disks_robot);
+rel_kinematics_disks_corr = zeros(size(rel_kinematics_disks));
+for it=1:N_disks_robot
+
+    g_disk_ref = eye(4);
+    g_disk_ref(1:3, 4) = pos_disks(:, it);
+
+
+    
+    EUL_disk_t = rel_kinematics_disks_init(:, 1:3, it)';
+    r_disk_t = rel_kinematics_disks_init(:, 4:6, it)';
+
+    EUL_disk = mean(EUL_disk_t, 2);
+    r_disk = mean(r_disk_t, 2);
+
+    R_disk = eul2rotm(EUL_disk', 'XYZ');
+
+    g_meas_m1 = [
+        R_disk' -R_disk'*r_disk
+        0   0   0   1
+    ];
+
+    g_correction(:,:, it) = g_meas_m1*g_disk_ref;
+
+    
+
+    rel_poses_disk = rel_poses_disks(:, :, it, :);
+
+    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction(:,:, it));
+
+
+    r_disk_corr = squeeze( rel_poses_disk_corr(1:3,   4, :, :) );
+    R_disk_corr = squeeze( rel_poses_disk_corr(1:3, 1:3, :, :) );
+    XYZ_disk_corr = rotm2eul(R_disk_corr, 'XYZ');
+
+    rel_kinematics_disks_corr(:, :, it) = [
+      XYZ_disk_corr   r_disk_corr'
+    ];
+
+end
+
+rel_kinematics_disks_corr_init = rel_kinematics_disks_corr(idx_init, :, :);
+
+
 
 
 %% ====== FILTER (BUTTER + FILTFILT) ======

@@ -8,9 +8,9 @@ addpath("outils\")
 %%  Load reference data
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("..", "dataCollectionPack/data","dynamic_motion/","circle_slow/");
+folder = fullfile("..", "dataCollectionPack/figshare/data/","quasi_static/","static_bend_y_n100");
 
-cutoffHz    = 20;   % Butterworth cutoff
+cutoffHz    = 15;   % Butterworth cutoff
 butterOrder = 4;
 
 
@@ -18,7 +18,10 @@ samplingHz = 100;
 
 
 %   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
-bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for all rest
+bending_axis = 'y';        % 'y' for plane_y experiments, 'x' for all rest
+
+
+lag_FBGS = 13.5;    %   Average measured lag in milliseconds
 
 %   Plots
 plot_mocap_fbgs_corrections = false;
@@ -26,7 +29,7 @@ plot_filtered = false;
 plot_interpolation = false;
 plot_disk_num = 5;
 
-FBGS_tip_index = 481;
+FBGS_tip_index = 480;
 
 align_window_s = 10;
 
@@ -63,7 +66,8 @@ filename = fullfile(folder, "dataOptiTrack.csv");
 
 
 filename = fullfile(folder, "dataFBGS.csv");
-[fbgs_time, fbgs_shapes] = data_fbgs(filename);
+[fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = data_fbgs(filename);
+fbgs_time = fbgs_time - lag_FBGS/1000;
 
 
 %   Apply rotation of -90 deg along y axis to ALL shapes
@@ -122,7 +126,6 @@ end
 if strcmpi(bending_axis, 'y')
     theta_z = theta_z_fbgs + theta_z_mocap;
 else
-    % theta_z = theta_z_fbgs - theta_z_mocap;
     theta_z = theta_z_fbgs - theta_z_mocap;
 end
 
@@ -135,7 +138,7 @@ end
 
 
 
-%%  Correct pose mocap
+%%  Correct pose mocap (only frame of the robot)
 idx_init      = mocap_time_rel <= 3.0;
 
 rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
@@ -148,9 +151,11 @@ pos_disks = [
     0    0.12 0.24 0.36 0.48
 ];
 
-g_correction = zeros(4, 4, N_disks);
+N_disks_robot = 5;
+
+g_correction = zeros(4, 4, N_disks_robot);
 rel_kinematics_disks_corr = zeros(size(rel_kinematics_disks));
-for it=1:N_disks
+for it=1:N_disks_robot
 
     g_disk_ref = eye(4);
     g_disk_ref(1:3, 4) = pos_disks(:, it);
@@ -243,6 +248,13 @@ for coord = 1:3
     end
 end
 
+fbgs_angles_t = zeros(size(fbgs_angles));
+fbgs_curvatures_f = zeros(size(fbgs_curvatures));
+for it = 1:26
+    fbgs_angles_t(:,it) = butter_filtfilt(fbgs_time, fbgs_angles(:,it), cutoffHz, butterOrder);
+    fbgs_curvatures_f(:,it) = butter_filtfilt(fbgs_time, fbgs_curvatures(:,it), cutoffHz, butterOrder);
+end
+
 
 rel_kinematics_disks_f = zeros(size(rel_kinematics_disks));
 rel_kinematics_disks_corr_f = zeros(size(rel_kinematics_disks));
@@ -261,6 +273,7 @@ if use_resense
         wrench_wand_f(:,k) = butter_filtfilt(time_resense, wrench_wand(:,k), cutoffHz, butterOrder);
     end
 end
+
 
 
 %% ====== PLOT: 4 SUBPLOTS (MOTOR TARGET/MEAS + FORCE) ======
@@ -579,6 +592,15 @@ for coord = 1:3
     end
 end
 
+interp_fbgs_angles = zeros(N_samples, 26);
+interp_fbgs_curvatures = zeros(N_samples, 26);
+for it = 1:26
+    interp_fbgs_angles(:,it) = interp1(relative_time_fbgs, fbgs_angles_t(:, it), sampling_time)';
+    interp_fbgs_curvatures(:,it) = interp1(relative_time_fbgs, fbgs_curvatures_f(:, it), sampling_time)';
+end
+
+
+
 if use_resense
 
     relative_time_resense = time_resense - time_start_motors;
@@ -849,12 +871,71 @@ saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 %% Temporal correlation
+% 
+% 
+%  figure("Name","ATI FT");
+% 
+%     for it = 1:3
+%         index_plot = it*2 -1;
+%         subplot(3,2,index_plot)
+% 
+%         plot(relative_time_ATI, ATI_FT_f(:, it), "b", "LineWidth", 2.0); hold on
+%         plot(sampling_time, interp_base_wrench(:,it), "or","MarkerSize", 3);
+%         ylabel("Force [N]")
+%         grid on
+% 
+% 
+% 
+%         if it == 3
+%             xlabel("Time [s]")
+%         end
+% 
+%     end
+% 
+%     for it = 1:3
+%         index_plot = it*2;
+%         subplot(3,2,index_plot)
+% 
+%         plot(relative_time_ATI, ATI_FT_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
+%         plot(sampling_time, interp_base_wrench(:,3 + it), "or","MarkerSize", 3);
+%         ylabel("Torque [Nm]")
+%         grid on
+% 
+% 
+% 
+%         if it == 3
+%             xlabel("Time [s]")
+%         end
+% 
+%     end
+% 
+% figure("Name","Cables Tensions");
+% 
+%     for it = 1:4
+%         subplot(4,1,it)
+% 
+%         plot(relative_time_cables{it}, cable_tensions_f{it}, "b", "LineWidth", 2.0); hold on
+%         plot(sampling_time, interp_tensions(:,it), "or","MarkerSize", 3);
+%         ylabel("Tension [N]")
+%         grid on
+% 
+% 
+% 
+%         title("Actuator " + it)
+%         if it == 4
+%             xlabel("Time [s]")
+%         end
+% 
+%     end
+
 
 sync_results = check_temporal_sync(time_actuators, measured_angles, ...
     mocap_timestamps, rel_kinematics_disks_corr, ...
-    fbgs_time, fbgs_shapes, FBGS_tip_index, saving_folder);
+    fbgs_time, fbgs_shapes, FBGS_tip_index, ...
+    time_cables, cable_tensions, tA, ATI_FT, ...
+    saving_folder);
 
-
+sync_results.lag_OF
 
 
 
@@ -960,8 +1041,6 @@ fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc
 fclose(fid);
 
 
-
-
 %%  Save the interpolated data
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
@@ -998,9 +1077,14 @@ if use_resense
 end
 
 
-%   Save the workspace as reference
-save(fullfile(saving_folder, 'matlab_workspace'));
+interp_time_fbgs_strain      = [sampling_time interp_fbgs_curvatures interp_fbgs_angles];
+writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv"));
 
+%   Save the workspace as reference
+%save(fullfile(saving_folder, 'matlab_workspace'));
+
+
+fprintf("   SAVED DATA");
 
 %% ====== HELPER FUNCTION ======
 function y = butter_filtfilt(t, x, fc, n)
