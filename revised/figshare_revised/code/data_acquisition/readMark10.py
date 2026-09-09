@@ -12,14 +12,11 @@ parser = argparse.ArgumentParser(description="Read samples from Mark-10 force ga
 parser.add_argument('duration', type=int, help="Duration to run the data collection (in seconds)")
 parser.add_argument('filename', type=str, help="Filename to save the data")
 parser.add_argument('--port', type=str, default='COM5', help="Serial port to use (default: COM4)")
-parser.add_argument('--start-time', type=float, default=None, help="Shared start timestamp (seconds)")
+
 args = parser.parse_args()
 
-if args.start_time is not None:
-    print(f"Using shared start time {args.start_time:.6f}")
-    start_time = args.start_time
-else:
-    start_time = time.time()
+
+start_time = time.time()
 
 port = args.port
 duration = args.duration

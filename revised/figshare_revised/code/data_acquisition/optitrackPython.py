@@ -44,24 +44,6 @@ def receive_new_frame(data_dict):
 
 
 def receive_new_frame_with_data(file, data_dict):
-    # TODO: implement logging code here
-    # keys_list = [
-    #     "frame_number", "marker_set_count", "unlabeled_markers_count", "rigid_body_count", 
-    #     "skeleton_count", "asset_count", "labeled_marker_count", "timecode", "timecode_sub", 
-    #     "timestamp", "is_recording", "tracked_models_changed", "offset", "mocap_data"]
-    # dump_args = True
-    # if dump_args is True:
-    #     out_string = "    "
-    #     for key in data_dict:
-    #         out_string += key + "= "
-    #         if key in data_dict:
-    #             out_string += str(data_dict[key]) + " "
-    #         out_string += "/"
-    #     print(out_string)
-
-    
-
-    # file.write(f"{data_dict['timestamp']}")  # timestamp of the mocap system
     file.write(f"{time.time()}")
 
     # Example data access:
@@ -194,8 +176,7 @@ if __name__ == "__main__":
     parser.add_argument('duration', type=int,
                         help="Duration to run the data collection (in seconds)")
     parser.add_argument('filename', type=str, help="Filename to save the data")
-    parser.add_argument('--start-time', type=float, default=None,
-                        help="Shared start timestamp (seconds)")
+
     args = parser.parse_args()
 
     optionsDict = {}
@@ -267,11 +248,6 @@ if __name__ == "__main__":
     print("\n")
     print_commands(streaming_client.can_change_bitstream_version())
 
-    if args.start_time is not None:
-        print(f"Using shared start time {args.start_time:.6f}")
-        start_time = args.start_time
-    else:
-        start_time = time.time()
     time.sleep(args.duration)
 
     print("Finished data collection, shutting down client...")

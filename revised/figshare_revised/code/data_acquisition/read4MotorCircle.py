@@ -25,18 +25,11 @@ parser.add_argument("--motor1-id", type=int, default=1, help="CAN ID for motor 1
 parser.add_argument("--motor2-id", type=int, default=2, help="CAN ID for motor 2 (default: 2)")
 parser.add_argument("--motor3-id", type=int, default=3, help="CAN ID for motor 3 antagonist 1 (default: 3)")
 parser.add_argument("--motor4-id", type=int, default=4, help="CAN ID for motor 4 antagonist 2 (default: 4)")
-# parser.add_argument("--radius", type=float, default=45.0, help="Radius of circle in degrees")
-parser.add_argument("--start-time", type=float, default=None, help="Shared start timestamp (seconds)")
-# parser.add_argument("--delta", type=float, default=0.0, help="Phase difference for Lissajous curve (radians, default: 0.0)")
-# parser.add_argument("--a", type=float, default=2.0, help="Frequency ratio for X component in Lissajous curve (default: 2.0)")
-# parser.add_argument("--b", type=float, default=1.0, help="Frequency ratio for Y component in Lissajous curve (default: 1.0)")
+
+
 args = parser.parse_args()
 
-if args.start_time is not None:
-    print(f"Using shared start time {args.start_time:.6f}")
-    start_time = args.start_time
-else:
-    start_time = time.time()
+start_time = time.time()
 
 ################################################################################################
 wait_before_start = 3   #   seconds to wait before the main loop starts (ensures all sensors are running)
