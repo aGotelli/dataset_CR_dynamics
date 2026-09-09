@@ -1,5 +1,15 @@
-function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense)
-    
+function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks, is_valid_disk] = data_optitrack(filename, use_resense)
+    %   is_valid_disk is an additional, OPTIONAL output (existing callers that only
+    %   ask for the first five outputs, e.g. process_data.m, keep working exactly
+    %   as before -- MATLAB allows a function to be called with fewer output
+    %   arguments than it declares). It is an N_time x N_disks matrix, copied
+    %   directly from the "<disk>_is_valid" columns of the raw OptiTrack CSV: 1
+    %   where Motive successfully reconstructed that disk's pose at that sample,
+    %   0 where it could not (the pose was occluded). See
+    %   check_optitrack_validity_5_28.m for a script that uses this output to
+    %   check every released recording for occluded frames (Reviewer 5, Comment
+    %   5.28).
+
 
     mocap = readtable(filename);
     
@@ -21,14 +31,20 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
 
 
 
-    %%   First check data for disks is correct
-    
-    indices = zeros(N_time, N_disks);
-    for it=1:N_disks
+    %%   Read Motive's per-disk, per-sample validity flag.
+    %
+    %   Motive marks a rigid body "invalid" for a given frame when it could
+    %   not reconstruct that disk's pose for that frame, typically because
+    %   too many of its markers were occluded from the cameras. is_valid_disk(t, k)
+    %   is 1 when disk k's pose at sample t is a real measurement, and 0 when
+    %   it is not (in which case the corresponding x/y/z/quaternion columns
+    %   for that disk at that sample do not describe anything physical).
+    is_valid_disk = zeros(N_time, N_disks);
+    for it = 1:N_disks
 
         label = disk_names{it} + "_is_valid";
 
-        indices(:, it) = mocap.( label );
+        is_valid_disk(:, it) = mocap.( label );
 
     end
 

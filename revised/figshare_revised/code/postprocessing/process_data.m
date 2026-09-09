@@ -8,7 +8,7 @@ addpath("outils\")
 %%  Load reference data
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("../../", "data/","dynamic_motion/","circle_slow");
+folder = fullfile("../../", "data/","dynamic_motion/","Lissajous_fast/");
 
 cutoffHz    = 15;   % Butterworth cutoff
 butterOrder = 4;
@@ -17,11 +17,15 @@ butterOrder = 4;
 samplingHz = 100;
 
 
+
+
 %   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
-bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for all rest
+if(contains(folder, "_x_"))
+    bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for all rest
+else
+    bending_axis = 'y';        % 'y' for plane_y experiments, 'x' for all rest
+end
 
-
-lag_FBGS = 13.5;    %   Average measured lag in milliseconds
 
 %   Plots
 plot_mocap_fbgs_corrections = false;
@@ -61,139 +65,46 @@ if use_resense
     wrench_wand = [resense.Fx resense.Fy resense.Fz resense.Tx/1000 resense.Ty/1000 resense.Tz/1000];
 end
 
-filename = fullfile(folder, "dataOptiTrack.csv");
-[N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense);
+%   Load and spatially align the OptiTrack and FBG data for this
+%   recording. This logic used to live inline here; it is now in
+%   align_mocap_and_fbgs.m (outils/) so that check_fbg_delay_5_30.m can
+%   reuse the exact same spatial alignment when it estimates the FBG
+%   pipeline delay on UNCORRECTED timestamps (Reviewer 5, Comment 5.30).
+%   The two scripts are guaranteed to agree on everything except the one
+%   line directly below, which is deliberately NOT inside that function.
+[N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
+    fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
+    align_mocap_and_fbgs(folder, use_resense, align_window_s, bending_axis);
 
-
-filename = fullfile(folder, "dataFBGS.csv");
-[fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = data_fbgs(filename);
+%   Load the FBG pipeline-delay correction. This value is measured
+%   separately, on UNCORRECTED data, by
+%   reviews/code_changes_additions/check_fbg_delay_5_30.m (Reviewer 5,
+%   Comment 5.30), which writes it to measured_fbg_delay_ms.txt in this
+%   same folder. Delay ESTIMATION (that script) and delay CORRECTION
+%   (this line) are therefore kept in two separate files: this script
+%   never computes its own correction value, it only ever reads one that
+%   was measured elsewhere, on data this correction has not yet touched.
+%
+%   If that file does not exist (check_fbg_delay_5_30.m has not been run
+%   yet), no correction is applied (lag_FBGS = 0) rather than silently
+%   falling back to a guessed number.
+lag_FBGS_file = fullfile(fileparts(mfilename('fullpath')), "measured_fbg_delay_ms.txt");
+if isfile(lag_FBGS_file)
+    lag_FBGS = str2double(fileread(lag_FBGS_file));
+else
+    lag_FBGS = 0;
+end
 fbgs_time = fbgs_time - lag_FBGS/1000;
 
-
-%   Apply rotation of -90 deg along y axis to ALL shapes
-R_y = axang2rotm([0 1 0 -pi/2]);
-N_time_fbgs = size(fbgs_shapes, 3);
-for t = 1:N_time_fbgs
-    fbgs_shapes(:, :, t) = R_y * fbgs_shapes(:, :, t);
-end
-
-
-mocap_time_rel  = mocap_timestamps - mocap_timestamps(1);
-idx_align      = mocap_time_rel <= align_window_s;
-
-XYZ_xyz_disk = rel_kinematics_disks(:, :, 5);
-tip_xy_mocap  = XYZ_xyz_disk(idx_align, 4:5);            
-tip_xy_mocap_centered = tip_xy_mocap - mean(tip_xy_mocap, 1);
-[U_m, S_m, V_m] = svd(tip_xy_mocap_centered, 'econ');
-
-
-
-R_m = eye(3);
-R_m(1:2, 1:2) = V_m;
-axang_m = rotm2axang(R_m);
-theta_z_mocap = axang_m(4);
-
-% theta_z_mocap = atan2(R_m(1, 2), R_m(1, 1));
-
-if strcmpi(bending_axis, 'y')
-    theta_z_mocap = pi/2 - theta_z_mocap;       % map onto y-axis
-else
-    theta_z_mocap = 0 - theta_z_mocap;          % map onto x-axis
-end
-
-%   The fiber now evolves in z, but bending leaks into both x and y.
-%   Use SVD on the tip x-y trajectory (first 10 s only, planar portion)
-%   to find the bending direction, then rotate about z.
-fbgs_time_rel  = fbgs_time - fbgs_time(1);
-idx_align      = fbgs_time_rel <= align_window_s;
-
-tip_xy_all     = squeeze(fbgs_shapes(1:2, end, :));   % 2 x N_time
-tip_xy         = tip_xy_all(:, idx_align);            % 2 x N_align
-tip_xy_centered = tip_xy - mean(tip_xy, 2);
-[U_f, S_f, V_f] = svd(tip_xy_centered, 'econ');
-
-R_f = eye(3);
-R_f(1:2, 1:2) = U_f;
-axang_f = rotm2axang(R_f);
-theta_z_fbgs = axang_f(4);
-
-if strcmpi(bending_axis, 'y')
-    theta_z_fbgs = pi/2 - theta_z_fbgs;       % map onto y-axis
-else
-    theta_z_fbgs = 0 - theta_z_fbgs;          % map onto x-axis
-end
-
-if strcmpi(bending_axis, 'y')
-    theta_z = theta_z_fbgs + theta_z_mocap;
-else
-    theta_z = theta_z_fbgs - theta_z_mocap;
-end
-
-
-R_z = axang2rotm([0 0 1 theta_z]);
-for t = 1:N_time_fbgs
-    fbgs_shapes(:, :, t) = R_z * fbgs_shapes(:, :, t);
-end
-
-
-
-
-%%  Correct pose mocap (only frame of the robot)
-idx_init      = mocap_time_rel <= 3.0;
-
-rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
+%   A few small, pure-indexing quantities that were previously computed
+%   alongside the alignment above are still needed further down in this
+%   script (the optional plot_mocap_fbgs_corrections figure). They are
+%   cheap to recompute here from the outputs above -- no alignment logic
+%   is being repeated, only array indexing.
+mocap_time_rel = mocap_timestamps - mocap_timestamps(1);
+idx_init = mocap_time_rel <= 3.0;
 mocap_time_rel_init = mocap_time_rel(idx_init);
-
-%   Remove residual offset
-pos_disks = [
-    0    0    0    0    0
-    0    0    0    0    0
-    0    0.12 0.24 0.36 0.48
-];
-
-N_disks_robot = 5;
-
-g_correction = zeros(4, 4, N_disks_robot);
-rel_kinematics_disks_corr = zeros(size(rel_kinematics_disks));
-for it=1:N_disks_robot
-
-    g_disk_ref = eye(4);
-    g_disk_ref(1:3, 4) = pos_disks(:, it);
-
-
-    
-    EUL_disk_t = rel_kinematics_disks_init(:, 1:3, it)';
-    r_disk_t = rel_kinematics_disks_init(:, 4:6, it)';
-
-    EUL_disk = mean(EUL_disk_t, 2);
-    r_disk = mean(r_disk_t, 2);
-
-    R_disk = eul2rotm(EUL_disk', 'XYZ');
-
-    g_meas_m1 = [
-        R_disk' -R_disk'*r_disk
-        0   0   0   1
-    ];
-
-    g_correction(:,:, it) = g_meas_m1*g_disk_ref;
-
-    
-
-    rel_poses_disk = rel_poses_disks(:, :, it, :);
-
-    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction(:,:, it));
-
-
-    r_disk_corr = squeeze( rel_poses_disk_corr(1:3,   4, :, :) );
-    R_disk_corr = squeeze( rel_poses_disk_corr(1:3, 1:3, :, :) );
-    XYZ_disk_corr = rotm2eul(R_disk_corr, 'XYZ');
-
-    rel_kinematics_disks_corr(:, :, it) = [
-      XYZ_disk_corr   r_disk_corr'
-    ];
-
-end
-
+rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
 rel_kinematics_disks_corr_init = rel_kinematics_disks_corr(idx_init, :, :);
 
 
@@ -219,6 +130,24 @@ tA = ati.timestamp;
 
 ATI_F = [ati.Fx_N_, ati.Fy_N_, ati.Fz_N_];
 ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
+ATI_FT = [ATI_F ATI_T];
+
+
+
+%% Temporal correlation
+
+sync_results = check_temporal_sync(time_actuators, measured_angles, ...
+    mocap_timestamps, rel_kinematics_disks_corr, ...
+    fbgs_time, fbgs_shapes, FBGS_tip_index, ...
+    time_cables, cable_tensions, tA, ATI_FT, ...
+    saving_folder);
+
+
+valid = find(abs(sync_results.r_OF) > 0.95);
+lag_OF = sync_results.lag_OF
+mean_lag_OF = mean(lag_OF(valid))
+
+return;
 
 
 %% ====== FILTER (BUTTER + FILTFILT) ======
@@ -240,7 +169,7 @@ for k = 1:3
 end
 
 ATI_FT_f = [ATI_F_f ATI_T_f];
-ATI_FT = [ATI_F ATI_T];
+
 
 fbgs_shapes_f = zeros(size(fbgs_shapes));   % 3 x 502 x N_time_fbgs
 N_fbgs_points = size(fbgs_shapes, 2);
@@ -553,8 +482,26 @@ relative_time_mocap = mocap_timestamps - time_start_motors;
 
 relative_time_fbgs = fbgs_time - time_start_motors;
 
-%   Now define interpolation points for the given frequency
-N_samples = floor(samplingHz*time_end_motors);
+%   Now define interpolation points for the given frequency. The
+%   resampling window must not run past whichever sensor stream ends
+%   FIRST: every interp1 call below is used without 'extrap', so any
+%   sampling point past a stream's own last timestamp returns NaN
+%   (Reviewer 5, Comment 5.35). Each Mark-10 tendon-tension channel is
+%   its own independently-polled serial process, so it can (and in
+%   several recordings in this dataset does, by a few tens of
+%   milliseconds) stop recording slightly before the motor does; ATI,
+%   Mocap and FBGS are included here too so this is not tied to one
+%   sensor only.
+time_end_common = min([time_end_motors; ...
+    relative_time_cables{1}(end); relative_time_cables{2}(end); ...
+    relative_time_cables{3}(end); relative_time_cables{4}(end); ...
+    relative_time_ATI(end); relative_time_mocap(end); relative_time_fbgs(end)]);
+if use_resense
+    relative_time_resense_for_window = time_resense - time_start_motors;
+    time_end_common = min(time_end_common, relative_time_resense_for_window(end));
+end
+
+N_samples = floor(samplingHz*time_end_common);
 sampling_dt = 1/samplingHz;
 sampling_time = (0:sampling_dt:sampling_dt*(N_samples-1))';
 
@@ -868,77 +815,6 @@ xlabel("p_x [m]")
 ylabel("p_y [m]")
 savefig(saving_fig_folder + fig.Name)
 saveas(fig, saving_fig_folder + fig.Name, 'png')
-
-
-
-
-%% Temporal correlation
-% 
-% 
-%  figure("Name","ATI FT");
-% 
-%     for it = 1:3
-%         index_plot = it*2 -1;
-%         subplot(3,2,index_plot)
-% 
-%         plot(relative_time_ATI, ATI_FT_f(:, it), "b", "LineWidth", 2.0); hold on
-%         plot(sampling_time, interp_base_wrench(:,it), "or","MarkerSize", 3);
-%         ylabel("Force [N]")
-%         grid on
-% 
-% 
-% 
-%         if it == 3
-%             xlabel("Time [s]")
-%         end
-% 
-%     end
-% 
-%     for it = 1:3
-%         index_plot = it*2;
-%         subplot(3,2,index_plot)
-% 
-%         plot(relative_time_ATI, ATI_FT_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
-%         plot(sampling_time, interp_base_wrench(:,3 + it), "or","MarkerSize", 3);
-%         ylabel("Torque [Nm]")
-%         grid on
-% 
-% 
-% 
-%         if it == 3
-%             xlabel("Time [s]")
-%         end
-% 
-%     end
-% 
-% figure("Name","Cables Tensions");
-% 
-%     for it = 1:4
-%         subplot(4,1,it)
-% 
-%         plot(relative_time_cables{it}, cable_tensions_f{it}, "b", "LineWidth", 2.0); hold on
-%         plot(sampling_time, interp_tensions(:,it), "or","MarkerSize", 3);
-%         ylabel("Tension [N]")
-%         grid on
-% 
-% 
-% 
-%         title("Actuator " + it)
-%         if it == 4
-%             xlabel("Time [s]")
-%         end
-% 
-%     end
-
-
-sync_results = check_temporal_sync(time_actuators, measured_angles, ...
-    mocap_timestamps, rel_kinematics_disks_corr, ...
-    fbgs_time, fbgs_shapes, FBGS_tip_index, ...
-    time_cables, cable_tensions, tA, ATI_FT, ...
-    saving_folder);
-
-sync_results.lag_OF
-
 
 
 

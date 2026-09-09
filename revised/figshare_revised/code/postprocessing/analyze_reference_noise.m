@@ -3,7 +3,7 @@ close all; clear; clc;
 addpath("outils\")
 
 %% ====== PATHS ======
-folder = fullfile("..", "dataCollectionPack/data/references/released_config");
+folder = fullfile("../../", "/data/references/released_config");
 
 %% ====== LOAD DATA ======
 mk_px = readtable(fullfile(folder, "dataMark10_+x.csv"));
@@ -17,12 +17,20 @@ ati = readtable(fullfile(folder, "dataATIFT.csv"));
 
 [~, fbgs_shapes, curvatures, angles] = data_fbgs(fullfile(folder, "dataFBGS.csv"));
 
-%% ====== MARK10: std of tension_N_ ======
+%% ====== MARK10: std of tendon tension ======
+% dataMark10_*.csv's "tension (N)" column is the RAW pulley reaction
+% force. Each tendon wraps its redirecting pulley by 180 degrees, so the
+% pulley axle (where the M3-5 gauge is mounted) sees twice the tendon
+% tension. Every other place in this codebase that reads this column
+% (process_data.m: cable_tensions{i} = ..._tension_N_/2) divides by 2 to
+% get the actual tendon tension. This script must do the same before
+% computing its std, otherwise the reported noise is 2x the true tendon
+% tension noise (Reviewer 5, Comment 5.37).
 std_mk = [
-    std(mk_px.("tension_N_"))
-    std(mk_py.("tension_N_"))
-    std(mk_nx.("tension_N_"))
-    std(mk_ny.("tension_N_"))
+    std(mk_px.("tension_N_")/2)
+    std(mk_py.("tension_N_")/2)
+    std(mk_nx.("tension_N_")/2)
+    std(mk_ny.("tension_N_")/2)
 ];
 
 %% ====== ATI-FT: std per channel ======
