@@ -1,0 +1,621 @@
+% =====================================================================
+%  Response to Reviewer 5
+%  Manuscript: Multi-sensor dataset of a tendon-driven continuum robot
+%               in dynamic motion
+%
+%  This file compiles standalone (pdflatex twice).
+%  To merge it into a larger response letter, delete everything from
+%  \documentclass down to \begin{document}, delete the closing
+%  \end{document} and the thebibliography block, and \input this file.
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{siunitx}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{hyperref}
+
+\bibliographystyle{ieeetr}
+
+% --- helper macros -----------------------------------------------------
+% Reviewer text is typeset in italics so it is visually separated from
+% the authors' response.
+\newcommand{\revcomment}[1]{\textit{#1}}
+% Placeholder for sections still to be written. Delete as you fill them in.
+\newcommand{\todoresp}{\textcolor{red}{[To be completed.]}}
+% -----------------------------------------------------------------------
+
+\begin{document}
+
+\section{reviewer 5}
+
+\paragraph{general comment}
+\revcomment{The work presents a dataset for a single-segment soft robot, built from commercially
+available components. The dataset contains readings from six sensor modalities in quasi-static
+and dynamic motions as well as contact situation. Cross-validation was undertaken for
+consistency assessment. Overall, the work addresses a general lack of comparable,
+transferable, standardized and available experimental data in the field of soft robotics. The
+scientific contribution and relevance of the work is well motivated and aims at filling an
+existing research gap in the field of soft robotics. However, the paper and the dataset show
+major weaknesses and inconsistencies, which should be revised before the paper can be
+published. Details below.}
+
+\paragraph{Response to the general comment}
+\todoresp
+
+% =====================================================================
+\subsection{Major comments (paper)}
+% =====================================================================
+
+\paragraph{Comment 5.1}
+\revcomment{The introduction to the work is thoroughly written and also effectively compares the
+state of the art in soft robotics well with other data-intensive research fields such as
+autonomous driving and robotics in general. However, the introduction lacks comparisons to
+datasets in the same field, which should be added/referred to, e.g., \cite{Hansen2026,
+Muhmann2025, Zhang2025, Liu2026, Wang2025}.}
+
+\paragraph{Response to Comment 5.1}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.2}
+\revcomment{While the experimental setup is described in detail, the figures (especially Fig.~2)
+should be much clearer:
+\begin{itemize}
+  \item Inconsistent writing (lowercase / uppercase). Example: Contact probe vs.\ Reflective Marker.
+  \item Coordinate frames are barely visible, especially when printed on paper in greyscale.
+        Increase contrast.
+  \item Dashed lines and circles are not aligned well. Correct alignment.
+\end{itemize}}
+
+\paragraph{Response to Comment 5.2}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.3}
+\revcomment{Multiple qualitative terms such as ``rigidly connected'' and ``geometrically stable''
+are used. Such vague terms are too unprecise in an experimental paper about soft robotics,
+which heavily relies on a sufficiently rigid mounting structure. The authors should provide
+quantitative measurements such as static directional stiffness values or structural
+eigenfrequencies to quantify that the mounting structure is sufficiently stiff for the
+experiments.}
+
+\paragraph{Response to Comment 5.3}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.4}
+\revcomment{The contact-force validation remains largely qualitative. Terms such as ``close
+agreement'' and ``good agreement'' should be supported by quantitative metrics such as RMSE,
+mean bias, maximum absolute error, and preferably correlation values.}
+
+\paragraph{Response to Comment 5.4}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.5}
+\revcomment{Inconsistency in Tab.~1: The table does not only contain geometrical parameters.
+Correct the description of the table.}
+
+\paragraph{Response to Comment 5.5}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.6}
+\revcomment{Inconsistency in Tab.~1: The physical unit of weight is newtons (N), not grams (g).
+Refer to mass, not weight, when using grams as the physical unit. Correct units.}
+
+\paragraph{Response to Comment 5.6}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.7}
+\revcomment{Inconsistency with kinematic definitions: $g_{\mathrm{fix}}$ is introduced as a
+rotation matrix (orientation), but $g_{\mathrm{wand}}$ is introduced as a pose. In robotics, a
+pose is position and orientation.}
+
+\paragraph{Response to Comment 5.7}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.8}
+\revcomment{The paper currently lacks a clear, dedicated conclusion and summary section. The
+authors should add a concluding section that summarizes the impact of the dataset and outlines
+potential future use cases.}
+
+\paragraph{Response to Comment 5.8}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.9}
+\revcomment{The paper currently lacks an application to a baseline model for at least one of the
+use cases that are mentioned in the introduction. Therefore, the paper does not demonstrate by
+itself that the dataset is useful for any of these applications. Neither does it demonstrate
+that the authors have successfully used their dataset. This could have helped with the
+inconsistencies of the dataset (see further below).}
+
+\paragraph{Response to Comment 5.9}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.10}
+\revcomment{The GVS model used for Figure~6 and Table~7 is not included in the released code.
+Since this model forms part of the technical validation, the implementation and all parameters
+required to reproduce the reported results should be released.}
+
+\paragraph{Response to Comment 5.10}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+% =====================================================================
+\subsection{Minor comments (paper)}
+% =====================================================================
+
+\paragraph{Comment 5.11}
+\revcomment{The word ``minimize'' should only be used when referring specifically to the results
+of an optimization routine. Consider using ``reduce'' or ``eliminate'' to avoid confusion. This
+occurs multiple times in the paper and should be corrected.}
+
+\paragraph{Response to Comment 5.11}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.12}
+\revcomment{Sec.~2.2: 3D printed pulleys appear to be an unnecessarily low-cost option for
+routing cables. Have the authors checked for roundness (part may have a seam from printing) and
+eccentricity after pressing the bearing in? It remains unclear why 3D printed pulleys were used
+at all, as machined parts are widely available standard components.}
+
+\paragraph{Response to Comment 5.12}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.13}
+\revcomment{While mathematically identical for orthogonal matrices, it is rather common in
+robotics to use the transpose of a rotation matrix instead of its inverse (see inversion of
+$g_{\mathrm{base}}$ on page 16). The authors may want to use the transpose for stylistic
+consistency.}
+
+\paragraph{Response to Comment 5.13}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.14}
+\revcomment{Some parts of the paper read more like a technical documentation rather than a
+scientific paper. Overall, the writing could be improved before publication so that the text
+reads more fluently.}
+
+\paragraph{Response to Comment 5.14}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.15}
+\revcomment{Data availability and code availability refer to the same internet source, so it
+could be included in a single section rather than two short sections.}
+
+\paragraph{Response to Comment 5.15}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.16}
+\revcomment{Table~3 states that the FBG shape contains 502 points but uses the index range
+0--502, which would correspond to 503 points.}
+
+\paragraph{Response to Comment 5.16}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+% =====================================================================
+\subsection{Major comments (dataset)}
+% =====================================================================
+
+\paragraph{Comment 5.17}
+\revcomment{The documented column order of \texttt{mocap\_frames.csv} appears to be incorrect.
+Table~3 states $[x, y, z, \mathrm{roll}, \mathrm{pitch}, \mathrm{yaw}]$, whereas both the
+released processing code (\texttt{data\_optitrack.m}, lines 143--149;
+\texttt{process\_data.m}, lines 1049--1066) and inspection of the released CSV indicate
+$[\mathrm{roll}, \mathrm{pitch}, \mathrm{yaw}, x, y, z]$. This can directly lead to incorrect
+interpretation of the dataset and should be corrected before publication.}
+
+\paragraph{Response to Comment 5.17}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.18}
+\revcomment{A Python logic error is present in \texttt{read4MotorCircle.py}:
+\texttt{if motion\_pattern == "circle" or "Lissajous":}. This condition is always true because
+the non-empty string literal \texttt{"Lissajous"} evaluates to true in a Boolean context in
+Python. As a consequence, the angular tolerance is apparently set to $12^{\circ}$ for all motion
+types rather than the intended $0.5^{\circ}$ default. The authors should clarify whether this
+code version was used for the published experiments and assess its impact on the recorded
+trajectories.}
+
+\paragraph{Response to Comment 5.18}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.19}
+\revcomment{The filtering procedure may be seriously affected by irregular timestamps.
+\texttt{process\_data.m} determines the sampling frequency using
+\texttt{Fs = 1/median(diff(t))} and applies a standard Butterworth filter before uniform
+resampling. This assumes approximately equidistant samples. The inspected ATI raw recording
+exhibits strongly burst-like host timestamps despite an average data rate of approximately
+\SI{200}{\hertz}, meaning that the median timestamp interval may yield a grossly incorrect
+filter sampling frequency. The authors should verify whether the released processed signals were
+affected and, if necessary, regenerate them using a regular time grid before filtering.}
+
+\paragraph{Response to Comment 5.19}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.20}
+\revcomment{Contact-data processing is inconsistent between the manuscript and the released code.
+The manuscript specifies a \SI{15}{\hertz} low-pass filter, whereas
+\texttt{compare\_ft\_sensors.m} uses \SI{30}{\hertz}. Processed files are described as
+header-less, while the contact script uses \texttt{writetable}. File names also differ
+(\texttt{tendon\_tensions.csv} vs.\ \texttt{cable\_tensions.csv},
+\texttt{contact\_wrench.csv} vs.\ \texttt{wrench\_wand.csv}), and no clear generator for the
+documented \texttt{wand\_pose.csv} was identified.}
+
+\paragraph{Response to Comment 5.20}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.21}
+\revcomment{The main acquisition script does not reproduce the contact subset.
+\texttt{runAllDataCollection.bat} starts FBG, ATI, OptiTrack, four Mark-10 processes, motors,
+and an undocumented gyroscope, but does not start the Resense/HEX12 acquisition process required
+for the contact experiments.}
+
+\paragraph{Response to Comment 5.21}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.22}
+\revcomment{The released code is not yet a fully reproducible standalone processing pipeline.
+Important parameters and paths are hard-coded in \texttt{process\_data.m}, no complete top-level
+README or dependency file is provided, and several required software/hardware dependencies are
+not documented. A clean, parameterized Raw $\rightarrow$ Processed workflow should be provided.
+The manuscript and the released processing code describe different OptiTrack calibration
+procedures. Section~2.6.3 states that the per-disk marker offsets are determined once from
+\texttt{references/straight\_config}, whereas \texttt{process\_data.m} (lines 141--195)
+recalculates these offsets independently from the first \SI{3}{\second} of every recording. The
+authors should clarify which procedure was actually used to generate the released processed
+data.}
+
+\paragraph{Response to Comment 5.22}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.23}
+\revcomment{The description of the circle and Lissajous trajectories does not fully match the
+acquisition code. The manuscript describes continuous sinusoidal commands, whereas
+\texttt{read4MotorCircle.py} implements the circle using discrete target configurations and the
+Lissajous trajectory using 16 sampled waypoints that are sequentially executed by position
+control. The actual actuation protocol should be described accurately.}
+
+\paragraph{Response to Comment 5.23}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.24}
+\revcomment{The quasi-static acquisition protocol cannot be reproduced from the released
+acquisition code. The manuscript describes small incremental sweeps through near-equilibrium
+configurations, while the available code mainly contains two extreme target configurations and
+no explicit equilibrium criterion. Either the actual acquisition script should be released or
+the Methods section should be revised accordingly.}
+
+\paragraph{Response to Comment 5.24}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.25}
+\revcomment{The temporal synchronization discussion appears too strong. Although all sensor
+processes use the same host clock, their timestamps correspond to different events such as
+serial-response completion, DAQ block reads, sequential CAN queries, network reception, or
+processed FBG-frame reception. A common OS clock therefore does not necessarily imply a common
+physical measurement time.}
+
+\paragraph{Response to Comment 5.25}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.26}
+\revcomment{The manuscript states that cross-correlation was omitted for tendon tension and base
+force/torque signals, while the released synchronization code nevertheless computes
+motor--tension and motor--ATI correlations. The authors should clarify whether these were
+exploratory analyses only and align the released validation code with the description in the
+paper.}
+
+\paragraph{Response to Comment 5.26}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.27}
+\revcomment{The FBG--OptiTrack comparison should be described more carefully as a cross-modal
+consistency check after frame registration. Since OptiTrack data are used to align the FBG frame
+before the two modalities are compared, this is not a completely independent absolute
+validation.}
+
+\paragraph{Response to Comment 5.27}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+% =====================================================================
+\subsection{Minor comments (dataset)}
+% =====================================================================
+
+\paragraph{Comment 5.28}
+\revcomment{The OptiTrack validity flags (\texttt{disk\_k\_is\_valid}) are loaded in
+\texttt{data\_optitrack.m} but apparently not used during processing, and the validity
+information is not retained in the processed data. The handling of occluded/invalid frames
+should be documented and preferably retained as a validity mask.}
+
+\paragraph{Response to Comment 5.28}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.29}
+\revcomment{The FBG delay value is missing from the Methods text (``a fixed offset of is
+subtracted''), while the code uses approximately \SI{13.5}{\milli\second}. The numerical value
+and sign convention should be stated explicitly.}
+
+\paragraph{Response to Comment 5.29}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.30}
+\revcomment{Delay estimation and delay correction are mixed in \texttt{process\_data.m}: the FBG
+timestamps are corrected before the synchronization check is executed. The lag estimation should
+preferably be performed on the uncorrected signals and separated from the subsequent correction
+step.}
+
+\paragraph{Response to Comment 5.30}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.31}
+\revcomment{The manuscript refers to \texttt{std::chrono::high\_resolution\_clock} for FBG
+timestamps, whereas the released C++ code stores timestamps using
+\texttt{std::chrono::system\_clock}.}
+
+\paragraph{Response to Comment 5.31}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.32}
+\revcomment{All four sequentially queried motor states are stored using a single timestamp.
+Either individual timestamps should be used or the total four-motor readout latency should be
+quantified.}
+
+\paragraph{Response to Comment 5.32}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.33}
+\revcomment{The ATI timestamp is assigned after reading and averaging a five-sample DAQ block.
+The timestamp therefore represents approximately the end rather than the center of the
+measurement block.}
+
+\paragraph{Response to Comment 5.33}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.34}
+\revcomment{The manuscript specifies a \SI{2}{\second} pre-motion period, while
+\texttt{read4MotorCircle.py} uses \SI{3}{\second}. This should be made consistent.}
+
+\paragraph{Response to Comment 5.34}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.35}
+\revcomment{The common \SI{100}{\hertz} resampling interval is based primarily on the motor
+recording duration rather than the common overlap of all sensor streams. The authors should
+verify that this does not introduce undefined or NaN edge samples.}
+
+\paragraph{Response to Comment 5.35}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.36}
+\revcomment{Processed signals are generated using zero-phase \texttt{filtfilt}, which is acausal.
+This is appropriate for offline analysis but should be explicitly stated in the Usage Notes
+because the dataset is also proposed for online/state-estimation applications.}
+
+\paragraph{Response to Comment 5.36}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.37}
+\revcomment{The reported Mark-10 noise values should be checked.
+\texttt{analyze\_reference\_noise.m} appears to calculate the standard deviation from the raw
+pulley reaction force, while normal processing divides these values by two to obtain tendon
+tension.}
+
+\paragraph{Response to Comment 5.37}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.38}
+\revcomment{The ``Euclidean distance'' used for contact-position validation is calculated only in
+the $xy$ plane in \texttt{compare\_ft\_sensors.m}. It should either be referred to as planar
+distance or calculated in full 3-D.}
+
+\paragraph{Response to Comment 5.38}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.39}
+\revcomment{The FBG files referred to as ``raw'' already contain proprietary Shape CORE
+reconstructed curvature, bending angle, and 3-D shape rather than raw optical FBG measurements.
+The terminology should be clarified.}
+
+\paragraph{Response to Comment 5.39}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.40}
+\revcomment{The statement that processed FBG quantities are retained ``without further
+modification'' is inaccurate because units, coordinate frames, timestamps, filtering, and
+sampling are modified during post-processing.}
+
+\paragraph{Response to Comment 5.40}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+\paragraph{Comment 5.41}
+\revcomment{Several additional code/documentation inconsistencies should be cleaned up,
+including incorrect torque units in plot labels, obsolete function calls, inconsistent comments
+on FBG column layout, and incomplete MATLAB/Python dependency documentation.}
+
+\paragraph{Response to Comment 5.41}
+\todoresp
+
+\paragraph{Changes made to the article}
+\todoresp
+
+% =====================================================================
+\subsection{Closing summary and recommendation}
+% =====================================================================
+
+\paragraph{Reviewer summary}
+\revcomment{Overall, the paper addresses an existing research gap in the field of soft robotics.
+The primary motivation and the targeted scientific contribution are clear and valid. However,
+the paper and the dataset need more thoroughness and carefulness to reliably deliver the
+intended contribution and allowing others to use the dataset. A more precise use of terms and
+definitions is required in the manuscript. Also, several inconsistencies between the manuscript,
+the released acquisition/processing code, and the documented data structure need to be resolved.
+These include the interpretation of processed motion-capture data, calibration procedures,
+trajectory generation, temporal synchronization, filtering, and the reproducibility of the
+released processing pipeline. The dataset appears promising, but these issues should be
+corrected to ensure reliable third-party reuse.}
+
+\paragraph{Reviewer recommendation}
+\revcomment{A major revision is necessary before the paper and the dataset can be published.}
+
+\paragraph{Response to the closing summary}
+\todoresp
+
+% =====================================================================
+%  Bibliography
+%  These five entries are the datasets/works Reviewer 5 asks to be cited
+%  in Comment 5.1. Merge them into the bibliography of main.tex.
+% =====================================================================
+\begin{thebibliography}{10}
+
+\bibitem{Hansen2026}
+H.~M. Hansen, B.~K. S{\ae}b{\o}, K.~Y. Pettersen, J.~T. Gravdahl, and M.~{Di Castro},
+``Data-driven dynamic modeling of a tendon-actuated continuum robot,''
+{\em arXiv:2605.18720}, 2026.
+DOI: \url{https://doi.org/10.48550/arXiv.2605.18720}.
+
+\bibitem{Muhmann2025}
+C.~Muhmann, R.~M. Grassmann, M.~Bartholdt, and J.~Burgner-Kahrs,
+``Toward dynamic control of tendon-driven continuum robots using Clarke transform,''
+{\em IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 2025.
+DOI: 10.1109/IROS60139.2025.11247518.
+
+\bibitem{Zhang2025}
+G.~Zhang, Z.~Chen, and L.~Wang,
+``Virtual-work based shape-force sensing for continuum instruments with tension-feedback
+actuation,'' {\em arXiv:2501.05418}, 2025.
+
+\bibitem{Liu2026}
+Y.~Liu, K.~Luo, Q.~Tian, and H.~Hu,
+``An efficient data-driven framework of hybrid dynamics for real-time modeling and control of
+continuum robots,'' {\em Mechanism and Machine Theory}, vol.~220, p.~106361, 2026.
+DOI: 10.1016/j.mechmachtheory.2026.106361.
+
+\bibitem{Wang2025}
+E.~Wang, Z.~Deng, C.~Pan, B.~He, and J.~Zhang,
+``Estimating continuum robot shape under external loading using spatiotemporal neural
+networks,'' {\em IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+2025.
+DOI: 10.1109/IROS60139.2025.11245975.
+
+\end{thebibliography}
+
+\end{document}

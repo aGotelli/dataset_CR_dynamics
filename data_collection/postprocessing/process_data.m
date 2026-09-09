@@ -21,7 +21,7 @@ samplingHz = 100;
 bending_axis = 'y';        % 'y' for plane_y experiments, 'x' for all rest
 
 
-lag_FBGS = 13.5;    %   Average measured lag in milliseconds
+lag_FBGS = 13.4;    %   Average measured lag in milliseconds
 
 %   Plots
 plot_mocap_fbgs_corrections = false;
