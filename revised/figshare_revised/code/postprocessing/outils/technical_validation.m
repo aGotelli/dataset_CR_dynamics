@@ -1,9 +1,22 @@
 function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, use_resense, plot_validation)
-    %   TECHINCAL_VALIDATION  cOMPUTES every consistency check in
-    %   the manuscript's Technical Validation section (mocap vs FBGS shape
-    %   RMSE per disk, mocap vs motor cable-length RMSE, and -- for contact
-    %   recordings -- ATI base wrench vs Resense wand wrench RMSE),
-    %   reading ONLY the CSVs files in the saving_folder.
+    %TECHNICAL_VALIDATION Computes the dataset's technical-validation
+    %   metrics: Mocap vs FBGS shape RMSE per disk, Mocap vs motor
+    %   cable-length RMSE, and -- for contact recordings -- ATI base
+    %   wrench vs Resense wand wrench RMSE. Reads only the CSV files
+    %   already written to saving_folder by process_data.m, and writes
+    %   RMSEs.txt back into that same folder. If plot_validation is
+    %   true, also generates and saves the corresponding comparison
+    %   figures into saving_fig_folder.
+    %
+    %   saving_folder      - this recording's processed/ folder,
+    %                         containing angles.csv, mocap_frames.csv,
+    %                         fbgs_shapes.csv, and (if use_resense)
+    %                         base_wrench.csv and wrench_wand.csv
+    %   saving_fig_folder   - folder to save validation figures into
+    %   N_disks              - number of tracked OptiTrack disks
+    %   N_fbgs_points        - number of FBG shape-reconstruction points
+    %   use_resense          - whether this recording has Resense wand data
+    %   plot_validation       - whether to generate and save figures
 
     angles_csv = readmatrix(fullfile(saving_folder, "angles.csv"));
     sampling_time = angles_csv(:, 1);
@@ -17,15 +30,13 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     interp_fbgs_shapes = permute(reshape(fbgs_csv(:, 2:end), [N_samples, 3, N_fbgs_points]), [2 3 1]);
 
     %   FBG sample index closest to each of the 5 robot disks (same
-    %   mapping used in the main script -- see disk_z_positions_m there)
+    %   mapping process_data.m uses -- see disk_z_positions_m there)
     disk_z_positions_m = [0 0.12 0.24 0.36 0.48];
     FBGS_disk_indices = max(round(disk_z_positions_m*1000), 1);
     FBGS_tip_index = FBGS_disk_indices(5);
 
-    %   Mocap vs FBGS: RMSE at every disk, not only the tip. Uses the
-    %   CORRECTED mocap poses -- the ones actually released -- not the
-    %   raw poses (previously this RMSE was computed against the raw
-    %   poses, inconsistent with what's in mocap_frames.csv).
+    %   Mocap vs FBGS: RMSE at every disk, using the corrected mocap
+    %   poses (the ones actually released, in mocap_frames.csv).
     N_disks_robot = 5;
     RMSE_disks = zeros(N_disks_robot, 3);
     RMSE_disks_perc_motion = zeros(N_disks_robot, 3);
@@ -39,12 +50,12 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
         RMSE_disks_perc_motion(d, :) = (RMSE_disks(d, :)./range_disk_d)*100;
     end
 
-    %   Kept so the tip-only numbers still print, same as before
+    %   Tip-only numbers (disk 5), reported alongside the per-disk ones.
     RMSE_tip = RMSE_disks(5, :);
     RMSE_tip_perc_motion = RMSE_disks_perc_motion(5, :);
 
 
-    %   Mocap and cables
+    %   Mocap vs motor: cable-length RMSE
     N_interp = 10;
     [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(interp_rel_kinematics_disks_corr, interp_angles, sampling_time, N_interp);
 
@@ -55,9 +66,9 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     RMSE_cables_perc_motion(idx_0) = 0*RMSE_cables_perc_motion(idx_0);
 
 
-    %   FT sensors: ATI base wrench vs Resense wand wrench transported to
-    %   the base frame (both reloaded from their saved CSVs, and the wand
-    %   pose used for the transport is the CORRECTED one)
+    %   ATI base wrench vs Resense wand wrench, both reloaded from their
+    %   saved CSVs. The wand pose used to transport the Resense reading
+    %   to the base frame is the corrected one.
     if use_resense
         base_wrench_csv = readmatrix(fullfile(saving_folder, "base_wrench.csv"));
         interp_base_wrench = base_wrench_csv(:, 2:end);

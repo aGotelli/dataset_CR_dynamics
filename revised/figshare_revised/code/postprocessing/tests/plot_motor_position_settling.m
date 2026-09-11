@@ -1,27 +1,33 @@
-%% plot_motor_settling_5_18.m
-% Regenerates the Motor 1 settling figure used in the response to
-% Reviewer 5, Comment 5.18 (read4MotorCircle.py angle_tol/vel_tol bug).
+%% plot_motor_position_settling.m
+% Plots Motor 1's commanded vs. achieved angle, and the resulting
+% tracking error, for a representative quasi-static hold
+% (static_bend_x_180), and reports the settled-hold error once the
+% tracking error stays inside a chosen tolerance for the rest of the
+% recording.
 %
-% Shows that despite the tolerance check being effectively relaxed to
-% +-12 deg for every motion pattern, the achieved settling accuracy on a
-% representative quasi-static hold (static_bend_x_180, Motor 1) is
-% governed by the motor's own position control, not by this check.
-%
-% Usage: run from data_collection/dataCollectionPack/figshare/code/postprocessing/
-% (or adjust `data_folder` below), with dataMotor.csv from
-% quasi_static/static_bend_x_180/ on the path.
+% Run this script directly; it locates the dataset relative to its own
+% file location (see `data_folder` below), so MATLAB's current folder
+% does not matter.
 
 close all;
 clear;
 clc;
 
 %% ====== SETTINGS ======
-data_folder   = fullfile("..", "dataCollectionPack/figshare/data/", ...
-                          "quasi_static/", "static_bend_x_180/");
-tol_deg       = 0.5;      % intended tolerance, Comment 5.18
+
+% Located from this script's own file location (.../code/postprocessing/
+% tests/) rather than a path relative to MATLAB's current folder.
+this_script_folder     = fileparts(mfilename('fullpath'));
+postprocessing_folder  = fileparts(this_script_folder);
+code_folder             = fileparts(postprocessing_folder);
+figshare_revised_folder = fileparts(code_folder);
+data_root = fullfile(figshare_revised_folder, "data");
+
+data_folder   = fullfile(data_root, "quasi_static", "static_bend_x_180");
+tol_deg       = 0.5;      % position tolerance used to detect "settled"
 motor_index   = 1;        % Motor 1 is the primary actuator for this bend
-saving_folder = "figures/";
-fig_name      = "motor_settling_5_18";
+saving_folder = fullfile(this_script_folder, "figures");
+fig_name      = "motor_settling";
 
 if ~isfolder(saving_folder)
     mkdir(saving_folder);

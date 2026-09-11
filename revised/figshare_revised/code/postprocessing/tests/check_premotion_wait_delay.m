@@ -1,27 +1,36 @@
-%% check_premotion_delay_5_34.m
-% Verifies the actual pre-motion delay ("wait_before_start" in
-% read4MotorCircle.py) used for the released recordings, for the
-% response to Reviewer 5, Comment 5.34 (manuscript states 2 s, released
-% script uses 3 s).
+%% check_premotion_wait_delay.m
+% Estimates the actual pre-motion wait used before each recording
+% starts moving the robot.
 %
 % Method: the Mark-10 force-gauge process and the motor process run on
-% the same acquisition machine and timestamp with the same wall clock
-% (time.time()), but the Mark-10 process starts logging immediately
-% while the motor process only starts logging after it sleeps for
-% "wait_before_start" seconds. So, for each recording, the delay between
-% the first Mark-10 sample and the first motor sample is a direct proxy
-% for the pre-motion wait (plus a small, roughly constant process-launch
-% overhead common to every recording).
+% the same acquisition machine and timestamp with the same wall clock,
+% but the Mark-10 process starts logging immediately while the motor
+% process only starts logging after waiting some number of seconds. So,
+% for each recording, the delay between the first Mark-10 sample and the
+% first motor sample is a direct proxy for that pre-motion wait (plus a
+% small, roughly constant process-launch overhead common to every
+% recording).
 %
-% Usage: run from data_collection/dataCollectionPack/figshare/code/postprocessing/
-% (or adjust `data_root` below).
+% Run this script directly; it locates the dataset relative to its own
+% file location (see `data_root` below), so MATLAB's current folder does
+% not matter.
 
 close all;
 clear;
 clc;
 
 %% ====== SETTINGS ======
-data_root = fullfile("..", "dataCollectionPack/figshare/data/");
+
+% Folder that directly CONTAINS quasi_static/, dynamic_motion/ and
+% contact_motion/, located from this script's own file location
+% (.../code/postprocessing/tests/) rather than a path relative to
+% MATLAB's current folder.
+this_script_folder     = fileparts(mfilename('fullpath'));
+postprocessing_folder  = fileparts(this_script_folder);
+code_folder             = fileparts(postprocessing_folder);
+figshare_revised_folder = fileparts(code_folder);
+data_root = fullfile(figshare_revised_folder, "data");
+
 subsets   = ["quasi_static", "dynamic_motion", "contact_motion"];
 mark10_file = "dataMark10_+x.csv";
 motor_file  = "dataMotor.csv";
@@ -63,16 +72,15 @@ fprintf('  std    = %.3f s\n', std(T.delay_s));
 fprintf('  min    = %.3f s\n', min(T.delay_s));
 fprintf('  max    = %.3f s\n', max(T.delay_s));
 
-fprintf(['\nIf the pre-motion wait were genuinely different between subsets ' ...
-    '(2 s vs 3 s), delay_s should cluster into two groups roughly 1 s ' ...
-    'apart. A single tight cluster (as found when this was checked ' ...
-    'against the released figshare data: ~3.5 s for every subset, with ' ...
-    'the two Lissajous recordings at ~3.66 s) indicates the same delay ' ...
-    'was used throughout, matching wait_before_start = 3 in the ' ...
-    'released read4MotorCircle.py.\n']);
+fprintf(['\nIf the pre-motion wait genuinely differed between recordings, ' ...
+    'delay_s would cluster into separate groups roughly as far apart as ' ...
+    'the difference between those wait times. A single tight cluster ' ...
+    'indicates the same wait was used throughout.\n']);
 
 %% ====== LOCAL FUNCTION ======
 function t = first_timestamp(csv_path)
+    % Reads only the timestamp (first column) of a CSV file's first data
+    % row, without loading the rest of the file.
     fid = fopen(csv_path, 'r');
     fgetl(fid);              % skip header line
     line = fgetl(fid);       % first data line

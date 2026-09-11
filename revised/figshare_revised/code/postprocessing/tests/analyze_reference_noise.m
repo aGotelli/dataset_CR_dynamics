@@ -21,11 +21,7 @@ ati = readtable(fullfile(folder, "dataATIFT.csv"));
 % dataMark10_*.csv's "tension (N)" column is the RAW pulley reaction
 % force. Each tendon wraps its redirecting pulley by 180 degrees, so the
 % pulley axle (where the M3-5 gauge is mounted) sees twice the tendon
-% tension. Every other place in this codebase that reads this column
-% (process_data.m: cable_tensions{i} = ..._tension_N_/2) divides by 2 to
-% get the actual tendon tension. This script must do the same before
-% computing its std, otherwise the reported noise is 2x the true tendon
-% tension noise (Reviewer 5, Comment 5.37).
+% tension.
 std_mk = [
     std(mk_px.("tension_N_")/2)
     std(mk_py.("tension_N_")/2)
@@ -76,8 +72,6 @@ tip_std = shape_std(:, end) * 1000;         % mm
 
 %% ====== FBGS TIP NOISE: HISTOGRAM (GAUSSIANITY CHECK) ======
 tip_data = squeeze(fbgs_shapes(:, end, :))' * 1000;  % [N_time x 3], mm
-% Remove mean (center the noise)
-%tip_data = tip_data - mean(tip_data, 1);
 
 labels = {'x', 'y', 'z'};
 colors = {'#0072BD', '#D95319', '#77AC30'};
