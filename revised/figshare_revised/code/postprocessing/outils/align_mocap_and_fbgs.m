@@ -1,24 +1,8 @@
 function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s, bending_axis)
+    align_mocap_and_fbgs(folder, use_resense, align_window_s)
 %ALIGN_MOCAP_AND_FBGS Load one recording's OptiTrack and FBG data and put
 %   them in a common, spatially-aligned frame.
-%
-%   This function was extracted out of process_data.m (Reviewer 5, Comment
-%   5.30) so that the exact same spatial-alignment logic can be reused by
-%   a second script, check_fbg_delay_5_30.m, which needs these same
-%   aligned signals but WITHOUT the FBG temporal (pipeline-delay)
-%   correction applied. Keeping this logic in one place means the two
-%   scripts are guaranteed to be working from identical spatial alignment
-%   -- the only difference between them is whether the caller applies a
-%   time shift to fbgs_time afterwards or not.
-%
-%   Deliberately NOT done in here: the FBG timestamp correction
-%   (fbgs_time = fbgs_time - lag_FBGS/1000 in process_data.m). That is a
-%   TEMPORAL correction, not a spatial one, and separating it from this
-%   function is the whole point of this refactor -- see
-%   check_fbg_delay_5_30.m, which calls this function and does NOT apply
-%   that correction, so it can measure the FBG delay on uncorrected data.
 %
 %   Inputs:
 %     folder          - path to one recording's folder (containing
@@ -29,9 +13,6 @@ function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_
 %                        recording used to determine the bending-plane
 %                        rotation (both mocap and FBG use their own first
 %                        align_window_s seconds)
-%     bending_axis    - 'x' or 'y', the axis the robot is expected to
-%                        bend along in this recording (see process_data.m
-%                        for which recordings use which)
 %
 %   Outputs:
 %     N_disks                    - number of tracked OptiTrack disks
@@ -50,14 +31,23 @@ function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_
 
 
 filename = fullfile(folder, "dataOptiTrack.csv");
-[N_disks, mocap_timestamps, poses_disks, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense);
+[N_disks, mocap_timestamps, ~, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense);
 
 
 filename = fullfile(folder, "dataFBGS.csv");
 [fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = data_fbgs(filename);
 
 
-%   Apply rotation of -90 deg along y axis to ALL shapes
+%   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
+if(contains(folder, "_y_"))
+    bending_axis = 'y';        % 'y' for plane_y experiments
+else
+    bending_axis = 'x';        % 'x' for all rest
+end
+
+
+%   Apply rotation of -90 deg along y axis to ALL shapes (align with mocap
+%   convention)
 R_y = axang2rotm([0 1 0 -pi/2]);
 N_time_fbgs = size(fbgs_shapes, 3);
 for t = 1:N_time_fbgs

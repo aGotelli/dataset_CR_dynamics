@@ -4,6 +4,7 @@ clc;
 
 %   load required paths
 addpath("outils\")
+addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 folder = fullfile("../../", "data/","dynamic_motion/","Lissajous_fast/");
@@ -24,6 +25,7 @@ samplingHz = 100;
 plot_mocap_fbgs_corrections = false;
 plot_filtered               = false;
 plot_interpolation          = false;
+plot_validation              = false; %   RMSE comparison plots (RMSE numbers/RMSEs.txt always computed)
 plot_disk_num = 5;  %   Which disk to plot (5 = robot tip)
 
 
@@ -79,17 +81,10 @@ if use_resense
 end
 
 
-%   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
-if(contains(folder, "_y_"))
-    bending_axis = 'y';        % 'y' for plane_y experiments
-else
-    bending_axis = 'x';        % 'x' for all rest
-end
-
 %   Load and spatially align the OptiTrack and FBG data for this recording.
 [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s, bending_axis);
+    align_mocap_and_fbgs(folder, use_resense, align_window_s);
 
 %   Load the FBG pipeline-delay correction, measured separately.
 %
@@ -189,263 +184,17 @@ end
 
 
 
-%% ====== PLOT: 4 SUBPLOTS (MOTOR TARGET/MEAS + FORCE) ======
+%   plot the extracted data
 if plot_mocap_fbgs_corrections
-
-
-    mocap_time_rel = mocap_timestamps - mocap_timestamps(1);
-    idx_init = mocap_time_rel <= 3.0;
-    mocap_time_rel_init = mocap_time_rel(idx_init);
-    rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
-    rel_kinematics_disks_corr_init = rel_kinematics_disks_corr(idx_init, :, :);
-
-
-    figure('Name', 'Disks Position')
-    subplot(3, 1, 1)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 4, 1), 'r')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 4, 1), '--r', 'LineWidth', 2)
-    hold on;
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 4, 2), 'g')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 4, 2), '--g', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 4, 3), 'b')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 4, 3), '--b', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 4, 4), 'w')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 4, 4), '--w', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 4, 5), 'c')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 4, 5), '--c', 'LineWidth', 2)
-    ylabel("p_x [m]")
-    grid on
-    
-    subplot(3, 1, 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 5, 1), 'r')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 5, 1), '--r', 'LineWidth', 2)
-    hold on;
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 5, 2), 'g')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 5, 2), '--g', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 5, 3), 'b')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 5, 3), '--b', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 5, 4), 'w')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 5, 4), '--w', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 5, 5), 'c')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 5, 5), '--c', 'LineWidth', 2)
-    ylabel("p_y [m]")
-    grid on
-    
-    
-    subplot(3, 1, 3)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 6, 1), 'r')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 6, 1), '--r', 'LineWidth', 2)
-    hold on;
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 6, 2), 'g')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 6, 2), '--g', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 6, 3), 'b')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 6, 3), '--b', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 6, 4), 'w')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 6, 4), '--w', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 6, 5), 'c')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 6, 5), '--c', 'LineWidth', 2)
-    ylabel("p_z [m]")
-    xlabel("Time [s]")
-    grid on
-    legend('disk_0','disk_1','disk_2','disk_3','disk_4')
-    
-    
-    figure('Name', 'Disks Orientation (EUL XYZ)')
-    subplot(3, 1, 1)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 1, 1), 'r')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 1, 1), '--r', 'LineWidth', 2)
-    hold on;
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 1, 2), 'g')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 1, 2), '--g', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 1, 3), 'b')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 1, 3), '--b', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 1, 4), 'w')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 1, 4), '--w', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 1, 5), 'c')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 1, 5), '--c', 'LineWidth', 2)
-    ylabel("Roll [m]")
-    grid on
-    
-    subplot(3, 1, 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 2, 1), 'r')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 1), '--r', 'LineWidth', 2)
-    hold on;
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 2, 2), 'g')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 2), '--g', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 2, 3), 'b')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 3), '--b', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 2, 4), 'w')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 4), '--w', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 2, 5), 'c')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 5), '--c', 'LineWidth', 2)
-    ylabel("Pitch [m]")
-    grid on
-    
-    
-    subplot(3, 1, 3)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 3, 1), 'r')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 1), '--r', 'LineWidth', 2)
-    hold on;
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 3, 2), 'g')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 2), '--g', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 3, 3), 'b')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 3), '--b', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 3, 4), 'w')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 4), '--w', 'LineWidth', 2)
-    plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 3, 5), 'c')
-    plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 5), '--c', 'LineWidth', 2)
-    ylabel("Yaw [m]")
-    xlabel("Time [s]")
-    grid on
-    legend('disk_0','disk_1','disk_2','disk_3','disk_4')
-
-    
-    
-    %   Extract plotting slices from the rotated shapes
-    XYZ_xyz_disk = rel_kinematics_disks(:, :, 5);
-    XYZ_xyz_disk_corr = rel_kinematics_disks_corr(:, :, 5);
-    
-    xyz_FBGS     = squeeze(fbgs_shapes(:, FBGS_tip_index, :));
-    
-    
-    
-    
-    figure("Name", "Tip Position");
-    vars = {'p_x', 'p_y', 'p_z'};
-    for it = 1:3
-        index_plot = it;
-        subplot(3,1,index_plot)
-    
-        plot(mocap_timestamps, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
-        hold on
-        plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-        plot(mocap_timestamps, XYZ_xyz_disk_corr(:, it + 3), "g", "LineWidth", 2.0)
-    
-    
-        grid on
-        ylabel([vars{it} ' [m]'])
-    
-    
-        if it == 3
-            xlabel("Time [s]")
-        end
-    
-        if it == 1
-            title("Raw")
-        end
-    
-    end
-    
-    legend('OptiTrack', 'FBGS')
-
-
+    plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
+        fbgs_time, fbgs_shapes, FBGS_tip_index);
 end
 
 if plot_filtered
-    % figure("Name","Motors + corresponding cable force (filtered)");
-    figure("Name","Tendon Tensions");
-
-    for it = 1:4
-        subplot(4,1,it)
-    
-        plot(time_cables{it}, cable_tensions{it}, "b", "LineWidth", 2.0);
-        hold on
-        plot(time_cables{it}, cable_tensions_f{it}, "r", "LineWidth", 2.0);
-        ylabel("Tension [N]")
-    
-        title("Motor " + it + " (meas/target) + mapped force")
-        if it == 4
-            xlabel("Time (raw timestamp)")
-        end
-    
-    end
-    legend('Raw', 'Filtered')
-
-
-    figure("Name","Motor Angles");
-
-    for it = 1:4
-        subplot(4,1,it)
-    
-        plot(time_actuators, measured_angles(:,it),   "b", "LineWidth", 2.0)
-        hold on
-        plot(time_actuators, measured_angles_f(:,it),   "r", "LineWidth", 2.0)
-        plot(time_actuators, target_angles(:,it), "--g","LineWidth", 2.0);
-        ylabel("Angle [rad]")
-        grid on
-  
-    
-        title("Motor " + it + " (meas/target) + mapped force")
-        if it == 4
-            xlabel("Time (raw timestamp)")
-        end
-    
-    end
-
-    legend('Raw', 'Filtered', 'Target')
-
-
-    
-
-    figure("Name","ATI FT (filtered)");
-    subplot(2,1,1)
-    plot(tA, ATI_T_f(:,1), "r"); hold on
-    plot(tA, ATI_T_f(:,2), "g");
-    plot(tA, ATI_T_f(:,3), "b");
-    grid on; ylabel("Torque [Nm]"); legend("Tx","Ty","Tz")
-    title("ATI Torques (filtered)")
-    
-    subplot(2,1,2)
-    plot(tA, ATI_F_f(:,1), "r"); hold on
-    plot(tA, ATI_F_f(:,2), "g");
-    plot(tA, ATI_F_f(:,3), "b");
-    grid on; ylabel("Force [N]"); xlabel("Time (raw timestamp)")
-    legend("Fx","Fy","Fz")
-    title("ATI Forces (filtered)")
-    
-
-    figure("Name","Mocap disk kinematics" + int2str(plot_disk_num));
-    xyz_XYZ = rel_kinematics_disks(:, :, plot_disk_num);
-    XYZ_xyz_f = rel_kinematics_disks_f(:, :, plot_disk_num);
-    
-    
-    for it = 1:3
-        index_plot = it*2 -1;
-        subplot(3,2,index_plot)
-    
-        plot(mocap_timestamps, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0)
-        hold on
-        plot(mocap_timestamps, XYZ_xyz_f(:, 3 + it), "r", "LineWidth", 2.0)
-        ylabel("Euler Angle [RAD]")
-        grid on
-    
-       
-    
-        if it == 3
-            xlabel("Time [s]")
-        end
-    
-    end
-    
-    for it = 1:3
-        index_plot = it*2;
-        subplot(3,2,index_plot)
-     
-        plot(mocap_timestamps, xyz_XYZ(:, it), "b", "LineWidth", 2.0)
-        hold on
-        plot(mocap_timestamps, XYZ_xyz_f(:, it), "r", "LineWidth", 2.0)
-
-        ylabel("Position [m]")
-        grid on
-    
-       
-    
-        if it == 3
-            xlabel("Time [s]")
-        end
-    
-    end
-
+    plot_filtered_figures(time_cables, cable_tensions, cable_tensions_f, ...
+        time_actuators, measured_angles, measured_angles_f, target_angles, ...
+        tA, ATI_T_f, ATI_F_f, ...
+        mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_f, plot_disk_num);
 end
 
 
@@ -550,61 +299,21 @@ for it = 1:26
 end
 
 
+%   Default for plot_interpolation_figures (which takes this as an argument)
+wrench_at_base = [];
+
 %   Contact wrench
 if use_resense
 
     interp_wrench_wand = zeros(N_samples, 6);
     for it=1:6
-    
+
         interp_wrench_wand(:, it) = interp1(relative_time_resense, wrench_wand_f(:, it), sampling_time)';
     end
 
-
-    %   Use the interpolated data to compute the equivalent wrench at base
-    %   of the robot (used for cross-validation)
-
-    %   Compute the relative fixed transformation form the mocap frame to
-    %   the Resense HEX12 sensor frame
-    R_fix_x = axang2rotm([1 0 0 pi/2]);
-    R_fix_z = axang2rotm([0 0 1 pi/6]);
-    R_fix = R_fix_x*R_fix_z;
-    r_fix = [
-        0
-       -0.1137
-        0
-    ];
-    g_fix = [
-            R_fix r_fix
-            0 0 0   1
-        ];
-    
-    %   Compute the equivalent wrench
-    wrench_at_base = zeros(6, N_samples);
-    pos_sensor = zeros(3, N_samples);
-    for it_t=1:length(sampling_time)
-        wand_XYZ_xyz = interp_rel_kinematics_disks(it_t, :, 6);
-        
-        R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
-        r = wand_XYZ_xyz(4:6)';
-    
-        g= [
-          R     r
-          0 0 0 1
-        ];
-    
-        g_s = g*g_fix;
-        R_s = g_s(1:3, 1:3);
-        r_s = g_s(1:3, 4);
-        pos_sensor(:, it_t) = r_s;
-        wrench_wand_it_t = interp_wrench_wand(it_t, :)';
-    
-    
-        Ad_g_=[R_s zeros(3,3)
-                hat_(r_s)*R_s R_s];
-    
-        %   Compute equivalent wrench with action-reaction principle
-        wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
-    end
+    %   Transport the Resense wand wrench to the base frame. This is
+    %   required for some of the techincal validation
+    wrench_at_base = compute_wrench_at_base(interp_rel_kinematics_disks(:, :, 6), interp_wrench_wand);
 
 end
 
@@ -613,337 +322,19 @@ end
 
 
 
-%%  Plot interpolated data
+%  Plot interpolated data
 
 if plot_interpolation
-    figure("Name","Actuators Angles");
-    
-    for it = 1:4
-        subplot(4,1,it)
-    
-        plot(relative_time_motors, measured_angles_f(:,it),   "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_angles(:,it), "or","MarkerSize", 3);
-        ylabel("Angle [rad]")
-        grid on
-    
-       
-    
-        title("Actuator " + it)
-        if it == 4
-            xlabel("Time [s]")
-        end
-    
-    end
-    
-    
-    
-    figure("Name","Cables Tensions");
-    
-    for it = 1:4
-        subplot(4,1,it)
-    
-        plot(relative_time_cables{it}, cable_tensions_f{it}, "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_tensions(:,it), "or","MarkerSize", 3);
-        ylabel("Tension [N]")
-        grid on
-    
-       
-    
-        title("Actuator " + it)
-        if it == 4
-            xlabel("Time [s]")
-        end
-    
-    end
-    
-    
-    
-    
-    figure("Name","ATI FT");
-    
-    for it = 1:3
-        index_plot = it*2 -1;
-        subplot(3,2,index_plot)
-    
-        plot(relative_time_ATI, ATI_FT_f(:, it), "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_base_wrench(:,it), "or","MarkerSize", 3);
-        ylabel("Force [N]")
-        grid on
-    
-       
-    
-        if it == 3
-            xlabel("Time [s]")
-        end
-    
-    end
-    
-    for it = 1:3
-        index_plot = it*2;
-        subplot(3,2,index_plot)
-    
-        plot(relative_time_ATI, ATI_FT_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_base_wrench(:,3 + it), "or","MarkerSize", 3);
-        ylabel("Torque [Nm]")
-        grid on
-    
-       
-    
-        if it == 3
-            xlabel("Time [s]")
-        end
-    
-    end
-
-
-
-
-
-    figure("Name","Mocap disk " + int2str(plot_disk_num));
-    XYZ_xyz_f = rel_kinematics_disks_f(:, :, plot_disk_num);
-    interp_XYZ_xyz = interp_rel_kinematics_disks(:, :, plot_disk_num);
-    
-    
-    for it = 1:3
-        index_plot = it*2 -1;
-        subplot(3,2,index_plot)
-    
-        plot(relative_time_mocap, XYZ_xyz_f(:, it), "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_XYZ_xyz(:, it), "or","MarkerSize", 3);
-        ylabel("Euler Angle [RAD]")
-        grid on
-    
-       
-    
-        if it == 3
-            xlabel("Time [s]")
-        end
-    
-    end
-    
-    for it = 1:3
-        index_plot = it*2;
-        subplot(3,2,index_plot)
-     
-        plot(relative_time_mocap, XYZ_xyz_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
-        plot(sampling_time, interp_XYZ_xyz(:, 3 + it), "or","MarkerSize", 3);
-
-        ylabel("Position [m]")
-        grid on
-    
-       
-    
-        if it == 3
-            xlabel("Time [s]")
-        end
-    
-    end
-
-
-
-    %%  Plot wrench contact
-    if use_resense 
-        figure("Name", "Forces")
-        subplot(3, 1, 1)
-        plot(sampling_time, interp_base_wrench_raw(:, 1), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(1, :), 'r')
-        grid on
-        
-        subplot(3, 1, 2)
-        plot(sampling_time, interp_base_wrench_raw(:, 2), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(2, :), 'r')
-        grid on
-        
-        subplot(3, 1, 3)
-        plot(sampling_time, interp_base_wrench_raw(:, 3), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(3, :), 'r')
-        grid on
-        
-        legend('ATI', 'Ad_g Resense')
-        
-        
-        figure("Name", "Torques")
-        subplot(3, 1, 1)
-        plot(sampling_time, interp_base_wrench_raw(:, 4), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(4, :), 'r')
-        grid on
-        
-        subplot(3, 1, 2)
-        plot(sampling_time, interp_base_wrench_raw(:, 5), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(5, :), 'r')
-        grid on
-        
-        subplot(3, 1, 3)
-        plot(sampling_time, interp_base_wrench_raw(:, 6), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(6, :), 'r')
-        grid on
-        
-        legend('ATI', 'Ad_g Resense')
-    
-    end
-
-
+    plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
+        relative_time_cables, cable_tensions_f, interp_tensions, ...
+        relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
+        relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num, ...
+        use_resense, interp_base_wrench_raw, wrench_at_base);
 end
-
-
-
-
-
-%%  Plot robot tip
-
-%   FBGS and Mocap
-%   Extract plotting slices from the rotated shapes
-XYZ_xyz_disk = interp_rel_kinematics_disks(:, :, 5);
-xyz_FBGS     = squeeze(interp_fbgs_shapes(:, FBGS_tip_index, :));
-
-
-interp_xy_tip = interp_rel_kinematics_disks(:, 4:5, 5);
-fig = figure("Name", "Tip Trajectory xy plane");
-plot(interp_xy_tip(:, 1), interp_xy_tip(:, 2), 'LineWidth', 1)
-hold on
-plot(xyz_FBGS(1, :), xyz_FBGS(2, :), "r", "LineWidth", 1.0)
-grid on
-xlim([-.35 .35])
-ylim([-.35 .35])
-xlabel("p_x [m]")
-ylabel("p_y [m]")
-savefig(saving_fig_folder + fig.Name)
-saveas(fig, saving_fig_folder + fig.Name, 'png')
-
-
-
-
-%%  On the processed data, perform comparisons
-
-
-
-fig = figure("Name", "Motors Angles");
-for it=1:4
-    subplot(4, 1, it)
-    plot(sampling_time, interp_angles(:, it), 'b', 'LineWidth', 2)
-    grid on
-    ylabel("Angle [rad]")
-end
-xlabel('Time [s]')
-savefig(saving_fig_folder + fig.Name)
-saveas(fig, saving_fig_folder + fig.Name, 'png')
-
-fig = figure("Name", "Tip Position Interpolated");
-vars = {'p_x', 'p_y', 'p_z'};
-for it = 1:3
-    index_plot = it;
-    subplot(3,1,index_plot)
-
-    plot(sampling_time, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
-    set(gca,"FontSize",20)
-    hold on
-    plot(sampling_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-    set(gca,"FontSize",20)
-
-    grid on
-    ylabel([vars{it} ' [m]'], "FontSize", 20)
-
-
-    if it == 3
-        xlabel("Time [s]", "FontSize", 20)
-    end
-
-    % if it == 1
-    %     title("Raw")
-    % end
-
-end
-
-% legend('OptiTrack', 'FBGS')
-savefig(saving_fig_folder + fig.Name)
-saveas(fig, saving_fig_folder + fig.Name, 'png')
-
-RMSE_tip_ = rmse(xyz_FBGS', XYZ_xyz_disk(:, 4:6));
-
-%   Compute range of motion
-range_tip = max(XYZ_xyz_disk(:, 4:6)) - min(XYZ_xyz_disk(:, 4:6));
-
-RMSE_tip_perc_motion_ = (RMSE_tip./range_tip)*100;
-
-
-
-
-%   Mocap vs FBGS: RMSE at every disk, not only the tip.
-N_disks_robot = 5;
-RMSE_disks = zeros(N_disks_robot, 3);
-RMSE_disks_perc_motion = zeros(N_disks_robot, 3);
-for d = 1:N_disks_robot
-    xyz_disk_d = interp_rel_kinematics_disks(:, 4:6, d);
-    xyz_FBGS_d = squeeze(interp_fbgs_shapes(:, FBGS_disk_indices(d), :))';
-
-    RMSE_disks(d, :) = rmse(xyz_FBGS_d, xyz_disk_d);
-
-    range_disk_d = max(xyz_disk_d) - min(xyz_disk_d);
-    RMSE_disks_perc_motion(d, :) = (RMSE_disks(d, :)./range_disk_d)*100;
-end
-
-%   Kept so the existing tip-only plot/printout above still works
-RMSE_tip = RMSE_disks(5, :);
-RMSE_tip_perc_motion = RMSE_disks_perc_motion(5, :);
-
-
-
-
-%   Mocap and cables
-N_interp = 10;
-[delta_cable_measured, delta_cable_computed] = compare_cable_lenght(interp_rel_kinematics_disks, interp_angles, sampling_time, N_interp);
-
-cable_labels = {'+x', '+y', '-x', '-y'};
-pairs = {[1 3], [2 4]};          % x-pair, y-pair
-pair_names = {"x", "y"};
-
-for p = 1:2
-    fig = figure("Name", "Cable Length Change – " + pair_names{p} + " pair");
-    idx = pairs{p};
-    for k = 1:2
-        ax = subplot(2,1,k);
-        set(ax, 'Color', 'w');
-        c = idx(k);
-        plot(sampling_time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 2);  hold on
-        plot(sampling_time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 2);
-        grid on; ylabel('\Delta \ell_c [mm]')
-        title(['Cable ' cable_labels{c}])
-        % if k == 1
-        %     legend('MoCap (computed)', 'Motor (measured)', 'Mocap (10)''Location', 'best')
-        % end
-        if k == 2, xlabel('Time [s]'); end
-    end
-    savefig(saving_fig_folder + fig.Name)
-    saveas(fig, saving_fig_folder + fig.Name, 'png')
-end
-
-RMSE_cables = rmse(delta_cable_computed, delta_cable_measured);
-%   Compute range of motion
-range_cables = max(delta_cable_measured) - min(delta_cable_measured);
-RMSE_cables_perc_motion = (RMSE_cables./range_cables)*100;
-idx_0 = find(range_cables <= 1e-2);
-RMSE_cables_perc_motion(idx_0) = 0*RMSE_cables_perc_motion(idx_0);
-
-
-
-% Save RMSEs
-fid = fopen(fullfile(saving_folder , "RMSEs.txt"), 'w');
-fprintf(fid, 'RMSE_tip = [%s]\n', strjoin(string(RMSE_tip), ', '));
-fprintf(fid, 'RMSE_tip_perc_motion = [%s]\n', strjoin(string(RMSE_tip_perc_motion), ', '));
-fprintf(fid, 'RMSE_cables = [%s]\n', strjoin(string(RMSE_cables), ', '));
-fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc_motion), ', '));
-
-% 3. Close the file
-fclose(fid);
 
 
 %%  Save the interpolated data
+
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
 interp_time_base_wrench = [sampling_time interp_base_wrench];
@@ -974,6 +365,9 @@ end
 
 interp_time_fbgs_strain      = [sampling_time interp_fbgs_curvatures interp_fbgs_angles];
 writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv"));
+
+%%  Compute metrics for dataset techinical validation
+technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, use_resense, plot_validation);
 
 fprintf("   SAVED DATA");
 
@@ -1011,13 +405,66 @@ function [A] = hat_(x)
     A(3,2)=x(1);
 end
 
+function wrench_at_base = compute_wrench_at_base(disk_kinematics_wand, wrench_wand)
+    %   COMPUTE_WRENCH_AT_BASE  Transports the Resense HEX12 wand wrench
+    %   from its own sensor frame to the robot base frame, via the wand's
+    %   mocap pose and the wand's fixed sensor-to-mocap-frame offset
+    %   (g_fix).
+    %
+    %   disk_kinematics_wand : N_samples x 6 [roll pitch yaw px py pz],
+    %                          the wand's own mocap pose over time
+    %   wrench_wand           : N_samples x 6 [Fx Fy Fz Tx Ty Tz], the
+    %                          wand's own measured wrench over time
+    %   wrench_at_base         : 6 x N_samples
 
-function plot_interpolation()
+    N_samples = size(disk_kinematics_wand, 1);
 
-    
-%% ====== PLOT: 4 SUBPLOTS (MOTOR TARGET/MEAS + FORCE) ======
-if plot_mocap_fbgs_corrections
+    R_fix_x = axang2rotm([1 0 0 pi/2]);
+    R_fix_z = axang2rotm([0 0 1 pi/6]);
+    R_fix = R_fix_x*R_fix_z;
+    r_fix = [
+        0
+       -0.1137
+        0
+    ];
+    g_fix = [
+            R_fix r_fix
+            0 0 0   1
+        ];
 
+    wrench_at_base = zeros(6, N_samples);
+    for it_t = 1:N_samples
+        wand_XYZ_xyz = disk_kinematics_wand(it_t, :);
+
+        R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
+        r = wand_XYZ_xyz(4:6)';
+
+        g = [
+          R     r
+          0 0 0 1
+        ];
+
+        g_s = g*g_fix;
+        R_s = g_s(1:3, 1:3);
+        r_s = g_s(1:3, 4);
+        wrench_wand_it_t = wrench_wand(it_t, :)';
+
+        Ad_g_=[R_s zeros(3,3)
+                hat_(r_s)*R_s R_s];
+
+        %   Compute equivalent wrench with action-reaction principle
+        wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
+    end
+end
+
+
+
+function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
+        fbgs_time, fbgs_shapes, FBGS_tip_index)
+    %   PLOT_CORRECTION_FIGURES  Mocap raw-vs-corrected disk poses, and a
+    %   raw/corrected mocap vs FBGS comparison at the tip. Only the first
+    %   3 seconds of the recording are shown (the window used to compute
+    %   the per-disk correction itself).
 
     mocap_time_rel = mocap_timestamps - mocap_timestamps(1);
     idx_init = mocap_time_rel <= 3.0;
@@ -1041,7 +488,7 @@ if plot_mocap_fbgs_corrections
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 4, 5), '--c', 'LineWidth', 2)
     ylabel("p_x [m]")
     grid on
-    
+
     subplot(3, 1, 2)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 5, 1), 'r')
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 5, 1), '--r', 'LineWidth', 2)
@@ -1056,8 +503,8 @@ if plot_mocap_fbgs_corrections
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 5, 5), '--c', 'LineWidth', 2)
     ylabel("p_y [m]")
     grid on
-    
-    
+
+
     subplot(3, 1, 3)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 6, 1), 'r')
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 6, 1), '--r', 'LineWidth', 2)
@@ -1074,8 +521,8 @@ if plot_mocap_fbgs_corrections
     xlabel("Time [s]")
     grid on
     legend('disk_0','disk_1','disk_2','disk_3','disk_4')
-    
-    
+
+
     figure('Name', 'Disks Orientation (EUL XYZ)')
     subplot(3, 1, 1)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 1, 1), 'r')
@@ -1089,9 +536,9 @@ if plot_mocap_fbgs_corrections
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 1, 4), '--w', 'LineWidth', 2)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 1, 5), 'c')
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 1, 5), '--c', 'LineWidth', 2)
-    ylabel("Roll [m]")
+    ylabel("Roll [rad]")
     grid on
-    
+
     subplot(3, 1, 2)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 2, 1), 'r')
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 1), '--r', 'LineWidth', 2)
@@ -1104,10 +551,10 @@ if plot_mocap_fbgs_corrections
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 4), '--w', 'LineWidth', 2)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 2, 5), 'c')
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 2, 5), '--c', 'LineWidth', 2)
-    ylabel("Pitch [m]")
+    ylabel("Pitch [rad]")
     grid on
-    
-    
+
+
     subplot(3, 1, 3)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 3, 1), 'r')
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 1), '--r', 'LineWidth', 2)
@@ -1120,98 +567,94 @@ if plot_mocap_fbgs_corrections
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 4), '--w', 'LineWidth', 2)
     plot(mocap_time_rel_init, rel_kinematics_disks_init(:, 3, 5), 'c')
     plot(mocap_time_rel_init, rel_kinematics_disks_corr_init(:, 3, 5), '--c', 'LineWidth', 2)
-    ylabel("Yaw [m]")
+    ylabel("Yaw [rad]")
     xlabel("Time [s]")
     grid on
     legend('disk_0','disk_1','disk_2','disk_3','disk_4')
 
-    
-    
+
     %   Extract plotting slices from the rotated shapes
     XYZ_xyz_disk = rel_kinematics_disks(:, :, 5);
     XYZ_xyz_disk_corr = rel_kinematics_disks_corr(:, :, 5);
-    
+
     xyz_FBGS     = squeeze(fbgs_shapes(:, FBGS_tip_index, :));
-    
-    
-    
-    
+
+
     figure("Name", "Tip Position");
     vars = {'p_x', 'p_y', 'p_z'};
     for it = 1:3
         index_plot = it;
         subplot(3,1,index_plot)
-    
+
         plot(mocap_timestamps, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
         hold on
         plot(fbgs_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
         plot(mocap_timestamps, XYZ_xyz_disk_corr(:, it + 3), "g", "LineWidth", 2.0)
-    
-    
+
+
         grid on
         ylabel([vars{it} ' [m]'])
-    
-    
+
+
         if it == 3
             xlabel("Time [s]")
         end
-    
+
         if it == 1
             title("Raw")
         end
-    
+
     end
-    
-    legend('OptiTrack', 'FBGS')
 
-
+    legend('OptiTrack (raw)', 'FBGS', 'OptiTrack (corrected)')
 end
 
-if plot_filtered
-    % figure("Name","Motors + corresponding cable force (filtered)");
-    figure("Name","Tendon Tensions");
 
+function plot_filtered_figures(time_cables, cable_tensions, cable_tensions_f, ...
+        time_actuators, measured_angles, measured_angles_f, target_angles, ...
+        tA, ATI_T_f, ATI_F_f, ...
+        mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_f, plot_disk_num)
+    %   PLOT_FILTERED_FIGURES  Sanity-check plots for the Butterworth
+    %   filtering step: raw vs filtered signal, per sensor, on each
+    %   sensor's own (unaligned) raw timestamps.
+
+    figure("Name","Tendon Tensions");
     for it = 1:4
         subplot(4,1,it)
-    
+
         plot(time_cables{it}, cable_tensions{it}, "b", "LineWidth", 2.0);
         hold on
         plot(time_cables{it}, cable_tensions_f{it}, "r", "LineWidth", 2.0);
         ylabel("Tension [N]")
-    
-        title("Motor " + it + " (meas/target) + mapped force")
+
+        title("Cable " + it + ": raw vs filtered tension")
         if it == 4
             xlabel("Time (raw timestamp)")
         end
-    
+
     end
     legend('Raw', 'Filtered')
 
 
     figure("Name","Motor Angles");
-
     for it = 1:4
         subplot(4,1,it)
-    
+
         plot(time_actuators, measured_angles(:,it),   "b", "LineWidth", 2.0)
         hold on
         plot(time_actuators, measured_angles_f(:,it),   "r", "LineWidth", 2.0)
         plot(time_actuators, target_angles(:,it), "--g","LineWidth", 2.0);
         ylabel("Angle [rad]")
         grid on
-  
-    
-        title("Motor " + it + " (meas/target) + mapped force")
+
+        title("Motor " + it + ": measured vs filtered vs target angle")
         if it == 4
             xlabel("Time (raw timestamp)")
         end
-    
-    end
 
+    end
     legend('Raw', 'Filtered', 'Target')
 
-
-    
 
     figure("Name","ATI FT (filtered)");
     subplot(2,1,1)
@@ -1220,7 +663,7 @@ if plot_filtered
     plot(tA, ATI_T_f(:,3), "b");
     grid on; ylabel("Torque [Nm]"); legend("Tx","Ty","Tz")
     title("ATI Torques (filtered)")
-    
+
     subplot(2,1,2)
     plot(tA, ATI_F_f(:,1), "r"); hold on
     plot(tA, ATI_F_f(:,2), "g");
@@ -1228,50 +671,216 @@ if plot_filtered
     grid on; ylabel("Force [N]"); xlabel("Time (raw timestamp)")
     legend("Fx","Fy","Fz")
     title("ATI Forces (filtered)")
-    
+
 
     figure("Name","Mocap disk kinematics" + int2str(plot_disk_num));
-    xyz_XYZ = rel_kinematics_disks(:, :, plot_disk_num);
+    XYZ_xyz = rel_kinematics_disks(:, :, plot_disk_num);
     XYZ_xyz_f = rel_kinematics_disks_f(:, :, plot_disk_num);
-    
-    
+
     for it = 1:3
         index_plot = it*2 -1;
         subplot(3,2,index_plot)
-    
-        plot(mocap_timestamps, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0)
+
+        plot(mocap_timestamps, XYZ_xyz(:, it), "b", "LineWidth", 2.0)
         hold on
-        plot(mocap_timestamps, XYZ_xyz_f(:, 3 + it), "r", "LineWidth", 2.0)
-        ylabel("Euler Angle [RAD]")
+        plot(mocap_timestamps, XYZ_xyz_f(:, it), "r", "LineWidth", 2.0)
+        ylabel("Euler Angle [rad]")
         grid on
-    
-       
-    
+
         if it == 3
             xlabel("Time [s]")
         end
-    
+
     end
-    
+
     for it = 1:3
         index_plot = it*2;
         subplot(3,2,index_plot)
-     
-        plot(mocap_timestamps, xyz_XYZ(:, it), "b", "LineWidth", 2.0)
+
+        plot(mocap_timestamps, XYZ_xyz(:, 3 + it), "b", "LineWidth", 2.0)
         hold on
-        plot(mocap_timestamps, XYZ_xyz_f(:, it), "r", "LineWidth", 2.0)
+        plot(mocap_timestamps, XYZ_xyz_f(:, 3 + it), "r", "LineWidth", 2.0)
 
         ylabel("Position [m]")
         grid on
-    
-       
-    
+
         if it == 3
             xlabel("Time [s]")
         end
-    
+
     end
 
 end
 
+
+function plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
+        relative_time_cables, cable_tensions_f, interp_tensions, ...
+        relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
+        relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num, ...
+        use_resense, interp_base_wrench_raw, wrench_at_base)
+    %   PLOT_INTERPOLATION_FIGURES  Sanity-check plots for the common-grid
+    %   resampling step: filtered signal (line) vs resampled signal
+    %   (points), per sensor. If use_resense, also plots the
+    %   Resense-wand-vs-ATI base wrench cross-check.
+
+    figure("Name","Actuators Angles");
+    for it = 1:4
+        subplot(4,1,it)
+
+        plot(relative_time_motors, measured_angles_f(:,it),   "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_angles(:,it), "or","MarkerSize", 3);
+        ylabel("Angle [rad]")
+        grid on
+
+        title("Actuator " + it)
+        if it == 4
+            xlabel("Time [s]")
+        end
+
+    end
+
+
+    figure("Name","Cables Tensions");
+    for it = 1:4
+        subplot(4,1,it)
+
+        plot(relative_time_cables{it}, cable_tensions_f{it}, "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_tensions(:,it), "or","MarkerSize", 3);
+        ylabel("Tension [N]")
+        grid on
+
+        title("Cable " + it)
+        if it == 4
+            xlabel("Time [s]")
+        end
+
+    end
+
+
+    figure("Name","ATI FT");
+    for it = 1:3
+        index_plot = it*2 -1;
+        subplot(3,2,index_plot)
+
+        plot(relative_time_ATI, ATI_FT_f(:, it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_base_wrench(:,it), "or","MarkerSize", 3);
+        ylabel("Force [N]")
+        grid on
+
+        if it == 3
+            xlabel("Time [s]")
+        end
+
+    end
+
+    for it = 1:3
+        index_plot = it*2;
+        subplot(3,2,index_plot)
+
+        plot(relative_time_ATI, ATI_FT_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_base_wrench(:,3 + it), "or","MarkerSize", 3);
+        ylabel("Torque [Nm]")
+        grid on
+
+        if it == 3
+            xlabel("Time [s]")
+        end
+
+    end
+
+
+    figure("Name","Mocap disk " + int2str(plot_disk_num));
+    XYZ_xyz_f = rel_kinematics_disks_f(:, :, plot_disk_num);
+    interp_XYZ_xyz = interp_rel_kinematics_disks(:, :, plot_disk_num);
+
+    for it = 1:3
+        index_plot = it*2 -1;
+        subplot(3,2,index_plot)
+
+        plot(relative_time_mocap, XYZ_xyz_f(:, it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_XYZ_xyz(:, it), "or","MarkerSize", 3);
+        ylabel("Euler Angle [rad]")
+        grid on
+
+        if it == 3
+            xlabel("Time [s]")
+        end
+
+    end
+
+    for it = 1:3
+        index_plot = it*2;
+        subplot(3,2,index_plot)
+
+        plot(relative_time_mocap, XYZ_xyz_f(:, 3 + it), "b", "LineWidth", 2.0); hold on
+        plot(sampling_time, interp_XYZ_xyz(:, 3 + it), "or","MarkerSize", 3);
+
+        ylabel("Position [m]")
+        grid on
+
+        if it == 3
+            xlabel("Time [s]")
+        end
+
+    end
+
+
+    %%  Plot wrench contact
+    if use_resense
+        figure("Name", "Forces")
+        subplot(3, 1, 1)
+        plot(sampling_time, interp_base_wrench_raw(:, 1), 'b')
+        hold on
+        plot(sampling_time, wrench_at_base(1, :), 'r')
+        ylabel("Fx [N]")
+        grid on
+
+        subplot(3, 1, 2)
+        plot(sampling_time, interp_base_wrench_raw(:, 2), 'b')
+        hold on
+        plot(sampling_time, wrench_at_base(2, :), 'r')
+        ylabel("Fy [N]")
+        grid on
+
+        subplot(3, 1, 3)
+        plot(sampling_time, interp_base_wrench_raw(:, 3), 'b')
+        hold on
+        plot(sampling_time, wrench_at_base(3, :), 'r')
+        ylabel("Fz [N]")
+        xlabel("Time [s]")
+        grid on
+
+        legend('ATI', 'Ad_g Resense')
+
+
+        figure("Name", "Torques")
+        subplot(3, 1, 1)
+        plot(sampling_time, interp_base_wrench_raw(:, 4), 'b')
+        hold on
+        plot(sampling_time, wrench_at_base(4, :), 'r')
+        ylabel("Tx [Nm]")
+        grid on
+
+        subplot(3, 1, 2)
+        plot(sampling_time, interp_base_wrench_raw(:, 5), 'b')
+        hold on
+        plot(sampling_time, wrench_at_base(5, :), 'r')
+        ylabel("Ty [Nm]")
+        grid on
+
+        subplot(3, 1, 3)
+        plot(sampling_time, interp_base_wrench_raw(:, 6), 'b')
+        hold on
+        plot(sampling_time, wrench_at_base(6, :), 'r')
+        ylabel("Tz [Nm]")
+        xlabel("Time [s]")
+        grid on
+
+        legend('ATI', 'Ad_g Resense')
+
+    end
+
 end
+
+
+
