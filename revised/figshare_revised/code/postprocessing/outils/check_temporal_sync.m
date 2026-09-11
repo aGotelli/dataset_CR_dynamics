@@ -1,7 +1,35 @@
 function sync_results = check_temporal_sync(time_mot, angles, ...
         time_moc, kin_disks, time_fbg, fbgs_shapes, FBGS_tip_index, ...
-        time_cables, cable_tensions_all, time_ati, ati_ft, ...
+        time_cables, cable_tensions_all, ...
         saving_folder)
+%CHECK_TEMPORAL_SYNC Cross-correlate the tip/motor signals from several
+%   sensors against each other and report the time lag and correlation
+%   strength between each pair.
+%
+%   Computes, over the common [time_mot(1), time_mot(end)] window:
+%     Motor -> Mocap   (2 motors x 3 tip-position axes)
+%     Motor -> FBGS    (2 motors x 3 tip-position axes)
+%     Mocap -> FBGS    (3 tip-position axes)
+%     Motor -> Tendon  (4 motors x 4 tendons)
+%
+%   Each lag/correlation pair comes from a normalized cross-correlation
+%   between the two signals, resampled onto a common time base.
+%
+%   time_mot, angles             - motor timestamps and the corresponding
+%                                   [N x 2] actuator angles
+%   time_moc, kin_disks           - Mocap timestamps and disk kinematics
+%                                   ([N x 6 x N_disks]; column 5 is used)
+%   time_fbg, fbgs_shapes         - FBG timestamps and reconstructed
+%                                   shapes
+%   FBGS_tip_index                 - FBG sample index used as the tip
+%   time_cables, cable_tensions_all - 1x4 cell arrays, one
+%                                   timestamp/tension vector per tendon
+%   saving_folder                  - folder to write sync_results.txt
+%                                   into; pass '' to skip saving
+%
+%   Returns a struct sync_results with fields lag_MM, r_MM, lag_MF, r_MF,
+%   lag_OF, r_OF, lag_MC, r_MC, lag_MA, r_MA (the last two are NaN when
+%   the Motor -> ATI comparison was skipped).
 
 mot_lbl = {'M+x', 'M+y'};
 pos_lbl = {'px',  'py',  'pz'};
@@ -12,13 +40,13 @@ t0 = time_mot(1);  t1 = time_mot(end);
 [t_moc, tip_moc] = trim_window(time_moc, kin_disks(:,4:6,5), t0, t1);
 tip_fbg_all      = squeeze(fbgs_shapes(:, FBGS_tip_index, :))';
 [t_fbg, tip_fbg] = trim_window(time_fbg, tip_fbg_all,        t0, t1);
-[t_ati, ati_FT] = trim_window(time_ati, ati_ft,        t0, t1);
+
 for it=1:4
     [t_cables{it}, cable_tensions{it}] = trim_window(time_cables{it}, cable_tensions_all{it},        t0, t1);
 end
 
 t_mot = t_mot - t0;  t_moc = t_moc - t0;  t_fbg = t_fbg - t0;
-t_ati = t_ati - t0;
+
 
 for it=1:4
     t_cables{it} = t_cables{it} - t0;
@@ -34,7 +62,7 @@ up         = @(ts, x, td) interp1(ts, x, td, 'pchip');
 moc_on_mot = up(t_moc, tip_moc, t_mot);
 fbg_on_mot = up(t_fbg, tip_fbg, t_mot);
 fbg_on_moc = up(t_fbg, tip_fbg, t_moc);
-ati_on_mot = up(t_ati, ati_FT, t_mot);
+
 
 
 % Motor -> Mocap  (2 motors x 3 axes)
@@ -76,36 +104,6 @@ yyaxis right
 plot(t_mot, ang(:,1), 'r')
 
 
-figure("Name", "Angles and Torque")
-yyaxis left
-plot(t_ati, ati_FT(:, 4), 'b')
-hold on
-yyaxis right
-plot(t_cables{2}, cable_tensions{2}, 'g')
-
-% Motor -> ATI  (2 motors x 2 torques)
-lag_MA = zeros(1, 2); r_MA = zeros(1,2);
-for m = 1:2
-   [lag_MA(m), r_MA(m)] = peak_lag(ang(:,m), ati_on_mot(:,3+m), ml_mot, fs_mot);
-end
-
-
-% % ── print ────────────────────────────────────────────────────────────────────
-% hdr = @(s) fprintf('\n=== %s ===\n         %8s    %8s    %8s\n', s, pos_lbl{:});
-% row = @(lbl, lag, r) fprintf('  %-5s : %+7.1f ms  %+7.1f ms  %+7.1f ms    r = [%+.2f  %+.2f  %+.2f]\n', ...
-%     lbl, lag(1), lag(2), lag(3), r(1), r(2), r(3));
-% 
-% hdr('Motor -> Mocap [ms]');
-% row(mot_lbl{1}, lag_MM(1,:), r_MM(1,:));
-% row(mot_lbl{2}, lag_MM(2,:), r_MM(2,:));
-% 
-% hdr('Motor -> FBGS  [ms]');
-% row(mot_lbl{1}, lag_MF(1,:), r_MF(1,:));
-% row(mot_lbl{2}, lag_MF(2,:), r_MF(2,:));
-% 
-% hdr('Mocap  -> FBGS [ms]');
-% fprintf('         %+7.1f ms  %+7.1f ms  %+7.1f ms    r = [%+.2f  %+.2f  %+.2f]\n', ...
-%     lag_OF(1), lag_OF(2), lag_OF(3), r_OF(1), r_OF(2), r_OF(3));
 
 % ── save ─────────────────────────────────────────────────────────────────────
 if ~isempty(saving_folder)
@@ -151,4 +149,3 @@ function [lag_ms, peak_r] = peak_lag(a, b, max_lag, fs)
     lag_ms = (lags(idx) + d) / fs * 1000;
     peak_r = r(idx);
 end
-

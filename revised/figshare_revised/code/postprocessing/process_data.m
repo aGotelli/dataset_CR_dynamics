@@ -68,7 +68,7 @@ if ~isfile(mocap_correction_file)
     compute_mocap_correction(data_root, disk_z_positions_m);
 end
 
-lag_FBGS_file = fullfile(fileparts(mfilename('fullpath')), "measured_fbg_delay_ms.txt");
+lag_FBGS_file = fullfile(fileparts(mfilename('fullpath')), "outils", "measured_fbg_delay_ms.txt");
 if ~isfile(lag_FBGS_file)
     compute_fbg_delay(data_root, align_window_s, FBGS_tip_index);
 end
@@ -400,6 +400,8 @@ end
 
 
 function [A] = hat_(x)
+    %   HAT_  Skew-symmetric cross-product matrix of a 3-vector x, such
+    %   that hat_(x)*v == cross(x, v).
 
     A=zeros(3,3);
     
@@ -470,8 +472,7 @@ function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kin
         fbgs_time, fbgs_shapes, FBGS_tip_index)
     %   PLOT_CORRECTION_FIGURES  Mocap raw-vs-corrected disk poses, and a
     %   raw/corrected mocap vs FBGS comparison at the tip. Only the first
-    %   3 seconds of the recording are shown (the window used to compute
-    %   the per-disk correction itself).
+    %   3 seconds of the recording are shown.
 
     mocap_time_rel = mocap_timestamps - mocap_timestamps(1);
     idx_init = mocap_time_rel <= 3.0;

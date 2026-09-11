@@ -51,18 +51,13 @@ idx_align      = mocap_time_rel <= align_window_s;
 
 %   Extract kinematics tip disk which present the most ample motion
 XYZ_xyz_tip_disk = rel_kinematics_disks(:, :, 5);
-tip_xy_mocap  = XYZ_xyz_tip_disk(idx_align, 4:5);   
+tip_xy_mocap  = XYZ_xyz_tip_disk(idx_align, 4:5);
 
 %   Center to compute the plane of motion
 tip_xy_mocap_centered = tip_xy_mocap - mean(tip_xy_mocap, 1);
 [~, ~, V_m] = svd(tip_xy_mocap_centered, 'econ');
 
 %   Angle of the principal (max-variance) direction w.r.t. the x-axis.
-%   Read directly off V_m instead of padding it into a 3x3 rotation
-%   matrix and going through rotm2axang: SVD does not fix the sign of
-%   its singular vectors, so det(V_m) can come out -1 depending on the
-%   data, and rotm2axang is undefined for a matrix that isn't a proper
-%   rotation.
 theta_z_mocap = atan2(V_m(2, 1), V_m(1, 1));
 
 if bending_axis == 'y'
@@ -96,6 +91,7 @@ tip_xy         = tip_xy_all(:, idx_align);            % 2 x N_align
 tip_xy_centered = (tip_xy - mean(tip_xy, 2))'; %   Transpose to N_align x 2
 [~, ~, V_f] = svd(tip_xy_centered, 'econ');
 
+%   Angle of the principal (max-variance) direction w.r.t. the x-axis.
 theta_z_fbgs = atan2(V_f(2, 1), V_f(1, 1));
 
 if bending_axis == 'y'
@@ -123,12 +119,8 @@ end
 
 %%  Correct pose mocap (only frame of the robot)
 
-%   The per-disk residual-offset correction is a static property of the
-%   physical setup (marker mounting), not something that should vary
-%   recording to recording. It's computed once, from the dedicated
-%   straight/reference recording, by outils/compute_mocap_correction.m,
-%   which saves it next to this file. That file must exist -- this does
-%   NOT fall back to recomputing an approximate correction per recording.
+%   Loads the per-disk residual-offset correction computed and saved by
+%   outils/compute_mocap_correction.m, and applies it to every disk pose.
 correction_file = fullfile(fileparts(mfilename('fullpath')), "mocap_correction.csv");
 
 if ~isfile(correction_file)
