@@ -107,7 +107,7 @@ for traj_index = 1:numel(trajectory_names)
     %% ---- Run the same synchronization check process_data.m uses, but --
     %% ---- feed it the UNCORRECTED FBG timestamps, over the recording's --
     %% ---- FULL duration (no windowing) -- exactly like process_data.m --
-    %% ---- ATI is not loaded here, so it's passed as [] and skipped. ----
+    %% ---- ATI is not loaded or compared here. --------------------------
     trajectory_output_folder = fullfile(this_folder, "figures", "fbg_delay_" + trajectory_name);
     if ~isfolder(trajectory_output_folder)
         mkdir(trajectory_output_folder);
@@ -139,9 +139,7 @@ for traj_index = 1:numel(trajectory_names)
     %% ---- Motor, Mocap, FBGS and Tendon synchronization: characterize --
     %% ---- only, no correction -- same |r| > threshold + mean approach --
     %% ---- as above, applied to the other lag types check_temporal_sync -
-    %% ---- computes (Motor<->ATI is skipped: check_temporal_sync was ---
-    %% ---- called with [] for the ATI inputs, so lag_MA/r_MA come back --
-    %% ---- as NaN and are not reported here). ---------------------------
+    %% ---- computes. --------------------------------------------------
     valid_MM = abs(sync_results.r_MM) > r_OF_threshold;
     mean_lag_MM = mean(sync_results.lag_MM(valid_MM));
     n_valid_MM = nnz(valid_MM);

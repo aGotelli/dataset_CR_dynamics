@@ -28,8 +28,7 @@ function sync_results = check_temporal_sync(time_mot, angles, ...
 %                                   into; pass '' to skip saving
 %
 %   Returns a struct sync_results with fields lag_MM, r_MM, lag_MF, r_MF,
-%   lag_OF, r_OF, lag_MC, r_MC, lag_MA, r_MA (the last two are NaN when
-%   the Motor -> ATI comparison was skipped).
+%   lag_OF, r_OF, lag_MC, r_MC.
 
 mot_lbl = {'M+x', 'M+y'};
 pos_lbl = {'px',  'py',  'pz'};
@@ -125,8 +124,6 @@ sync_results.lag_OF = lag_OF;   % [1×3]
 sync_results.r_OF   = r_OF;
 sync_results.lag_MC   = lag_MC;
 sync_results.r_MC   = r_MC;
-sync_results.lag_MA   = lag_MA;
-sync_results.r_MA   = r_MA;
 end
 
 % ── helpers ──────────────────────────────────────────────────────────────────
