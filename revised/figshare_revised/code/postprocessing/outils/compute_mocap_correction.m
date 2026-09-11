@@ -6,8 +6,8 @@ function compute_mocap_correction(data_root, disk_z_positions)
 %   disk's measured pose over the whole recording, and computes the
 %   rigid-body transform between that average pose and the disk's
 %   nominal straight-configuration position. The result (one row per
-%   disk: [roll pitch yaw px py pz]) is saved to mocap_correction.csv
-%   next to this function.
+%   disk: [roll pitch yaw px py pz]) is saved to
+%   data/postprocess_calibration/mocap_correction.csv.
 %
 %   data_root         - path to the dataset's data/ folder (set in
 %                        process_data.m, passed in here so it isn't
@@ -62,7 +62,12 @@ for it = 1:N_disks_robot
 end
 
 %% ====== SAVE ======
-writematrix(correction_kinematics, fullfile(fileparts(mfilename('fullpath')), "mocap_correction.csv"));
+calibration_folder = fullfile(data_root, "postprocess_calibration");
+if ~isfolder(calibration_folder)
+    mkdir(calibration_folder);
+end
+
+writematrix(correction_kinematics, fullfile(calibration_folder, "mocap_correction.csv"));
 
 fprintf("   SAVED MOCAP CORRECTION\n");
 

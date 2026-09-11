@@ -1,6 +1,6 @@
 function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s)
+    align_mocap_and_fbgs(folder, use_resense, align_window_s, data_root)
 %ALIGN_MOCAP_AND_FBGS Load one recording's OptiTrack and FBG data and put
 %   them in a common, spatially-aligned frame.
 %
@@ -13,6 +13,8 @@ function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_
 %                        recording used to determine the bending-plane
 %                        rotation (both mocap and FBG use their own first
 %                        align_window_s seconds)
+%     data_root        - path to the dataset's data/ folder; used to
+%                        locate data/postprocess_calibration/mocap_correction.csv
 %
 %   Outputs:
 %     N_disks                    - number of tracked OptiTrack disks
@@ -121,7 +123,7 @@ end
 
 %   Loads the per-disk residual-offset correction computed and saved by
 %   outils/compute_mocap_correction.m, and applies it to every disk pose.
-correction_file = fullfile(fileparts(mfilename('fullpath')), "mocap_correction.csv");
+correction_file = fullfile(data_root, "postprocess_calibration", "mocap_correction.csv");
 
 if ~isfile(correction_file)
     error("align_mocap_and_fbgs:missingCorrection", ...

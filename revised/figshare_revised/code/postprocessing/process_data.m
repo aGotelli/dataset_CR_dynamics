@@ -62,13 +62,15 @@ align_window_s = 10;
 use_resense = isfile(fullfile(folder, "dataResenseFT.csv"));
 
 
-%   Both of these are one-off, dataset-wide calibration constants
-mocap_correction_file = fullfile(fileparts(mfilename('fullpath')), "outils", "mocap_correction.csv");
+%   Both of these are one-off, dataset-wide calibration constants, saved
+%   under data/postprocess_calibration/ so every script that loads them
+%   (align_mocap_and_fbgs.m, process_data.m) agrees on the same values.
+mocap_correction_file = fullfile(data_root, "postprocess_calibration", "mocap_correction.csv");
 if ~isfile(mocap_correction_file)
     compute_mocap_correction(data_root, disk_z_positions_m);
 end
 
-lag_FBGS_file = fullfile(fileparts(mfilename('fullpath')), "outils", "measured_fbg_delay_ms.txt");
+lag_FBGS_file = fullfile(data_root, "postprocess_calibration", "measured_fbg_delay_ms.txt");
 if ~isfile(lag_FBGS_file)
     compute_fbg_delay(data_root, align_window_s, FBGS_tip_index);
 end
@@ -97,7 +99,7 @@ end
 %   Load and spatially align the OptiTrack and FBG data for this recording.
 [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s);
+    align_mocap_and_fbgs(folder, use_resense, align_window_s, data_root);
 
 %   Load the FBG pipeline-delay correction, measured separately (see the
 %   generation step above -- lag_FBGS_file is guaranteed to exist by now).

@@ -10,14 +10,10 @@ function compute_fbg_delay(data_root, align_window_s, FBGS_tip_index)
 %   duration via check_temporal_sync. The Mocap<->FBGS lag on the axes
 %   whose correlation exceeds r_OF_threshold is averaged into
 %   mean_lag_OF, and the resulting value (sign-flipped into
-%   process_data.m's lag_FBGS convention) is written to
-%   measured_fbg_delay_ms.txt next to this function. Motor<->Mocap,
-%   Motor<->FBGS and Motor<->Tendon are also characterized the same way
-%   and included in the saved summary table; Motor<->ATI is not computed.
-%
-%   One row per trajectory is written to summary_fbg_delay.csv, and each
-%   trajectory's own check_temporal_sync figures/sync_results.txt are
-%   written under this function's figures/ folder.
+%   process_data.m's lag_FBGS convention), averaged again across the
+%   four trajectories, is written to
+%   data/postprocess_calibration/measured_fbg_delay_ms.txt. Motor<->ATI
+%   is not computed.
 %
 %   data_root         - path to the dataset's data/ folder (set in
 %                        process_data.m, passed in here so it isn't
@@ -32,13 +28,6 @@ function compute_fbg_delay(data_root, align_window_s, FBGS_tip_index)
 %% ====================================================================
 %%  SETTINGS
 %% ====================================================================
-
-%   Self-locating from this function's own file location (outils/), used
-%   to know where to write measured_fbg_delay_ms.txt and this function's
-%   own figures/ output -- data location, window and tip index all come
-%   from process_data.m via the arguments above so they can't drift out
-%   of sync with it.
-this_folder = fileparts(mfilename('fullpath'));
 
 %   The |r_OF| threshold process_data.m itself uses to decide which axes'
 %   Mocap->FBG lag are trustworthy enough to average.
@@ -61,8 +50,8 @@ bending_axes      = {"x",            "x",              "x",            "y"};
 %   summary_table: one row per trajectory -- the per-axis Delta_OF lag and
 %   r, which axes passed the |r| > 0.95 threshold, and the resulting
 %   mean_lag_OF, plus the same characterization for Motor->Mocap,
-%   Motor->FBGS and Motor->Tendon. This is the table saved to
-%   summary_fbg_delay.csv.
+%   Motor->FBGS and Motor->Tendon. Held in memory only, to average across
+%   trajectories below -- not saved to disk.
 summary_table = table();
 
 
@@ -102,21 +91,18 @@ for traj_index = 1:numel(trajectory_names)
     use_resense = false;   % dynamic_motion recordings never have the Resense wand
     [~, mocap_timestamps, ~, rel_kinematics_disks_corr, ...
         fbgs_time_uncorrected, fbgs_shapes, ~, ~] = ...
-        align_mocap_and_fbgs(recording_folder, use_resense, align_window_s);
+        align_mocap_and_fbgs(recording_folder, use_resense, align_window_s, data_root);
 
     %% ---- Run the same synchronization check process_data.m uses, but --
     %% ---- feed it the UNCORRECTED FBG timestamps, over the recording's --
     %% ---- FULL duration (no windowing) -- exactly like process_data.m --
-    %% ---- ATI is not loaded or compared here. --------------------------
-    trajectory_output_folder = fullfile(this_folder, "figures", "fbg_delay_" + trajectory_name);
-    if ~isfolder(trajectory_output_folder)
-        mkdir(trajectory_output_folder);
-    end
-
+    %% ---- ATI is not loaded or compared here, and sync_results.txt is --
+    %% ---- not saved (saving_folder = '') -- only the final measured ---
+    %% ---- delay, below, is written to disk. ----------------------------
     sync_results = check_temporal_sync(time_actuators, measured_angles, ...
         mocap_timestamps, rel_kinematics_disks_corr, ...
         fbgs_time_uncorrected, fbgs_shapes, FBGS_tip_index, ...
-        time_cables, cable_tensions, trajectory_output_folder);
+        time_cables, cable_tensions, '');
 
     %% ---- Exactly process_data.m's own averaging logic -----------------
     valid = find(abs(sync_results.r_OF) > r_OF_threshold);
@@ -167,20 +153,6 @@ end
 
 
 %% ====================================================================
-%%  SAVE THE TABLE
-%% ====================================================================
-
-output_folder = fullfile(this_folder, "figures");
-if ~isfolder(output_folder)
-    mkdir(output_folder);
-end
-
-summary_csv_path = fullfile(output_folder, "summary_fbg_delay.csv");
-writetable(summary_table, summary_csv_path);
-fprintf("\nSummary table (one row per trajectory) written to:\n  %s\n", summary_csv_path);
-
-
-%% ====================================================================
 %%  WRITE THE MEASURED DELAY FOR process_data.m TO LOAD
 %% ====================================================================
 %
@@ -196,7 +168,12 @@ fprintf("\nSummary table (one row per trajectory) written to:\n  %s\n", summary_
 mean_lag_OF_all = mean(summary_table.Mean_Lag_OF_ms);
 measured_lag_FBGS_ms = -mean_lag_OF_all;
 
-lag_FBGS_file = fullfile(this_folder, "measured_fbg_delay_ms.txt");
+calibration_folder = fullfile(data_root, "postprocess_calibration");
+if ~isfolder(calibration_folder)
+    mkdir(calibration_folder);
+end
+
+lag_FBGS_file = fullfile(calibration_folder, "measured_fbg_delay_ms.txt");
 fid = fopen(lag_FBGS_file, 'w');
 fprintf(fid, '%.6f', measured_lag_FBGS_ms);
 fclose(fid);
@@ -231,12 +208,12 @@ end
 
 function one_row = make_summary_row(trajectory_name, lag_OF, r_OF, valid_axis_labels, mean_lag_OF, ...
         mean_lag_MM, n_valid_MM, mean_lag_MF, n_valid_MF, mean_lag_MC, n_valid_MC)
-    %   Builds one row of the summary table: the per-axis Delta_OF lag
-    %   and r (px, py, pz), which of those axes passed the |r| > 0.95
-    %   threshold, and the resulting mean_lag_OF. Also includes the same
-    %   characterization (mean lag over channels with |r| > threshold,
-    %   and how many channels qualified out of how many exist) for
-    %   Motor->Mocap, Motor->FBGS and Motor->Tendon.
+    %   Builds one row of the in-memory summary table: the per-axis
+    %   Delta_OF lag and r (px, py, pz), which of those axes passed the
+    %   |r| > 0.95 threshold, and the resulting mean_lag_OF. Also
+    %   includes the same characterization (mean lag over channels with
+    %   |r| > threshold, and how many channels qualified out of how many
+    %   exist) for Motor->Mocap, Motor->FBGS and Motor->Tendon.
     one_row = table( ...
         string(trajectory_name), ...
         lag_OF(1), r_OF(1), ...
