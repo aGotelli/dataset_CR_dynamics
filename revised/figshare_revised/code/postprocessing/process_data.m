@@ -84,7 +84,7 @@ end
 %   Load and spatially align the OptiTrack and FBG data for this recording.
 [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s);
+    align_mocap_and_fbgs(folder, use_resense, disk_z_positions, align_window_s);
 
 %   Load the FBG pipeline-delay correction, measured separately.
 %

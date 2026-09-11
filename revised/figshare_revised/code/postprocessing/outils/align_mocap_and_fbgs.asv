@@ -57,13 +57,12 @@ tip_xy_mocap  = XYZ_xyz_tip_disk(idx_align, 4:5);
 tip_xy_mocap_centered = tip_xy_mocap - mean(tip_xy_mocap, 1);
 [~, ~, V_m] = svd(tip_xy_mocap_centered, 'econ');
 
-%   Angle of the principal (max-variance) direction w.r.t. the x-axis.
-%   Read directly off V_m instead of padding it into a 3x3 rotation
-%   matrix and going through rotm2axang: SVD does not fix the sign of
-%   its singular vectors, so det(V_m) can come out -1 depending on the
-%   data, and rotm2axang is undefined for a matrix that isn't a proper
-%   rotation.
-theta_z_mocap = atan2(V_m(2, 1), V_m(1, 1));
+R_m = eye(3);
+R_m(1:2, 1:2) = V_m;
+axang_m = rotm2axang(R_m);
+theta_z_mocap = axang_m(4);
+
+% theta_z_mocap = atan2(R_m(1, 2), R_m(1, 1));
 
 if bending_axis == 'y'
     theta_z_mocap = pi/2 - theta_z_mocap;       % map onto y-axis
@@ -96,7 +95,10 @@ tip_xy         = tip_xy_all(:, idx_align);            % 2 x N_align
 tip_xy_centered = (tip_xy - mean(tip_xy, 2))'; %   Transpose to N_align x 2
 [~, ~, V_f] = svd(tip_xy_centered, 'econ');
 
-theta_z_fbgs = atan2(V_f(2, 1), V_f(1, 1));
+R_f = eye(3);
+R_f(1:2, 1:2) = V_f;
+axang_f = rotm2axang(R_f);
+theta_z_fbgs = axang_f(4);
 
 if bending_axis == 'y'
     theta_z_fbgs = pi/2 - theta_z_fbgs;       % map onto y-axis
@@ -105,13 +107,14 @@ else
 end
 
 
-%%  Realign section
+%   
 
 if bending_axis == 'y'
     theta_z = theta_z_fbgs + theta_z_mocap;
 else
     theta_z = theta_z_fbgs - theta_z_mocap;
 end
+
 
 R_z = axang2rotm([0 0 1 theta_z]);
 for t = 1:N_time_fbgs
@@ -128,7 +131,7 @@ rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
 mocap_time_rel_init = mocap_time_rel(idx_init);
 
 %   Remove residual offset
-pos_disks = zeros(3, length(disk_z_positions));
+pos_disks = zeros(3, length(disk_z_positions_m));
 pos_disks(3, :) = disk_z_positions;
 
 N_disks_robot = 5;
