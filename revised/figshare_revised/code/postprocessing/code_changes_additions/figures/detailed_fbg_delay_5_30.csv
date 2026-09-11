@@ -1,0 +1,436 @@
+Subset,Recording,Pairing,Label,Lag_ms,CorrelationR
+quasi_static,static_bend_x_100,Motor->Mocap,M+x vs px,-14.1085685118305,0.143190050999628
+quasi_static,static_bend_x_100,Motor->FBG,M+x vs px,-31.3921632505098,0.109372087643275
+quasi_static,static_bend_x_100,Motor->Mocap,M+x vs py,-13.8659927661713,-0.146057460870943
+quasi_static,static_bend_x_100,Motor->FBG,M+x vs py,-31.3921780359191,0.109372166816557
+quasi_static,static_bend_x_100,Motor->Mocap,M+x vs pz,-13.9704195323303,-0.144260091517406
+quasi_static,static_bend_x_100,Motor->FBG,M+x vs pz,-31.3921599169613,-0.109372150453445
+quasi_static,static_bend_x_100,Motor->Mocap,M+y vs px,-156.07597159006,0.0892613737228834
+quasi_static,static_bend_x_100,Motor->FBG,M+y vs px,-156.359463148498,0.0832642180247122
+quasi_static,static_bend_x_100,Motor->Mocap,M+y vs py,-156.076005001953,-0.0892659849838327
+quasi_static,static_bend_x_100,Motor->FBG,M+y vs py,-156.359463975562,0.0832641983510039
+quasi_static,static_bend_x_100,Motor->Mocap,M+y vs pz,-156.075555786407,-0.0892694911458863
+quasi_static,static_bend_x_100,Motor->FBG,M+y vs pz,-156.359463196791,-0.0832642167156947
+quasi_static,static_bend_x_100,Mocap->FBG,px,-0.0460683016325303,0.999903722705106
+quasi_static,static_bend_x_100,Mocap->FBG,py,-0.42777425644092,0.977473025425781
+quasi_static,static_bend_x_100,Mocap->FBG,pz,-0.0246284256892098,0.999923678637407
+quasi_static,static_bend_x_150,Motor->Mocap,M+x vs px,-0.779348934614754,0.573137609592382
+quasi_static,static_bend_x_150,Motor->FBG,M+x vs px,-0.875118469484995,0.231858516162881
+quasi_static,static_bend_x_150,Motor->Mocap,M+x vs py,-0.779617908130586,-0.57312322279089
+quasi_static,static_bend_x_150,Motor->FBG,M+x vs py,-0.875151082203953,0.231856671479949
+quasi_static,static_bend_x_150,Motor->Mocap,M+x vs pz,-0.780740367411672,-0.569913799807774
+quasi_static,static_bend_x_150,Motor->FBG,M+x vs pz,-0.875118091531094,-0.231858562359598
+quasi_static,static_bend_x_150,Motor->Mocap,M+y vs px,-143.098095345517,0.171187043960323
+quasi_static,static_bend_x_150,Motor->FBG,M+y vs px,-155.666532282093,0.0918034905070938
+quasi_static,static_bend_x_150,Motor->Mocap,M+y vs py,-143.099330156071,-0.171529852141865
+quasi_static,static_bend_x_150,Motor->FBG,M+y vs py,-155.666533350897,0.0918033211679949
+quasi_static,static_bend_x_150,Motor->Mocap,M+y vs pz,-143.101156625222,-0.170191584156055
+quasi_static,static_bend_x_150,Motor->FBG,M+y vs pz,-155.666532287317,-0.0918035151903805
+quasi_static,static_bend_x_150,Mocap->FBG,px,3.81836959553907,0.623749416523605
+quasi_static,static_bend_x_150,Mocap->FBG,py,32.8260255922935,0.0721462472135853
+quasi_static,static_bend_x_150,Mocap->FBG,pz,0.738502614771441,0.998952529957257
+quasi_static,static_bend_x_180,Motor->Mocap,M+x vs px,-0.805909374530814,0.656445044783063
+quasi_static,static_bend_x_180,Motor->FBG,M+x vs px,-0.893196837949133,0.503473838949572
+quasi_static,static_bend_x_180,Motor->Mocap,M+x vs py,-0.806162538659148,-0.655805847540287
+quasi_static,static_bend_x_180,Motor->FBG,M+x vs py,-0.893196256050959,0.503474990642344
+quasi_static,static_bend_x_180,Motor->Mocap,M+x vs pz,-0.807686583542939,-0.653665171293868
+quasi_static,static_bend_x_180,Motor->FBG,M+x vs pz,-0.893196084135438,-0.50347538586246
+quasi_static,static_bend_x_180,Motor->Mocap,M+y vs px,-196.598805791677,-0.061866510707493
+quasi_static,static_bend_x_180,Motor->FBG,M+y vs px,-196.636055020751,-0.0626329075503404
+quasi_static,static_bend_x_180,Motor->Mocap,M+y vs py,-196.599134732076,0.061725679318253
+quasi_static,static_bend_x_180,Motor->FBG,M+y vs py,-196.636054567099,-0.0626328231370031
+quasi_static,static_bend_x_180,Motor->Mocap,M+y vs pz,-196.599737679976,0.0618137249763002
+quasi_static,static_bend_x_180,Motor->FBG,M+y vs pz,-196.636054368325,0.0626328059353726
+quasi_static,static_bend_x_180,Mocap->FBG,px,-0.0809724417658022,0.999896434624285
+quasi_static,static_bend_x_180,Mocap->FBG,py,-0.27014983309742,0.976022097253192
+quasi_static,static_bend_x_180,Mocap->FBG,pz,-0.0668585774875999,0.99991817986557
+quasi_static,static_bend_x_200,Motor->Mocap,M+x vs px,-0.809195468925363,0.653886679904913
+quasi_static,static_bend_x_200,Motor->FBG,M+x vs px,-0.894063441223506,-0.502489137549754
+quasi_static,static_bend_x_200,Motor->Mocap,M+x vs py,-0.805682157668024,0.657193945641619
+quasi_static,static_bend_x_200,Motor->FBG,M+x vs py,-0.894077535787368,-0.502462567679389
+quasi_static,static_bend_x_200,Motor->Mocap,M+x vs pz,-0.807444708137208,0.654547901302578
+quasi_static,static_bend_x_200,Motor->FBG,M+x vs pz,-0.894070141409731,-0.502474787221756
+quasi_static,static_bend_x_200,Motor->Mocap,M+y vs px,0.808617636254493,-0.164265968233982
+quasi_static,static_bend_x_200,Motor->FBG,M+y vs px,0.556569328512717,0.162553378411073
+quasi_static,static_bend_x_200,Motor->Mocap,M+y vs py,0.813756081771943,-0.164135792661237
+quasi_static,static_bend_x_200,Motor->FBG,M+y vs py,0.556535011261859,0.162552180780051
+quasi_static,static_bend_x_200,Motor->Mocap,M+y vs pz,0.809032951948658,-0.164223027746246
+quasi_static,static_bend_x_200,Motor->FBG,M+y vs pz,0.556551381271779,0.162552492578965
+quasi_static,static_bend_x_200,Mocap->FBG,px,-0.180420106707893,0.992445195342352
+quasi_static,static_bend_x_200,Mocap->FBG,py,-0.267599609818059,-0.999152858715117
+quasi_static,static_bend_x_200,Mocap->FBG,pz,-0.0272797808628663,0.999940371171561
+quasi_static,static_bend_x_n100,Motor->Mocap,M+x vs px,49.654542129272,-0.112396335118389
+quasi_static,static_bend_x_n100,Motor->FBG,M+x vs px,-32.721736496001,0.117283574515343
+quasi_static,static_bend_x_n100,Motor->Mocap,M+x vs py,-17.41253478612,-0.148051861561465
+quasi_static,static_bend_x_n100,Motor->FBG,M+x vs py,-32.7219418837448,-0.117282591749296
+quasi_static,static_bend_x_n100,Motor->Mocap,M+x vs pz,-18.8950890485574,0.134496668891978
+quasi_static,static_bend_x_n100,Motor->FBG,M+x vs pz,-32.7219691897406,0.117282589904852
+quasi_static,static_bend_x_n100,Motor->Mocap,M+y vs px,47.1060350568826,0.0562317466880193
+quasi_static,static_bend_x_n100,Motor->FBG,M+y vs px,-155.713839706532,-0.08483123176407
+quasi_static,static_bend_x_n100,Motor->Mocap,M+y vs py,-155.441744617469,0.0896426612985457
+quasi_static,static_bend_x_n100,Motor->FBG,M+y vs py,-155.713840367999,0.0848307701821664
+quasi_static,static_bend_x_n100,Motor->Mocap,M+y vs pz,-155.445891371238,-0.0839522733871003
+quasi_static,static_bend_x_n100,Motor->FBG,M+y vs pz,-155.713841059701,-0.084830835225638
+quasi_static,static_bend_x_n100,Mocap->FBG,px,1.28845903306669,0.949992634255395
+quasi_static,static_bend_x_n100,Mocap->FBG,py,0.0962714420391858,-0.999475333967408
+quasi_static,static_bend_x_n100,Mocap->FBG,pz,-0.00229886350393012,0.999883005682929
+quasi_static,static_bend_x_n150,Motor->Mocap,M+x vs px,-0.844077286270165,0.518650127473784
+quasi_static,static_bend_x_n150,Motor->FBG,M+x vs px,-0.9192043807435,0.22352584558829
+quasi_static,static_bend_x_n150,Motor->Mocap,M+x vs py,-0.840481925926432,0.540778066953834
+quasi_static,static_bend_x_n150,Motor->FBG,M+x vs py,-0.919204096746699,-0.22352713982957
+quasi_static,static_bend_x_n150,Motor->Mocap,M+x vs pz,-0.839909075060296,0.542669988236381
+quasi_static,static_bend_x_n150,Motor->FBG,M+x vs pz,-0.919204029376463,0.223527523837588
+quasi_static,static_bend_x_n150,Motor->Mocap,M+y vs px,-197.113365354802,-0.210952034455003
+quasi_static,static_bend_x_n150,Motor->FBG,M+y vs px,-104.41579997135,-0.110245950387589
+quasi_static,static_bend_x_n150,Motor->Mocap,M+y vs py,-0.161681256423049,-0.221299963704354
+quasi_static,static_bend_x_n150,Motor->FBG,M+y vs py,-104.415799105458,0.110246316780384
+quasi_static,static_bend_x_n150,Motor->Mocap,M+y vs pz,-0.161122305275845,-0.222063952037691
+quasi_static,static_bend_x_n150,Motor->FBG,M+y vs pz,-104.415798939434,-0.110246447917206
+quasi_static,static_bend_x_n150,Mocap->FBG,px,1.53905835294493,0.935788023633181
+quasi_static,static_bend_x_n150,Mocap->FBG,py,-0.0119940494839641,-0.999496132609188
+quasi_static,static_bend_x_n150,Mocap->FBG,pz,0.0449776551895667,0.999896934799561
+quasi_static,static_bend_x_n180,Motor->Mocap,M+x vs px,-0.794939060722416,0.661927323965444
+quasi_static,static_bend_x_n180,Motor->FBG,M+x vs px,-0.863718971636854,-0.548764927386464
+quasi_static,static_bend_x_n180,Motor->Mocap,M+x vs py,-0.826918389889502,0.633561387683078
+quasi_static,static_bend_x_n180,Motor->FBG,M+x vs py,-0.864065312258184,-0.548103947943406
+quasi_static,static_bend_x_n180,Motor->Mocap,M+x vs pz,-0.79266887178668,0.664733252532947
+quasi_static,static_bend_x_n180,Motor->FBG,M+x vs pz,-0.864806619995293,0.546661046149068
+quasi_static,static_bend_x_n180,Motor->Mocap,M+y vs px,-200.275659561157,-0.199790828918328
+quasi_static,static_bend_x_n180,Motor->FBG,M+y vs px,-200.275659561157,0.156938367517806
+quasi_static,static_bend_x_n180,Motor->Mocap,M+y vs py,-200.275659561157,-0.186645990965606
+quasi_static,static_bend_x_n180,Motor->FBG,M+y vs py,-200.275659561157,0.156645725387581
+quasi_static,static_bend_x_n180,Motor->Mocap,M+y vs pz,-200.275659561157,-0.200746297146171
+quasi_static,static_bend_x_n180,Motor->FBG,M+y vs pz,-200.275659561157,-0.156008732539883
+quasi_static,static_bend_x_n180,Mocap->FBG,px,1.15035505598759,0.909508665191621
+quasi_static,static_bend_x_n180,Mocap->FBG,py,-0.0946670394431209,-0.999007137648038
+quasi_static,static_bend_x_n180,Mocap->FBG,pz,-0.0583478959957025,0.999937950812784
+quasi_static,static_bend_x_n200,Motor->Mocap,M+x vs px,-0.788681056724376,0.66083322844354
+quasi_static,static_bend_x_n200,Motor->FBG,M+x vs px,-0.865960681603174,0.533468336556642
+quasi_static,static_bend_x_n200,Motor->Mocap,M+x vs py,-0.788812310672806,0.660602548185968
+quasi_static,static_bend_x_n200,Motor->FBG,M+x vs py,-0.866071919878366,0.533251569043721
+quasi_static,static_bend_x_n200,Motor->Mocap,M+x vs pz,-0.78861553890099,0.660869597976256
+quasi_static,static_bend_x_n200,Motor->FBG,M+x vs pz,-0.865940152379527,0.53350830228003
+quasi_static,static_bend_x_n200,Motor->Mocap,M+y vs px,-200.396060943604,-0.277942319948899
+quasi_static,static_bend_x_n200,Motor->FBG,M+y vs px,-200.396060943604,-0.218989837287805
+quasi_static,static_bend_x_n200,Motor->Mocap,M+y vs py,-200.396060943604,-0.277853245010079
+quasi_static,static_bend_x_n200,Motor->FBG,M+y vs py,-200.396060943604,-0.218897733402881
+quasi_static,static_bend_x_n200,Motor->Mocap,M+y vs pz,-200.396060943604,-0.27797311543555
+quasi_static,static_bend_x_n200,Motor->FBG,M+y vs pz,-200.396060943604,-0.219006820474099
+quasi_static,static_bend_x_n200,Mocap->FBG,px,0.409432350627143,0.930313279280309
+quasi_static,static_bend_x_n200,Mocap->FBG,py,-0.00269214719582138,-0.999516906925238
+quasi_static,static_bend_x_n200,Mocap->FBG,pz,-0.00970787492533374,0.999937555495326
+quasi_static,static_bend_y_100,Motor->Mocap,M+x vs px,-82.5817923504467,0.0775964607205224
+quasi_static,static_bend_y_100,Motor->FBG,M+x vs px,-90.7955077179969,0.0695189423884824
+quasi_static,static_bend_y_100,Motor->Mocap,M+x vs py,176.014532052146,0.0861609009737293
+quasi_static,static_bend_y_100,Motor->FBG,M+x vs py,-90.7814254772543,0.0695219463908139
+quasi_static,static_bend_y_100,Motor->Mocap,M+x vs pz,-82.5851228851086,0.0774818615761411
+quasi_static,static_bend_y_100,Motor->FBG,M+x vs pz,-90.7815191537107,-0.0695219202236649
+quasi_static,static_bend_y_100,Motor->Mocap,M+y vs px,-14.4698484981193,0.145396013909727
+quasi_static,static_bend_y_100,Motor->FBG,M+y vs px,-31.1210357525727,0.109332408345651
+quasi_static,static_bend_y_100,Motor->Mocap,M+y vs py,36.0699695926497,0.789863985272506
+quasi_static,static_bend_y_100,Motor->FBG,M+y vs py,-31.1166199653202,0.109351159473388
+quasi_static,static_bend_y_100,Motor->Mocap,M+y vs pz,-14.798002376342,0.144269015728092
+quasi_static,static_bend_y_100,Motor->FBG,M+y vs pz,-31.1166598062137,-0.109350884345556
+quasi_static,static_bend_y_100,Mocap->FBG,px,0.349240388456246,0.889171828071077
+quasi_static,static_bend_y_100,Mocap->FBG,py,-0.0889744853213113,0.999865489631077
+quasi_static,static_bend_y_100,Mocap->FBG,pz,-0.0743895810024844,0.999877153695961
+quasi_static,static_bend_y_150,Motor->Mocap,M+x vs px,-150.180621419524,-0.118582845141331
+quasi_static,static_bend_y_150,Motor->FBG,M+x vs px,-150.293302453972,-0.0561179801773234
+quasi_static,static_bend_y_150,Motor->Mocap,M+x vs py,-150.182494232627,0.11750710635509
+quasi_static,static_bend_y_150,Motor->FBG,M+x vs py,-150.293296502823,-0.0561623276750368
+quasi_static,static_bend_y_150,Motor->Mocap,M+x vs pz,-150.156973855005,0.157530944479777
+quasi_static,static_bend_y_150,Motor->FBG,M+x vs pz,-150.293300390871,0.0561368962571023
+quasi_static,static_bend_y_150,Motor->Mocap,M+y vs px,-1.07713726352737,0.561178647035498
+quasi_static,static_bend_y_150,Motor->FBG,M+y vs px,-1.21017782194876,0.248550830482794
+quasi_static,static_bend_y_150,Motor->Mocap,M+y vs py,-1.07983705125091,-0.555662403629388
+quasi_static,static_bend_y_150,Motor->FBG,M+y vs py,-1.21015175272307,0.248736827935053
+quasi_static,static_bend_y_150,Motor->Mocap,M+y vs pz,-0.984625721605872,-0.785381705735949
+quasi_static,static_bend_y_150,Motor->FBG,M+y vs pz,-1.21016676463379,-0.248654188170954
+quasi_static,static_bend_y_150,Mocap->FBG,px,-2.09270673524906,0.831108690325267
+quasi_static,static_bend_y_150,Mocap->FBG,py,-0.0660057459521288,0.999860004307458
+quasi_static,static_bend_y_150,Mocap->FBG,pz,-0.0770069326608963,0.999873423749367
+quasi_static,static_bend_y_180,Motor->Mocap,M+x vs px,-193.721499547694,0.100690388272526
+quasi_static,static_bend_y_180,Motor->FBG,M+x vs px,-193.659180412797,-0.0547788375579101
+quasi_static,static_bend_y_180,Motor->Mocap,M+x vs py,-193.721276799169,0.0952113409959599
+quasi_static,static_bend_y_180,Motor->FBG,M+x vs py,-193.66786520679,0.0570651420009392
+quasi_static,static_bend_y_180,Motor->Mocap,M+x vs pz,-193.719826257372,-0.0983408596012329
+quasi_static,static_bend_y_180,Motor->FBG,M+x vs pz,-193.659593246699,-0.0548826078627839
+quasi_static,static_bend_y_180,Motor->Mocap,M+y vs px,-0.8209907021443,-0.656025120701562
+quasi_static,static_bend_y_180,Motor->FBG,M+y vs px,-0.901318407535741,0.516999106186698
+quasi_static,static_bend_y_180,Motor->Mocap,M+y vs py,-0.832566384598546,-0.643374058046311
+quasi_static,static_bend_y_180,Motor->FBG,M+y vs py,-0.898589572126847,-0.524834429822587
+quasi_static,static_bend_y_180,Motor->Mocap,M+y vs pz,-0.825495353169571,0.64984060584826
+quasi_static,static_bend_y_180,Motor->FBG,M+y vs pz,-0.901170031270422,0.517339929336443
+quasi_static,static_bend_y_180,Mocap->FBG,px,-1.34495279941507,0.934113789902559
+quasi_static,static_bend_y_180,Mocap->FBG,py,-0.0676553972867045,0.999831436669025
+quasi_static,static_bend_y_180,Mocap->FBG,pz,-0.0458692714402301,0.999803016242563
+quasi_static,static_bend_y_200,Motor->Mocap,M+x vs px,-153.294020765842,-0.054310879798512
+quasi_static,static_bend_y_200,Motor->FBG,M+x vs px,-153.294410031628,-0.0449084342031485
+quasi_static,static_bend_y_200,Motor->Mocap,M+x vs py,-153.294227058672,0.0543189148733997
+quasi_static,static_bend_y_200,Motor->FBG,M+x vs py,-153.294409897005,-0.0449100242372305
+quasi_static,static_bend_y_200,Motor->Mocap,M+x vs pz,-153.293568052589,-0.0535112385352766
+quasi_static,static_bend_y_200,Motor->FBG,M+x vs pz,-153.294409731968,0.0449120626871718
+quasi_static,static_bend_y_200,Motor->Mocap,M+y vs px,-0.810591540603611,0.65632694223248
+quasi_static,static_bend_y_200,Motor->FBG,M+y vs px,-0.887179138487918,0.529215078947773
+quasi_static,static_bend_y_200,Motor->Mocap,M+y vs py,-0.809718145338868,-0.657769312714264
+quasi_static,static_bend_y_200,Motor->FBG,M+y vs py,-0.887164540378097,0.529244773978492
+quasi_static,static_bend_y_200,Motor->Mocap,M+y vs pz,-0.815089444387073,0.649907928234983
+quasi_static,static_bend_y_200,Motor->FBG,M+y vs pz,-0.887145069010324,-0.529284659046401
+quasi_static,static_bend_y_200,Mocap->FBG,px,-0.347834518196489,-0.964404170225538
+quasi_static,static_bend_y_200,Mocap->FBG,py,-0.0868273760935532,0.999807704437347
+quasi_static,static_bend_y_200,Mocap->FBG,pz,-0.0686552122559425,0.999852462988939
+quasi_static,static_bend_y_n100,Motor->Mocap,M+x vs px,-135.744457622655,-0.0904447113591027
+quasi_static,static_bend_y_n100,Motor->FBG,M+x vs px,-136.043205785046,0.0779980998512442
+quasi_static,static_bend_y_n100,Motor->Mocap,M+x vs py,-135.633509634149,0.188025853083359
+quasi_static,static_bend_y_n100,Motor->FBG,M+x vs py,-136.043208955911,0.0779979773842639
+quasi_static,static_bend_y_n100,Motor->Mocap,M+x vs pz,-135.747899307645,0.100633080743456
+quasi_static,static_bend_y_n100,Motor->FBG,M+x vs pz,-136.043209514277,0.0779979423073476
+quasi_static,static_bend_y_n100,Motor->Mocap,M+y vs px,-27.7801629306061,-0.189242799788528
+quasi_static,static_bend_y_n100,Motor->FBG,M+y vs px,-51.3544789920551,0.143249301384149
+quasi_static,static_bend_y_n100,Motor->Mocap,M+y vs py,-1.37875136860566,0.735615058244926
+quasi_static,static_bend_y_n100,Motor->FBG,M+y vs py,-51.354709108943,0.143249066480415
+quasi_static,static_bend_y_n100,Motor->Mocap,M+y vs pz,-18.2332776491467,0.239160117562676
+quasi_static,static_bend_y_n100,Motor->FBG,M+y vs pz,-51.3547635620364,0.143248957815344
+quasi_static,static_bend_y_n100,Mocap->FBG,px,-20.4002051210771,0.147952794550205
+quasi_static,static_bend_y_n100,Mocap->FBG,py,-20.1316648994783,0.222152756482191
+quasi_static,static_bend_y_n100,Mocap->FBG,pz,-9.68291885785403,0.993502154027073
+quasi_static,static_bend_y_n150,Motor->Mocap,M+x vs px,-94.4450290998103,0.201347455340113
+quasi_static,static_bend_y_n150,Motor->FBG,M+x vs px,-148.061087970377,0.100199861988388
+quasi_static,static_bend_y_n150,Motor->Mocap,M+x vs py,-94.444195893742,-0.200969629311267
+quasi_static,static_bend_y_n150,Motor->FBG,M+x vs py,-148.061084611156,0.100210342342916
+quasi_static,static_bend_y_n150,Motor->Mocap,M+x vs pz,-94.4259648953124,0.215566612662412
+quasi_static,static_bend_y_n150,Motor->FBG,M+x vs pz,-148.061085365053,0.100208592940336
+quasi_static,static_bend_y_n150,Motor->Mocap,M+y vs px,-1.41504642324582,0.512288395479419
+quasi_static,static_bend_y_n150,Motor->FBG,M+y vs px,-1.556475376305,0.182603117044831
+quasi_static,static_bend_y_n150,Motor->Mocap,M+y vs py,-1.41499163514343,-0.511607899582106
+quasi_static,static_bend_y_n150,Motor->FBG,M+y vs py,-1.55647033609853,0.18263059260658
+quasi_static,static_bend_y_n150,Motor->Mocap,M+y vs pz,-1.39845605412411,0.550161103398733
+quasi_static,static_bend_y_n150,Motor->FBG,M+y vs pz,-1.55647208064294,0.182626007403949
+quasi_static,static_bend_y_n150,Mocap->FBG,px,-0.348170652468854,0.991013128544401
+quasi_static,static_bend_y_n150,Mocap->FBG,py,-0.0343245740806626,0.999883927400702
+quasi_static,static_bend_y_n150,Mocap->FBG,pz,0.0321837819472068,0.999890173972728
+quasi_static,static_bend_y_n180,Motor->Mocap,M+x vs px,-8.43199604671314,0.344730272563888
+quasi_static,static_bend_y_n180,Motor->FBG,M+x vs px,-8.46047207090812,-0.269717002946326
+quasi_static,static_bend_y_n180,Motor->Mocap,M+x vs py,-8.43258521244462,-0.343877064685004
+quasi_static,static_bend_y_n180,Motor->FBG,M+x vs py,-8.45983118606573,0.2706777723241
+quasi_static,static_bend_y_n180,Motor->Mocap,M+x vs pz,-8.43115646493679,0.345533735680444
+quasi_static,static_bend_y_n180,Motor->FBG,M+x vs pz,-8.4598775677326,0.270617648977626
+quasi_static,static_bend_y_n180,Motor->Mocap,M+y vs px,-0.812323446193859,0.659758885933992
+quasi_static,static_bend_y_n180,Motor->FBG,M+y vs px,-0.8932634722912,-0.517650128279483
+quasi_static,static_bend_y_n180,Motor->Mocap,M+y vs py,-0.813441154513567,-0.658267127454536
+quasi_static,static_bend_y_n180,Motor->FBG,M+y vs py,-0.892326660295109,0.519652045715779
+quasi_static,static_bend_y_n180,Motor->Mocap,M+y vs pz,-0.811193197020091,0.661004938513987
+quasi_static,static_bend_y_n180,Motor->FBG,M+y vs pz,-0.892409823881866,0.51955710360871
+quasi_static,static_bend_y_n180,Mocap->FBG,px,-0.102484135727773,0.991480655316008
+quasi_static,static_bend_y_n180,Mocap->FBG,py,-0.0503217938772686,0.999892366917247
+quasi_static,static_bend_y_n180,Mocap->FBG,pz,0.00326633100602618,0.999939085776747
+quasi_static,static_bend_y_n200,Motor->Mocap,M+x vs px,-199.258327484131,-0.146741302433722
+quasi_static,static_bend_y_n200,Motor->FBG,M+x vs px,-199.258327484131,-0.111690201248735
+quasi_static,static_bend_y_n200,Motor->Mocap,M+x vs py,-199.258327484131,-0.146445877365529
+quasi_static,static_bend_y_n200,Motor->FBG,M+x vs py,-199.258327484131,-0.11168590425992
+quasi_static,static_bend_y_n200,Motor->Mocap,M+x vs pz,-199.258327484131,-0.146093598586723
+quasi_static,static_bend_y_n200,Motor->FBG,M+x vs pz,-199.258327484131,-0.111688244260155
+quasi_static,static_bend_y_n200,Motor->Mocap,M+y vs px,-0.802145841295551,-0.660083873484663
+quasi_static,static_bend_y_n200,Motor->FBG,M+y vs px,-0.883945070068806,-0.51656248722534
+quasi_static,static_bend_y_n200,Motor->Mocap,M+y vs py,-0.802187641997489,-0.660784344895215
+quasi_static,static_bend_y_n200,Motor->FBG,M+y vs py,-0.883949056617456,-0.516555082989691
+quasi_static,static_bend_y_n200,Motor->Mocap,M+y vs pz,-0.80349118852334,-0.658169594410502
+quasi_static,static_bend_y_n200,Motor->FBG,M+y vs pz,-0.883946442673954,-0.516560311493533
+quasi_static,static_bend_y_n200,Mocap->FBG,px,-0.477014629077241,0.994238969282391
+quasi_static,static_bend_y_n200,Mocap->FBG,py,-0.848239090776804,0.999699531854733
+quasi_static,static_bend_y_n200,Mocap->FBG,pz,0.0438656444154608,0.999882468579586
+dynamic_motion,Lissajous_fast,Motor->Mocap,M+x vs px,-199.294090270996,-0.723223445594674
+dynamic_motion,Lissajous_fast,Motor->FBG,M+x vs px,-199.294090270996,0.532021658801661
+dynamic_motion,Lissajous_fast,Motor->Mocap,M+x vs py,-199.294090270996,0.698909186759684
+dynamic_motion,Lissajous_fast,Motor->FBG,M+x vs py,-199.294090270996,-0.532022030578732
+dynamic_motion,Lissajous_fast,Motor->Mocap,M+x vs pz,-199.294090270996,-0.698718900082758
+dynamic_motion,Lissajous_fast,Motor->FBG,M+x vs pz,-199.294090270996,0.532021796024594
+dynamic_motion,Lissajous_fast,Motor->Mocap,M+y vs px,-146.61779396459,-0.163695178621159
+dynamic_motion,Lissajous_fast,Motor->FBG,M+y vs px,-146.78767889351,0.180919003405214
+dynamic_motion,Lissajous_fast,Motor->Mocap,M+y vs py,-146.616241098866,0.189385835066315
+dynamic_motion,Lissajous_fast,Motor->FBG,M+y vs py,-146.787678596014,-0.180919036507069
+dynamic_motion,Lissajous_fast,Motor->Mocap,M+y vs pz,-146.616429659883,-0.18943324160872
+dynamic_motion,Lissajous_fast,Motor->FBG,M+y vs pz,-146.787678797515,0.180918994840786
+dynamic_motion,Lissajous_fast,Mocap->FBG,px,-0.165398206060009,0.999633277316464
+dynamic_motion,Lissajous_fast,Mocap->FBG,py,-1.4738274708558,0.974808096652226
+dynamic_motion,Lissajous_fast,Mocap->FBG,pz,-0.611227629719296,0.999571238275704
+dynamic_motion,Lissajous_slow,Motor->Mocap,M+x vs px,-199.007987976074,0.699560381982128
+dynamic_motion,Lissajous_slow,Motor->FBG,M+x vs px,-199.007987976074,-0.526206629022449
+dynamic_motion,Lissajous_slow,Motor->Mocap,M+x vs py,-199.007987976074,0.690688147597133
+dynamic_motion,Lissajous_slow,Motor->FBG,M+x vs py,-199.007987976074,-0.531512808675445
+dynamic_motion,Lissajous_slow,Motor->Mocap,M+x vs pz,-199.007987976074,-0.695428002837907
+dynamic_motion,Lissajous_slow,Motor->FBG,M+x vs pz,-199.007987976074,-0.526667029887955
+dynamic_motion,Lissajous_slow,Motor->Mocap,M+y vs px,-65.5435554874849,0.140663111895462
+dynamic_motion,Lissajous_slow,Motor->FBG,M+y vs px,-65.8159431076256,-0.150510279829833
+dynamic_motion,Lissajous_slow,Motor->Mocap,M+y vs py,-65.5549879367287,0.144330727115239
+dynamic_motion,Lissajous_slow,Motor->FBG,M+y vs py,-65.8092446234656,-0.151506772568774
+dynamic_motion,Lissajous_slow,Motor->Mocap,M+y vs pz,-65.552994308929,-0.141476156715226
+dynamic_motion,Lissajous_slow,Motor->FBG,M+y vs pz,-65.8147674439468,-0.151191031021636
+dynamic_motion,Lissajous_slow,Mocap->FBG,px,-0.154283981513799,0.999618723362049
+dynamic_motion,Lissajous_slow,Mocap->FBG,py,-1.91065455485988,0.976965859933703
+dynamic_motion,Lissajous_slow,Mocap->FBG,pz,-0.576595956671317,0.999611120724701
+dynamic_motion,circle_fast,Motor->Mocap,M+x vs px,-199.198722839355,0.68472822884292
+dynamic_motion,circle_fast,Motor->FBG,M+x vs px,199.198722839355,-0.508742436785109
+dynamic_motion,circle_fast,Motor->Mocap,M+x vs py,-199.198722839355,0.683723652319059
+dynamic_motion,circle_fast,Motor->FBG,M+x vs py,-199.198722839355,0.51116729579613
+dynamic_motion,circle_fast,Motor->Mocap,M+x vs pz,-199.198722839355,-0.68391483625802
+dynamic_motion,circle_fast,Motor->FBG,M+x vs pz,-199.198722839355,0.574577556741746
+dynamic_motion,circle_fast,Motor->Mocap,M+y vs px,-3.12321697978052,-0.312356976874536
+dynamic_motion,circle_fast,Motor->FBG,M+y vs px,199.198722839355,0.226901178723489
+dynamic_motion,circle_fast,Motor->Mocap,M+y vs py,-3.12332111912416,-0.311909501497404
+dynamic_motion,circle_fast,Motor->FBG,M+y vs py,-3.1678747231403,-0.247437208051076
+dynamic_motion,circle_fast,Motor->Mocap,M+y vs pz,-3.1232562482278,0.311989424166372
+dynamic_motion,circle_fast,Motor->FBG,M+y vs pz,-3.23977337156734,-0.292096357630187
+dynamic_motion,circle_fast,Mocap->FBG,px,-0.198717768230159,0.999664296309062
+dynamic_motion,circle_fast,Mocap->FBG,py,-1.0375931229923,0.976113235338959
+dynamic_motion,circle_fast,Mocap->FBG,pz,-0.629274667509562,0.999613610200814
+dynamic_motion,circle_slow,Motor->Mocap,M+x vs px,-199.294090270996,0.683074047422924
+dynamic_motion,circle_slow,Motor->FBG,M+x vs px,-199.294090270996,0.515117125420114
+dynamic_motion,circle_slow,Motor->Mocap,M+x vs py,-199.294090270996,0.685348274392556
+dynamic_motion,circle_slow,Motor->FBG,M+x vs py,-199.294090270996,0.515117169255205
+dynamic_motion,circle_slow,Motor->Mocap,M+x vs pz,-199.294090270996,0.686980665492184
+dynamic_motion,circle_slow,Motor->FBG,M+x vs pz,-199.294090270996,0.515117124717122
+dynamic_motion,circle_slow,Motor->Mocap,M+y vs px,-1.48660797924875,-0.263314978018713
+dynamic_motion,circle_slow,Motor->FBG,M+y vs px,-1.49447113801931,-0.209757950997781
+dynamic_motion,circle_slow,Motor->Mocap,M+y vs py,-1.48754990364379,-0.264422208372771
+dynamic_motion,circle_slow,Motor->FBG,M+y vs py,-1.49447112694965,-0.209757963742293
+dynamic_motion,circle_slow,Motor->Mocap,M+y vs pz,-1.48829662258041,-0.265190244338337
+dynamic_motion,circle_slow,Motor->FBG,M+y vs pz,-1.49447115288478,-0.209757955078593
+dynamic_motion,circle_slow,Mocap->FBG,px,-0.124697616642159,0.999624334109758
+dynamic_motion,circle_slow,Mocap->FBG,py,-1.08040281017875,0.975675052519208
+dynamic_motion,circle_slow,Mocap->FBG,pz,-0.626106323047906,0.999630785158614
+dynamic_motion,plane_x_fast,Motor->Mocap,M+x vs px,-200.901746749878,-0.347057407366765
+dynamic_motion,plane_x_fast,Motor->FBG,M+x vs px,-200.901746749878,-0.31158426645014
+dynamic_motion,plane_x_fast,Motor->Mocap,M+x vs py,-200.901746749878,-0.345354615639373
+dynamic_motion,plane_x_fast,Motor->FBG,M+x vs py,-200.901746749878,-0.312906736009139
+dynamic_motion,plane_x_fast,Motor->Mocap,M+x vs pz,-200.901746749878,-0.346286897637431
+dynamic_motion,plane_x_fast,Motor->FBG,M+x vs pz,-200.901746749878,-0.311294714692814
+dynamic_motion,plane_x_fast,Motor->Mocap,M+y vs px,-3.03611837335028,-0.131795242187184
+dynamic_motion,plane_x_fast,Motor->FBG,M+y vs px,-48.8276238844058,-0.117743094733407
+dynamic_motion,plane_x_fast,Motor->Mocap,M+y vs py,-3.0374319568883,-0.13232444880426
+dynamic_motion,plane_x_fast,Motor->FBG,M+y vs py,-48.8260622126689,-0.117958740771121
+dynamic_motion,plane_x_fast,Motor->Mocap,M+y vs pz,-3.0364529859878,-0.131974716672257
+dynamic_motion,plane_x_fast,Motor->FBG,M+y vs pz,-48.8278833438939,-0.117773089392026
+dynamic_motion,plane_x_fast,Mocap->FBG,px,-5.33113940503804,0.999347774116648
+dynamic_motion,plane_x_fast,Mocap->FBG,py,-29.8309572455054,0.827185473616909
+dynamic_motion,plane_x_fast,Mocap->FBG,pz,-6.02737200456265,0.997412960914577
+dynamic_motion,plane_x_slow,Motor->Mocap,M+x vs px,-200.709104537964,0.68751770551768
+dynamic_motion,plane_x_slow,Motor->FBG,M+x vs px,-200.709104537964,-0.51326601492418
+dynamic_motion,plane_x_slow,Motor->Mocap,M+x vs py,-200.709104537964,0.686057519813929
+dynamic_motion,plane_x_slow,Motor->FBG,M+x vs py,-200.709104537964,0.513266581167884
+dynamic_motion,plane_x_slow,Motor->Mocap,M+x vs pz,-200.709104537964,0.685164952243014
+dynamic_motion,plane_x_slow,Motor->FBG,M+x vs pz,-200.709104537964,0.513266397351358
+dynamic_motion,plane_x_slow,Motor->Mocap,M+y vs px,-89.4866320148805,0.0413477290746456
+dynamic_motion,plane_x_slow,Motor->FBG,M+y vs px,-160.213373526817,-0.080969341234401
+dynamic_motion,plane_x_slow,Motor->Mocap,M+y vs py,-89.4874128229552,0.0418094082446657
+dynamic_motion,plane_x_slow,Motor->FBG,M+y vs py,-160.213372706306,0.0809691996357513
+dynamic_motion,plane_x_slow,Motor->Mocap,M+y vs pz,-89.4877469981876,0.042052457652513
+dynamic_motion,plane_x_slow,Motor->FBG,M+y vs pz,-160.213373022598,0.0809692524537638
+dynamic_motion,plane_x_slow,Mocap->FBG,px,-192.988940252901,-0.635166019919322
+dynamic_motion,plane_x_slow,Mocap->FBG,py,-0.914672565226937,0.987309635611683
+dynamic_motion,plane_x_slow,Mocap->FBG,pz,-0.578578836764362,0.999674360779426
+dynamic_motion,plane_y_fast,Motor->Mocap,M+x vs px,0.0416715588496305,-0.252680206221925
+dynamic_motion,plane_y_fast,Motor->FBG,M+x vs px,-65.773809328953,0.222865868747629
+dynamic_motion,plane_y_fast,Motor->Mocap,M+x vs py,0.039803959826144,0.251365498352412
+dynamic_motion,plane_y_fast,Motor->FBG,M+x vs py,-65.7730598893542,-0.22308140812464
+dynamic_motion,plane_y_fast,Motor->Mocap,M+x vs pz,0.18349744778866,-0.203790189399682
+dynamic_motion,plane_y_fast,Motor->FBG,M+x vs pz,-65.7747443959446,-0.222723670285454
+dynamic_motion,plane_y_fast,Motor->Mocap,M+y vs px,-147.662134587837,-0.350163748070874
+dynamic_motion,plane_y_fast,Motor->FBG,M+y vs px,-199.007987976074,0.343510254707316
+dynamic_motion,plane_y_fast,Motor->Mocap,M+y vs py,-154.808066663944,0.353967950983493
+dynamic_motion,plane_y_fast,Motor->FBG,M+y vs py,-199.007987976074,-0.343232875662501
+dynamic_motion,plane_y_fast,Motor->Mocap,M+y vs pz,-88.0730851144944,-0.431749068587687
+dynamic_motion,plane_y_fast,Motor->FBG,M+y vs pz,-199.007987976074,-0.341922753424874
+dynamic_motion,plane_y_fast,Mocap->FBG,px,-29.6807594018514,0.932301353678523
+dynamic_motion,plane_y_fast,Mocap->FBG,py,-11.9952843019795,0.999521542732648
+dynamic_motion,plane_y_fast,Mocap->FBG,pz,-4.14850615973443,0.997386545603123
+dynamic_motion,plane_y_slow,Motor->Mocap,M+x vs px,0.0322085761031264,-0.269647270420813
+dynamic_motion,plane_y_slow,Motor->FBG,M+x vs px,-0.0321048444147313,0.230974948529793
+dynamic_motion,plane_y_slow,Motor->Mocap,M+x vs py,0.0319027503441553,0.267252588631752
+dynamic_motion,plane_y_slow,Motor->FBG,M+x vs py,-0.0365505225627357,-0.231166017496078
+dynamic_motion,plane_y_slow,Motor->Mocap,M+x vs pz,0.0321131829522611,-0.270088631609938
+dynamic_motion,plane_y_slow,Motor->FBG,M+x vs pz,-0.0370019841056866,-0.230819511829044
+dynamic_motion,plane_y_slow,Motor->Mocap,M+y vs px,-199.103355407715,0.683379926589501
+dynamic_motion,plane_y_slow,Motor->FBG,M+y vs px,-199.103355407715,-0.485212257641373
+dynamic_motion,plane_y_slow,Motor->Mocap,M+y vs py,-199.103355407715,-0.676051401471492
+dynamic_motion,plane_y_slow,Motor->FBG,M+y vs py,-199.103355407715,0.483148657629196
+dynamic_motion,plane_y_slow,Motor->Mocap,M+y vs pz,-199.103355407715,0.684748068694498
+dynamic_motion,plane_y_slow,Motor->FBG,M+y vs pz,-199.103355407715,0.481829290060965
+dynamic_motion,plane_y_slow,Mocap->FBG,px,-0.604576064776764,0.988129286414358
+dynamic_motion,plane_y_slow,Mocap->FBG,py,-0.142266871344437,0.999550442517873
+dynamic_motion,plane_y_slow,Mocap->FBG,pz,-0.565913527366803,0.999688228506631
+dynamic_motion,star_fast,Motor->Mocap,M+x vs px,-199.189424514771,0.662901234387095
+dynamic_motion,star_fast,Motor->FBG,M+x vs px,-199.189424514771,0.506271471694348
+dynamic_motion,star_fast,Motor->Mocap,M+x vs py,-199.189424514771,-0.682058748533709
+dynamic_motion,star_fast,Motor->FBG,M+x vs py,-199.189424514771,0.50772106868164
+dynamic_motion,star_fast,Motor->Mocap,M+x vs pz,-199.189424514771,0.684723614879437
+dynamic_motion,star_fast,Motor->FBG,M+x vs pz,-199.189424514771,0.509710732017384
+dynamic_motion,star_fast,Motor->Mocap,M+y vs px,0.22700543430614,-0.250083020806068
+dynamic_motion,star_fast,Motor->FBG,M+y vs px,0.143931876989393,-0.248206204287586
+dynamic_motion,star_fast,Motor->Mocap,M+y vs py,0.221909557026679,0.254947058860622
+dynamic_motion,star_fast,Motor->FBG,M+y vs py,0.143631136008372,-0.248700923435419
+dynamic_motion,star_fast,Motor->Mocap,M+y vs pz,0.221866696960976,-0.25575863306736
+dynamic_motion,star_fast,Motor->FBG,M+y vs pz,0.145518303487877,-0.249308007089128
+dynamic_motion,star_fast,Mocap->FBG,px,-0.174732780781017,0.99963845357317
+dynamic_motion,star_fast,Mocap->FBG,py,-1.11476846890829,0.973463581504728
+dynamic_motion,star_fast,Mocap->FBG,pz,-0.611105338769136,0.999647827783773
+dynamic_motion,star_slow,Motor->Mocap,M+x vs px,-200.271606445312,0.677784379775121
+dynamic_motion,star_slow,Motor->FBG,M+x vs px,-200.271606445312,0.47657130270895
+dynamic_motion,star_slow,Motor->Mocap,M+x vs py,-200.271606445312,-0.682938480638963
+dynamic_motion,star_slow,Motor->FBG,M+x vs py,-200.271606445312,-0.476571358344439
+dynamic_motion,star_slow,Motor->Mocap,M+x vs pz,-200.271606445312,0.679890334140379
+dynamic_motion,star_slow,Motor->FBG,M+x vs pz,-200.271606445312,0.476571353153768
+dynamic_motion,star_slow,Motor->Mocap,M+y vs px,-13.8613421844138,-0.197406312786113
+dynamic_motion,star_slow,Motor->FBG,M+y vs px,-28.4035439119398,-0.154952499024992
+dynamic_motion,star_slow,Motor->Mocap,M+y vs py,-13.863505506849,0.199199380762055
+dynamic_motion,star_slow,Motor->FBG,M+y vs py,-28.403543912018,0.154952521373902
+dynamic_motion,star_slow,Motor->Mocap,M+y vs pz,-13.8623001653306,-0.198192304593521
+dynamic_motion,star_slow,Motor->FBG,M+y vs pz,-28.4035439081001,-0.154952520730049
+dynamic_motion,star_slow,Mocap->FBG,px,-0.182378858278416,0.999656186917233
+dynamic_motion,star_slow,Mocap->FBG,py,-1.34344989685191,0.977477490075204
+dynamic_motion,star_slow,Mocap->FBG,pz,-0.623916042306016,0.999641833521299
+contact_motion,plane_y_contact_midway,Motor->Mocap,M+x vs px,-133.392230055628,0.108761115933262
+contact_motion,plane_y_contact_midway,Motor->FBG,M+x vs px,-133.444561509985,-0.105532308696076
+contact_motion,plane_y_contact_midway,Motor->Mocap,M+x vs py,-133.39026299665,-0.107886382676895
+contact_motion,plane_y_contact_midway,Motor->FBG,M+x vs py,-133.444578983927,0.105540136625971
+contact_motion,plane_y_contact_midway,Motor->Mocap,M+x vs pz,-133.391952935156,0.10893514450066
+contact_motion,plane_y_contact_midway,Motor->FBG,M+x vs pz,-133.442593054733,0.105439771063572
+contact_motion,plane_y_contact_midway,Motor->Mocap,M+y vs px,-0.656878614163331,0.756972200370982
+contact_motion,plane_y_contact_midway,Motor->FBG,M+y vs px,-0.823067133745627,-0.607852311699312
+contact_motion,plane_y_contact_midway,Motor->Mocap,M+y vs py,-0.670303143075441,-0.746528082924332
+contact_motion,plane_y_contact_midway,Motor->FBG,M+y vs py,-0.823010989620721,0.607950684078946
+contact_motion,plane_y_contact_midway,Motor->Mocap,M+y vs pz,-0.653910431810325,0.75883236939531
+contact_motion,plane_y_contact_midway,Motor->FBG,M+y vs pz,-0.821737116726725,0.608933584603855
+contact_motion,plane_y_contact_midway,Mocap->FBG,px,2.61854453162804,0.700874308541845
+contact_motion,plane_y_contact_midway,Mocap->FBG,py,-0.0961416215953807,0.999752733136392
+contact_motion,plane_y_contact_midway,Mocap->FBG,pz,-0.347631700771519,0.999757700196324
+contact_motion,plane_y_poke_x,Motor->Mocap,M+x vs px,-200.582027435303,-0.0308883059717023
+contact_motion,plane_y_poke_x,Motor->FBG,M+x vs px,-200.582027435303,-0.0484796991850179
+contact_motion,plane_y_poke_x,Motor->Mocap,M+x vs py,-200.582027435303,0.0410628128116407
+contact_motion,plane_y_poke_x,Motor->FBG,M+x vs py,-200.582027435303,0.0471094009950611
+contact_motion,plane_y_poke_x,Motor->Mocap,M+x vs pz,-200.582027435303,-0.0389432493354553
+contact_motion,plane_y_poke_x,Motor->FBG,M+x vs pz,-200.582027435303,0.0499893545207275
+contact_motion,plane_y_poke_x,Motor->Mocap,M+y vs px,-0.680161630594529,0.714266287692461
+contact_motion,plane_y_poke_x,Motor->FBG,M+y vs px,-0.848863719726936,0.567569246972515
+contact_motion,plane_y_poke_x,Motor->Mocap,M+y vs py,-0.665962492588847,-0.750538145894996
+contact_motion,plane_y_poke_x,Motor->FBG,M+y vs py,-0.855947047516444,-0.554461252876775
+contact_motion,plane_y_poke_x,Motor->Mocap,M+y vs pz,-0.669072488665304,0.744263013899879
+contact_motion,plane_y_poke_x,Motor->FBG,M+y vs pz,-0.848883267144953,-0.569453410190774
+contact_motion,plane_y_poke_x,Mocap->FBG,px,1.9564748582268,0.724855964906194
+contact_motion,plane_y_poke_x,Mocap->FBG,py,-0.117541642723748,0.999788315657541
+contact_motion,plane_y_poke_x,Mocap->FBG,pz,-0.287262014974358,0.999728072890073
+contact_motion,plane_y_poke_y,Motor->Mocap,M+x vs px,-199.911117553711,0.201998910001928
+contact_motion,plane_y_poke_y,Motor->FBG,M+x vs px,-199.911117553711,0.148366511446457
+contact_motion,plane_y_poke_y,Motor->Mocap,M+x vs py,-199.911117553711,-0.20180802313204
+contact_motion,plane_y_poke_y,Motor->FBG,M+x vs py,-199.911117553711,-0.148366509797771
+contact_motion,plane_y_poke_y,Motor->Mocap,M+x vs pz,-199.911117553711,0.201981353860116
+contact_motion,plane_y_poke_y,Motor->FBG,M+x vs pz,-199.911117553711,-0.148366510057561
+contact_motion,plane_y_poke_y,Motor->Mocap,M+y vs px,-0.646635418087999,0.757515330311319
+contact_motion,plane_y_poke_y,Motor->FBG,M+y vs px,-0.818379424442727,0.607654468026885
+contact_motion,plane_y_poke_y,Motor->Mocap,M+y vs py,-0.647653993994209,-0.756756703152366
+contact_motion,plane_y_poke_y,Motor->FBG,M+y vs py,-0.818378365406375,-0.60765446424232
+contact_motion,plane_y_poke_y,Motor->Mocap,M+y vs pz,-0.646833407909567,0.757262491070709
+contact_motion,plane_y_poke_y,Motor->FBG,M+y vs pz,-0.818378362854132,-0.607654467906762
+contact_motion,plane_y_poke_y,Mocap->FBG,px,17.5331493850913,0.0855960841842519
+contact_motion,plane_y_poke_y,Mocap->FBG,py,3.24806564378894,0.936079700192871
+contact_motion,plane_y_poke_y,Mocap->FBG,pz,-10.256851943707,0.994036816170476

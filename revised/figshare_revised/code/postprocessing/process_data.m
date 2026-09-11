@@ -2,49 +2,58 @@ close all;
 clear;
 clc;
 
+%   load required paths
 addpath("outils\")
-
-
-%%  Load reference data
 
 %% ====== PATHS / SETTINGS ======
 folder = fullfile("../../", "data/","dynamic_motion/","Lissajous_fast/");
 
-cutoffHz    = 15;   % Butterworth cutoff
-butterOrder = 4;
+
+%%  Postprocessing properties
+
+%  Define filter (Butterworth) parameters
+cutoffHz    = 15;   %   cutoff frequency
+butterOrder = 4;    %   order
 
 
+%  Define subsampling frequency
 samplingHz = 100;
 
 
-
-
-%   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
-if(contains(folder, "_x_"))
-    bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for all rest
-else
-    bending_axis = 'y';        % 'y' for plane_y experiments, 'x' for all rest
-end
-
-
-%   Plots
+%   Plots switches
 plot_mocap_fbgs_corrections = false;
-plot_filtered = false;
-plot_interpolation = false;
-plot_disk_num = 5;
-
-FBGS_tip_index = 480;
-
-align_window_s = 10;
-
-use_resense = false;
+plot_filtered               = false;
+plot_interpolation          = false;
+plot_disk_num = 5;  %   Which disk to plot (5 = robot tip)
 
 
-%  SAVING DATA AND PLOTS
+
+%  Saving data and figures config
 saving_folder = fullfile( folder,  "processed/");
 saving_fig_folder = fullfile( saving_folder,  "figures/");
+
 mkdir(saving_folder);
 mkdir(saving_fig_folder);
+
+
+
+
+%%  Robot setup properties
+%   These properties are specific the robot used for the dataset collection
+%   and the recording setup (calibration sweeps and delays)
+
+%   index of the FBG fibre corresponding to the robot tip (fiber is longer
+%   than the robot)
+FBGS_tip_index = 480;
+
+%   Window of calibration sweeps used for FBG and mocap alignement
+align_window_s = 10;
+
+
+%   Flag to load resense: automatically detected from whether this
+%   recording's folder contains a dataResenseFT.csv
+use_resense = isfile(fullfile(folder, "dataResenseFT.csv"));
+
 
 
 %% ====== LOAD DATA ======
@@ -65,29 +74,22 @@ if use_resense
     wrench_wand = [resense.Fx resense.Fy resense.Fz resense.Tx/1000 resense.Ty/1000 resense.Tz/1000];
 end
 
-%   Load and spatially align the OptiTrack and FBG data for this
-%   recording. This logic used to live inline here; it is now in
-%   align_mocap_and_fbgs.m (outils/) so that check_fbg_delay_5_30.m can
-%   reuse the exact same spatial alignment when it estimates the FBG
-%   pipeline delay on UNCORRECTED timestamps (Reviewer 5, Comment 5.30).
-%   The two scripts are guaranteed to agree on everything except the one
-%   line directly below, which is deliberately NOT inside that function.
+
+%   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
+if(contains(folder, "_x_"))
+    bending_axis = 'x';        % 'y' for plane_y experiments, 'x' for all rest
+else
+    bending_axis = 'y';        % 'y' for plane_y experiments, 'x' for all rest
+end
+
+%   Load and spatially align the OptiTrack and FBG data for this recording.
 [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
     align_mocap_and_fbgs(folder, use_resense, align_window_s, bending_axis);
 
-%   Load the FBG pipeline-delay correction. This value is measured
-%   separately, on UNCORRECTED data, by
-%   reviews/code_changes_additions/check_fbg_delay_5_30.m (Reviewer 5,
-%   Comment 5.30), which writes it to measured_fbg_delay_ms.txt in this
-%   same folder. Delay ESTIMATION (that script) and delay CORRECTION
-%   (this line) are therefore kept in two separate files: this script
-%   never computes its own correction value, it only ever reads one that
-%   was measured elsewhere, on data this correction has not yet touched.
+%   Load the FBG pipeline-delay correction, measured separately.
 %
-%   If that file does not exist (check_fbg_delay_5_30.m has not been run
-%   yet), no correction is applied (lag_FBGS = 0) rather than silently
-%   falling back to a guessed number.
+%   If that file does not exist, no correction is applied (lag_FBGS = 0).
 lag_FBGS_file = fullfile(fileparts(mfilename('fullpath')), "measured_fbg_delay_ms.txt");
 if isfile(lag_FBGS_file)
     lag_FBGS = str2double(fileread(lag_FBGS_file));
@@ -96,26 +98,15 @@ else
 end
 fbgs_time = fbgs_time - lag_FBGS/1000;
 
-%   A few small, pure-indexing quantities that were previously computed
-%   alongside the alignment above are still needed further down in this
-%   script (the optional plot_mocap_fbgs_corrections figure). They are
-%   cheap to recompute here from the outputs above -- no alignment logic
-%   is being repeated, only array indexing.
-mocap_time_rel = mocap_timestamps - mocap_timestamps(1);
-idx_init = mocap_time_rel <= 3.0;
-mocap_time_rel_init = mocap_time_rel(idx_init);
-rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
-rel_kinematics_disks_corr_init = rel_kinematics_disks_corr(idx_init, :, :);
 
 
-
-%% ====== EXTRACT MOTOR SIGNALS ======
+%   Extract timestamps, target and measured angles from motors encoders
 time_actuators = motor.timestamp;                     
 
 target_angles = [motor.target1_rad, motor.target2_rad, motor.target3_rad, motor.target4_rad];
 measured_angles   = [motor.rel_angle1_rad, motor.rel_angle2_rad, motor.rel_angle3_rad, motor.rel_angle4_rad];
 
-%% ====== EXTRACT FORCES (RAW TIME) ======
+%   Extract timestamp and cable tensions from the MK10 force gauges
 time_cables = cell(1,4);
 cable_tensions  = cell(1,4);
 
@@ -125,7 +116,7 @@ time_cables{2} = mk_2_y.timestamp;       cable_tensions{2} = mk_2_y.tension_N_/2
 time_cables{3} = mk_1_negx.timestamp;    cable_tensions{3} = mk_1_negx.tension_N_/2;
 time_cables{4} = mk_2_negy.timestamp;    cable_tensions{4} = mk_2_negy.tension_N_/2;
 
-%% ====== EXTRACT ATI FT (RAW TIME) ======
+%   Extract timestamp and force/torque measurement from mini40 (ATI)
 tA = ati.timestamp;
 
 ATI_F = [ati.Fx_N_, ati.Fy_N_, ati.Fz_N_];
@@ -133,24 +124,9 @@ ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
 ATI_FT = [ATI_F ATI_T];
 
 
-
-%% Temporal correlation
-
-sync_results = check_temporal_sync(time_actuators, measured_angles, ...
-    mocap_timestamps, rel_kinematics_disks_corr, ...
-    fbgs_time, fbgs_shapes, FBGS_tip_index, ...
-    time_cables, cable_tensions, tA, ATI_FT, ...
-    saving_folder);
-
-
-valid = find(abs(sync_results.r_OF) > 0.95);
-lag_OF = sync_results.lag_OF
-mean_lag_OF = mean(lag_OF(valid))
-
-return;
-
-
 %% ====== FILTER (BUTTER + FILTFILT) ======
+
+%   Measured angles and cables tension
 measured_angles_f   = zeros(size(measured_angles));
 cable_tensions_f = cell(1,4);
 for it = 1:4
@@ -159,18 +135,18 @@ for it = 1:4
     cable_tensions_f{it} = butter_filtfilt(time_cables{it}, cable_tensions{it}, cutoffHz, butterOrder);
 end
 
+
+%   Force and Torque measurements
 ATI_F_f = zeros(size(ATI_F));
 ATI_T_f = zeros(size(ATI_T));
-
-
 for k = 1:3
     ATI_F_f(:,k) = butter_filtfilt(tA, ATI_F(:,k), cutoffHz, butterOrder);
     ATI_T_f(:,k) = butter_filtfilt(tA, ATI_T(:,k), cutoffHz, butterOrder);
 end
-
+%   Compuse the wrench (force first convention)
 ATI_FT_f = [ATI_F_f ATI_T_f];
 
-
+%   Filter FBG shapes
 fbgs_shapes_f = zeros(size(fbgs_shapes));   % 3 x 502 x N_time_fbgs
 N_fbgs_points = size(fbgs_shapes, 2);
 for coord = 1:3
@@ -179,6 +155,7 @@ for coord = 1:3
     end
 end
 
+%   Filter FBG angle and curvature
 fbgs_angles_t = zeros(size(fbgs_angles));
 fbgs_curvatures_f = zeros(size(fbgs_curvatures));
 for it = 1:26
@@ -186,7 +163,7 @@ for it = 1:26
     fbgs_curvatures_f(:,it) = butter_filtfilt(fbgs_time, fbgs_curvatures(:,it), cutoffHz, butterOrder);
 end
 
-
+%   Filter the disks kinematics (relative to robot base)
 rel_kinematics_disks_f = zeros(size(rel_kinematics_disks));
 rel_kinematics_disks_corr_f = zeros(size(rel_kinematics_disks));
 for it=1:N_disks
@@ -198,6 +175,7 @@ for it=1:N_disks
     end
 end
 
+%   (if used) filter Resense HEX12 F/T measurments
 if use_resense
     wrench_wand_f = zeros(size(wrench_wand));
     for k = 1:6
@@ -208,9 +186,15 @@ end
 
 
 %% ====== PLOT: 4 SUBPLOTS (MOTOR TARGET/MEAS + FORCE) ======
-
-
 if plot_mocap_fbgs_corrections
+
+
+    mocap_time_rel = mocap_timestamps - mocap_timestamps(1);
+    idx_init = mocap_time_rel <= 3.0;
+    mocap_time_rel_init = mocap_time_rel(idx_init);
+    rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
+    rel_kinematics_disks_corr_init = rel_kinematics_disks_corr(idx_init, :, :);
+
 
     figure('Name', 'Disks Position')
     subplot(3, 1, 1)
@@ -462,50 +446,59 @@ end
 
 
 
-%%  Interpolate at the same frequency
-
-%   First get the motor start time
-time_start_motors = time_actuators(1);
-relative_time_motors = time_actuators - time_start_motors;
-time_end_motors = relative_time_motors(end);
+%% ====== INTERPOLATION ======
 
 
-relative_time_cables{1} = time_cables{1} - time_start_motors;       
-relative_time_cables{2} = time_cables{2} - time_start_motors;     
-relative_time_cables{3} = time_cables{3} - time_start_motors;   
-relative_time_cables{4} = time_cables{4} - time_start_motors;  
+%   Find the max initial time (last sensor to start streaming)
+init_time = max([time_actuators(1), ...
+    time_cables{1}(1), time_cables{2}(1), time_cables{3}(1), time_cables{4}(1), ...
+    tA(1), mocap_timestamps(1), fbgs_time(1)]);
 
-relative_time_ATI = tA - time_start_motors;
-
-
-relative_time_mocap = mocap_timestamps - time_start_motors;
-
-relative_time_fbgs = fbgs_time - time_start_motors;
-
-%   Now define interpolation points for the given frequency. The
-%   resampling window must not run past whichever sensor stream ends
-%   FIRST: every interp1 call below is used without 'extrap', so any
-%   sampling point past a stream's own last timestamp returns NaN
-%   (Reviewer 5, Comment 5.35). Each Mark-10 tendon-tension channel is
-%   its own independently-polled serial process, so it can (and in
-%   several recordings in this dataset does, by a few tens of
-%   milliseconds) stop recording slightly before the motor does; ATI,
-%   Mocap and FBGS are included here too so this is not tied to one
-%   sensor only.
-time_end_common = min([time_end_motors; ...
-    relative_time_cables{1}(end); relative_time_cables{2}(end); ...
-    relative_time_cables{3}(end); relative_time_cables{4}(end); ...
-    relative_time_ATI(end); relative_time_mocap(end); relative_time_fbgs(end)]);
 if use_resense
-    relative_time_resense_for_window = time_resense - time_start_motors;
-    time_end_common = min(time_end_common, relative_time_resense_for_window(end));
+    init_time = max([time_actuators(1), ...
+        time_cables{1}(1), time_cables{2}(1), time_cables{3}(1), time_cables{4}(1), ...
+        tA(1), time_resense(1), ...
+        mocap_timestamps(1), fbgs_time(1)]);
 end
 
-N_samples = floor(samplingHz*time_end_common);
+%   Find the min final time (first sensor to stop streaming)
+end_time = min([time_actuators(end), ...
+    time_cables{1}(end), time_cables{2}(end), time_cables{3}(end), time_cables{4}(end), ...
+    tA(end), mocap_timestamps(end), fbgs_time(end)]);
+
+if use_resense
+    end_time = min([time_actuators(end), ...
+        time_cables{1}(end), time_cables{2}(end), time_cables{3}(end), time_cables{4}(end), ...
+        tA(end), time_resense(end), ...
+        mocap_timestamps(end), fbgs_time(end)]);
+end
+
+%   Compute the relative timestamp with respect to the initial timestamp
+relative_time_motors = time_actuators - init_time;
+
+relative_time_cables{1} = time_cables{1} - init_time;       
+relative_time_cables{2} = time_cables{2} - init_time;     
+relative_time_cables{3} = time_cables{3} - init_time;   
+relative_time_cables{4} = time_cables{4} - init_time;  
+
+relative_time_ATI = tA - init_time;
+
+relative_time_mocap = mocap_timestamps - init_time;
+
+relative_time_fbgs = fbgs_time - init_time;
+
+if use_resense
+    relative_time_resense = time_resense - init_time;
+end
+
+%   Compute the number of samples
+N_samples = floor(samplingHz*(end_time - init_time));
 sampling_dt = 1/samplingHz;
 sampling_time = (0:sampling_dt:sampling_dt*(N_samples-1))';
 
 %   Interpolate data at the given points
+
+%   Angles and tensions
 interp_angles = zeros(N_samples, 4);
 interp_tensions = zeros(N_samples, 4);
 for it=1:4
@@ -515,6 +508,7 @@ for it=1:4
     interp_tensions(:, it) = interp1(relative_time_cables{it}, cable_tensions_f{it}, sampling_time)';
 end
 
+%   Wrench at the base
 interp_base_wrench = zeros(N_samples, 6);
 interp_base_wrench_raw = zeros(N_samples, 6);
 for it=1:6
@@ -523,6 +517,7 @@ for it=1:6
     interp_base_wrench_raw(:, it) = interp1(relative_time_ATI, ATI_FT(:, it), sampling_time)';
 end
 
+%   Kinematics of disks
 interp_rel_kinematics_disks = zeros(N_samples, 6, N_disks);
 interp_rel_kinematics_disks_corr = zeros(N_samples, 6, N_disks);
 for it=1:N_disks
@@ -534,6 +529,7 @@ for it=1:N_disks
     end
 end
 
+%   FBG shapes
 interp_fbgs_shapes = zeros(3, N_fbgs_points, N_samples);
 for coord = 1:3
     for s = 1:N_fbgs_points
@@ -541,6 +537,7 @@ for coord = 1:3
     end
 end
 
+%   FBG curvature and angle
 interp_fbgs_angles = zeros(N_samples, 26);
 interp_fbgs_curvatures = zeros(N_samples, 26);
 for it = 1:26
@@ -549,26 +546,21 @@ for it = 1:26
 end
 
 
-
+%   Contact wrench
 if use_resense
-
-    relative_time_resense = time_resense - time_start_motors;
 
     interp_wrench_wand = zeros(N_samples, 6);
     for it=1:6
     
         interp_wrench_wand(:, it) = interp1(relative_time_resense, wrench_wand_f(:, it), sampling_time)';
     end
-end
 
 
+    %   Use the interpolated data to compute the equivalent wrench at base
+    %   of the robot (used for cross-validation)
 
-
-
-
-if use_resense
-
-    %%  Now compute the wrench
+    %   Compute the relative fixed transformation form the mocap frame to
+    %   the Resense HEX12 sensor frame
     R_fix_x = axang2rotm([1 0 0 pi/2]);
     R_fix_z = axang2rotm([0 0 1 pi/6]);
     R_fix = R_fix_x*R_fix_z;
@@ -582,6 +574,7 @@ if use_resense
             0 0 0   1
         ];
     
+    %   Compute the equivalent wrench
     wrench_at_base = zeros(6, N_samples);
     pos_sensor = zeros(3, N_samples);
     for it_t=1:length(sampling_time)
@@ -605,10 +598,13 @@ if use_resense
         Ad_g_=[R_s zeros(3,3)
                 hat_(r_s)*R_s R_s];
     
+        %   Compute equivalent wrench with action-reaction principle
         wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
     end
 
 end
+
+
 
 
 
@@ -918,7 +914,7 @@ fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc
 % 3. Close the file
 fclose(fid);
 
-return;
+
 %%  Save the interpolated data
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
@@ -964,22 +960,19 @@ writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv")
 
 fprintf("   SAVED DATA");
 
-%% ====== HELPER FUNCTION ======
-% function y = butter_filtfilt(t, x, fc, n)
-%     Fs = 1/median(diff(t));                 % estimate sampling rate from timestamps
-%     [b,a] = butter(n, fc/(Fs/2), "low");    % Butterworth
-%     y = filtfilt(b,a, x);                   % zero-phase filtering
-% end
+
+%%  HELPER FUNCTIONS
+
+
+
 
 function y = butter_filtfilt(t, x, fc, n)
     % Zero-phase Butterworth low-pass filtering, robust to irregular
     % sampling.
     %
     % It estimates Fs from the mean inter-sample interval, resample the 
-    % signal onto a uniform grid at that rate before filtering, then map 
-    % the filtered result back onto the original (possibly irregular) 
-    % timestamps. 
-    % t = t(:);  x = x(:);
+    % signal onto a uniform grid at that rate before filtering
+
     Fs = (numel(t) - 1) / (t(end) - t(1));            % mean-based rate
     t_uniform = linspace(t(1), t(end), numel(t))';    % regular grid, same span & count
     x_uniform = interp1(t, x, t_uniform, 'linear');

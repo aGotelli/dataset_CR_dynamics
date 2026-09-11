@@ -1,0 +1,6 @@
+Motor -> Mocap  lag_ms [M+x; M+y] = [-82.6 176.0 -82.6; -14.5 36.1 -14.8]
+Motor -> Mocap  r      [M+x; M+y] = [0.08 0.09 0.08; 0.15 0.79 0.14]
+Motor -> FBGS   lag_ms [M+x; M+y] = [-90.8 -90.8 -90.8; -31.1 -31.1 -31.1]
+Motor -> FBGS   r      [M+x; M+y] = [0.07 0.07 -0.07; 0.11 0.11 -0.11]
+Mocap  -> FBGS  lag_ms             = [0.3 -0.1 -0.1]
+Mocap  -> FBGS  r                  = [0.89 1.00 1.00]
