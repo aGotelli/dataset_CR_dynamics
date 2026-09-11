@@ -1,6 +1,6 @@
 function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, disk_z_positions, use_resense, align_window_s)
+    align_mocap_and_fbgs(folder, use_resense, align_window_s)
 %ALIGN_MOCAP_AND_FBGS Load one recording's OptiTrack and FBG data and put
 %   them in a common, spatially-aligned frame.
 %
@@ -122,47 +122,37 @@ end
 
 
 %%  Correct pose mocap (only frame of the robot)
-idx_init      = mocap_time_rel <= 3.0;
 
-rel_kinematics_disks_init = rel_kinematics_disks(idx_init, :, :);
-mocap_time_rel_init = mocap_time_rel(idx_init);
+%   The per-disk residual-offset correction is a static property of the
+%   physical setup (marker mounting), not something that should vary
+%   recording to recording. It's computed once, from the dedicated
+%   straight/reference recording, by outils/compute_mocap_correction.m,
+%   which saves it next to this file. That file must exist -- this does
+%   NOT fall back to recomputing an approximate correction per recording.
+correction_file = fullfile(fileparts(mfilename('fullpath')), "mocap_correction.csv");
 
-%   Remove residual offset
-pos_disks = zeros(3, length(disk_z_positions));
-pos_disks(3, :) = disk_z_positions;
+if ~isfile(correction_file)
+    error("align_mocap_and_fbgs:missingCorrection", ...
+        "Mocap correction file not found: %s\nRun outils/compute_mocap_correction.m first.", correction_file);
+end
+
+correction_kinematics = readmatrix(correction_file);   % N_disks_robot x 6, [roll pitch yaw px py pz]
 
 N_disks_robot = 5;
-
-g_correction = zeros(4, 4, N_disks_robot);
 rel_kinematics_disks_corr = zeros(size(rel_kinematics_disks));
-for it=1:N_disks_robot
 
-    g_disk_ref = eye(4);
-    g_disk_ref(1:3, 4) = pos_disks(:, it);
+for it = 1:N_disks_robot
 
+    R_correction = eul2rotm(correction_kinematics(it, 1:3), 'XYZ');
+    r_correction = correction_kinematics(it, 4:6)';
 
-    
-    EUL_disk_t = rel_kinematics_disks_init(:, 1:3, it)';
-    r_disk_t = rel_kinematics_disks_init(:, 4:6, it)';
-
-    EUL_disk = mean(EUL_disk_t, 2);
-    r_disk = mean(r_disk_t, 2);
-
-    R_disk = eul2rotm(EUL_disk', 'XYZ');
-
-    g_meas_m1 = [
-        R_disk' -R_disk'*r_disk
-        0   0   0   1
+    g_correction = [
+        R_correction  r_correction
+        0   0   0     1
     ];
 
-    g_correction(:,:, it) = g_meas_m1*g_disk_ref;
-
-    
-
     rel_poses_disk = rel_poses_disks(:, :, it, :);
-
-    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction(:,:, it));
-
+    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction);
 
     r_disk_corr = squeeze( rel_poses_disk_corr(1:3,   4, :, :) );
     R_disk_corr = squeeze( rel_poses_disk_corr(1:3, 1:3, :, :) );

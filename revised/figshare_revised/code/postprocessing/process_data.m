@@ -7,7 +7,8 @@ addpath("outils\")
 addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
-folder = fullfile("../../", "data/","dynamic_motion/","Lissajous_fast/");
+data_root = fullfile("../../", "data/");
+folder = fullfile(data_root, "dynamic_motion/","Lissajous_fast/");
 
 
 %%  Postprocessing properties
@@ -61,6 +62,18 @@ align_window_s = 10;
 use_resense = isfile(fullfile(folder, "dataResenseFT.csv"));
 
 
+%   Both of these are one-off, dataset-wide calibration constants
+mocap_correction_file = fullfile(fileparts(mfilename('fullpath')), "outils", "mocap_correction.csv");
+if ~isfile(mocap_correction_file)
+    compute_mocap_correction(data_root, disk_z_positions_m);
+end
+
+lag_FBGS_file = fullfile(fileparts(mfilename('fullpath')), "measured_fbg_delay_ms.txt");
+if ~isfile(lag_FBGS_file)
+    compute_fbg_delay(data_root, align_window_s, FBGS_tip_index);
+end
+
+
 
 %% ====== LOAD DATA ======
 motor = readtable(fullfile(folder, "dataMotor.csv"));
@@ -84,17 +97,11 @@ end
 %   Load and spatially align the OptiTrack and FBG data for this recording.
 [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, disk_z_positions, align_window_s);
+    align_mocap_and_fbgs(folder, use_resense, align_window_s);
 
-%   Load the FBG pipeline-delay correction, measured separately.
-%
-%   If that file does not exist, no correction is applied (lag_FBGS = 0).
-lag_FBGS_file = fullfile(fileparts(mfilename('fullpath')), "measured_fbg_delay_ms.txt");
-if isfile(lag_FBGS_file)
-    lag_FBGS = str2double(fileread(lag_FBGS_file));
-else
-    lag_FBGS = 0;
-end
+%   Load the FBG pipeline-delay correction, measured separately (see the
+%   generation step above -- lag_FBGS_file is guaranteed to exist by now).
+lag_FBGS = str2double(fileread(lag_FBGS_file));
 fbgs_time = fbgs_time - lag_FBGS/1000;
 
 
