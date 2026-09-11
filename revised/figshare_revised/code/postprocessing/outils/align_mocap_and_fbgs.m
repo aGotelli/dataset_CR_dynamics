@@ -23,6 +23,12 @@ function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_
 %                                    residual-offset correction)
 %     rel_kinematics_disks_corr   - mocap disk poses, WITH the per-disk
 %                                    residual-offset correction applied
+%                                    to the 5 robot disks; any disk beyond
+%                                    those 5 (e.g. the Resense contact
+%                                    wand, disk 6, when use_resense) has
+%                                    no correction defined for it and is
+%                                    carried through unchanged from
+%                                    rel_kinematics_disks
 %     fbgs_time                   - FBG timestamps, UNCORRECTED (see
 %                                    above -- no pipeline-delay shift)
 %     fbgs_shapes                 - FBG reconstructed shapes, rotated
@@ -122,7 +128,11 @@ end
 %%  Correct pose mocap (only frame of the robot)
 
 %   Loads the per-disk residual-offset correction computed and saved by
-%   outils/compute_mocap_correction.m, and applies it to every disk pose.
+%   outils/compute_mocap_correction.m, and applies it to the 5 robot
+%   disks. That correction is calibrated from the straight_config
+%   reference recording, which has no notion of a 6th, non-robot disk, so
+%   it does not apply to (and is never computed for) the Resense contact
+%   wand -- its pose, when present, is carried through unchanged below.
 correction_file = fullfile(data_root, "postprocess_calibration", "mocap_correction.csv");
 
 if ~isfile(correction_file)
@@ -156,6 +166,14 @@ for it = 1:N_disks_robot
       XYZ_disk_corr   r_disk_corr'
     ];
 
+end
+
+%   Pass through, unmodified, any disk beyond the robot's own 5 (the
+%   Resense wand, when present) -- otherwise it would be left at zero,
+%   which downstream code could mistake for a valid pose.
+if N_disks > N_disks_robot
+    rel_kinematics_disks_corr(:, :, N_disks_robot+1:N_disks) = ...
+        rel_kinematics_disks(:, :, N_disks_robot+1:N_disks);
 end
 
 end

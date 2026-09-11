@@ -1,21 +1,20 @@
-function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, use_resense, plot_validation)
+function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, plot_validation)
     %TECHNICAL_VALIDATION Computes the dataset's technical-validation
-    %   metrics: Mocap vs FBGS shape RMSE per disk, Mocap vs motor
-    %   cable-length RMSE, and -- for contact recordings -- ATI base
-    %   wrench vs Resense wand wrench RMSE. Reads only the CSV files
-    %   already written to saving_folder by process_data.m, and writes
-    %   RMSEs.txt back into that same folder. If plot_validation is
-    %   true, also generates and saves the corresponding comparison
-    %   figures into saving_fig_folder.
+    %   metrics: Mocap vs FBGS shape RMSE per disk, and Mocap vs motor
+    %   cable-length RMSE. Reads only the CSV files already written to
+    %   saving_folder by process_data.m, and writes RMSEs.txt back into
+    %   that same folder. If plot_validation is true, also generates and
+    %   saves the corresponding comparison figures into saving_fig_folder.
+    %   (The ATI-vs-Resense wrench comparison is not done here -- see
+    %   tests/compare_ati_resense_wrench.m, which reads this same saved
+    %   data.)
     %
     %   saving_folder      - this recording's processed/ folder,
     %                         containing angles.csv, mocap_frames.csv,
-    %                         fbgs_shapes.csv, and (if use_resense)
-    %                         base_wrench.csv and wrench_wand.csv
+    %                         and fbgs_shapes.csv
     %   saving_fig_folder   - folder to save validation figures into
     %   N_disks              - number of tracked OptiTrack disks
     %   N_fbgs_points        - number of FBG shape-reconstruction points
-    %   use_resense          - whether this recording has Resense wand data
     %   plot_validation       - whether to generate and save figures
 
     angles_csv = readmatrix(fullfile(saving_folder, "angles.csv"));
@@ -66,25 +65,6 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     RMSE_cables_perc_motion(idx_0) = 0*RMSE_cables_perc_motion(idx_0);
 
 
-    %   ATI base wrench vs Resense wand wrench, both reloaded from their
-    %   saved CSVs. The wand pose used to transport the Resense reading
-    %   to the base frame is the corrected one.
-    if use_resense
-        base_wrench_csv = readmatrix(fullfile(saving_folder, "base_wrench.csv"));
-        interp_base_wrench = base_wrench_csv(:, 2:end);
-
-        wrench_wand_csv = readmatrix(fullfile(saving_folder, "wrench_wand.csv"));
-        interp_wrench_wand = wrench_wand_csv(:, 2:end);
-
-        wand_pose_corr = interp_rel_kinematics_disks_corr(:, :, 6);
-        wrench_at_base = compute_wrench_at_base(wand_pose_corr, interp_wrench_wand);
-
-        RMSE_wrench = rmse(wrench_at_base', interp_base_wrench);
-        range_wrench = max(interp_base_wrench) - min(interp_base_wrench);
-        RMSE_wrench_perc_motion = (RMSE_wrench./range_wrench)*100;
-    end
-
-
     %   Save RMSEs
     fid = fopen(fullfile(saving_folder , "RMSEs.txt"), 'w');
     for d = 1:N_disks_robot
@@ -95,10 +75,6 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     fprintf(fid, 'RMSE_tip_perc_motion = [%s]\n', strjoin(string(RMSE_tip_perc_motion), ', '));
     fprintf(fid, 'RMSE_cables = [%s]\n', strjoin(string(RMSE_cables), ', '));
     fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc_motion), ', '));
-    if use_resense
-        fprintf(fid, 'RMSE_wrench = [%s]\n', strjoin(string(RMSE_wrench), ', '));
-        fprintf(fid, 'RMSE_wrench_perc_motion = [%s]\n', strjoin(string(RMSE_wrench_perc_motion), ', '));
-    end
     fclose(fid);
 
 
@@ -176,39 +152,6 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
                 end
                 if k == 2, xlabel('Time [s]'); end
             end
-            savefig(saving_fig_folder + fig.Name)
-            saveas(fig, saving_fig_folder + fig.Name, 'png')
-        end
-
-
-        if use_resense
-            fig = figure("Name", "Forces (validation)");
-            labels = {'Fx [N]', 'Fy [N]', 'Fz [N]'};
-            for it = 1:3
-                subplot(3, 1, it)
-                plot(sampling_time, interp_base_wrench(:, it), 'b')
-                hold on
-                plot(sampling_time, wrench_at_base(it, :), 'r')
-                ylabel(labels{it})
-                grid on
-                if it == 3, xlabel("Time [s]"); end
-            end
-            legend('ATI', 'Ad_g Resense')
-            savefig(saving_fig_folder + fig.Name)
-            saveas(fig, saving_fig_folder + fig.Name, 'png')
-
-            fig = figure("Name", "Torques (validation)");
-            labels = {'Tx [Nm]', 'Ty [Nm]', 'Tz [Nm]'};
-            for it = 1:3
-                subplot(3, 1, it)
-                plot(sampling_time, interp_base_wrench(:, 3 + it), 'b')
-                hold on
-                plot(sampling_time, wrench_at_base(3 + it, :), 'r')
-                ylabel(labels{it})
-                grid on
-                if it == 3, xlabel("Time [s]"); end
-            end
-            legend('ATI', 'Ad_g Resense')
             savefig(saving_fig_folder + fig.Name)
             saveas(fig, saving_fig_folder + fig.Name, 'png')
         end

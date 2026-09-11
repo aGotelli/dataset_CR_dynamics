@@ -314,10 +314,10 @@ for it = 1:26
 end
 
 
-%   Default for plot_interpolation_figures (which takes this as an argument)
-wrench_at_base = [];
-
-%   Contact wrench
+%   Contact wrench (Resense wand, resampled onto the common grid, still
+%   in its own sensor frame). Transporting this to the robot base frame
+%   is not done here -- see tests/compare_ati_resense_wrench.m, which
+%   does that transform itself from this saved data.
 if use_resense
 
     interp_wrench_wand = zeros(N_samples, 6);
@@ -325,10 +325,6 @@ if use_resense
 
         interp_wrench_wand(:, it) = interp1(relative_time_resense, wrench_wand_f(:, it), sampling_time)';
     end
-
-    %   Transport the Resense wand wrench to the base frame. This is
-    %   required for some of the techincal validation
-    wrench_at_base = compute_wrench_at_base(interp_rel_kinematics_disks(:, :, 6), interp_wrench_wand);
 
 end
 
@@ -343,8 +339,7 @@ if plot_interpolation
     plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
         relative_time_cables, cable_tensions_f, interp_tensions, ...
         relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
-        relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num, ...
-        use_resense, interp_base_wrench_raw, wrench_at_base);
+        relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num);
 end
 
 
@@ -387,7 +382,7 @@ interp_time_fbgs_strain      = [sampling_time interp_fbgs_curvatures interp_fbgs
 writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv"));
 
 %%  Compute metrics for dataset techinical validation
-technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, use_resense, plot_validation);
+technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, plot_validation);
 
 fprintf("   SAVED DATA");
 
@@ -410,75 +405,6 @@ function y = butter_filtfilt(t, x, fc, n)
     y_uniform = filtfilt(b, a, x_uniform);
     y = interp1(t_uniform, y_uniform, t, 'linear');   % back onto original timestamps
 end
-
-
-function [A] = hat_(x)
-    %   HAT_  Skew-symmetric cross-product matrix of a 3-vector x, such
-    %   that hat_(x)*v == cross(x, v).
-
-    A=zeros(3,3);
-    
-    A(1,2)=-x(3);
-    A(1,3)=x(2);
-    A(2,3)=-x(1);
-    
-    A(2,1)=x(3);
-    A(3,1)=-x(2);
-    A(3,2)=x(1);
-end
-
-function wrench_at_base = compute_wrench_at_base(disk_kinematics_wand, wrench_wand)
-    %   COMPUTE_WRENCH_AT_BASE  Transports the Resense HEX12 wand wrench
-    %   from its own sensor frame to the robot base frame, via the wand's
-    %   mocap pose and the wand's fixed sensor-to-mocap-frame offset
-    %   (g_fix).
-    %
-    %   disk_kinematics_wand : N_samples x 6 [roll pitch yaw px py pz],
-    %                          the wand's own mocap pose over time
-    %   wrench_wand           : N_samples x 6 [Fx Fy Fz Tx Ty Tz], the
-    %                          wand's own measured wrench over time
-    %   wrench_at_base         : 6 x N_samples
-
-    N_samples = size(disk_kinematics_wand, 1);
-
-    R_fix_x = axang2rotm([1 0 0 pi/2]);
-    R_fix_z = axang2rotm([0 0 1 pi/6]);
-    R_fix = R_fix_x*R_fix_z;
-    r_fix = [
-        0
-       -0.1137
-        0
-    ];
-    g_fix = [
-            R_fix r_fix
-            0 0 0   1
-        ];
-
-    wrench_at_base = zeros(6, N_samples);
-    for it_t = 1:N_samples
-        wand_XYZ_xyz = disk_kinematics_wand(it_t, :);
-
-        R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
-        r = wand_XYZ_xyz(4:6)';
-
-        g = [
-          R     r
-          0 0 0 1
-        ];
-
-        g_s = g*g_fix;
-        R_s = g_s(1:3, 1:3);
-        r_s = g_s(1:3, 4);
-        wrench_wand_it_t = wrench_wand(it_t, :)';
-
-        Ad_g_=[R_s zeros(3,3)
-                hat_(r_s)*R_s R_s];
-
-        %   Compute equivalent wrench with action-reaction principle
-        wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
-    end
-end
-
 
 
 function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
@@ -737,12 +663,10 @@ end
 function plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
         relative_time_cables, cable_tensions_f, interp_tensions, ...
         relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
-        relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num, ...
-        use_resense, interp_base_wrench_raw, wrench_at_base)
+        relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num)
     %   PLOT_INTERPOLATION_FIGURES  Sanity-check plots for the common-grid
     %   resampling step: filtered signal (line) vs resampled signal
-    %   (points), per sensor. If use_resense, also plots the
-    %   Resense-wand-vs-ATI base wrench cross-check.
+    %   (points), per sensor.
 
     figure("Name","Actuators Angles");
     for it = 1:4
@@ -842,62 +766,6 @@ function plot_interpolation_figures(relative_time_motors, measured_angles_f, sam
         if it == 3
             xlabel("Time [s]")
         end
-
-    end
-
-
-    %%  Plot wrench contact
-    if use_resense
-        figure("Name", "Forces")
-        subplot(3, 1, 1)
-        plot(sampling_time, interp_base_wrench_raw(:, 1), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(1, :), 'r')
-        ylabel("Fx [N]")
-        grid on
-
-        subplot(3, 1, 2)
-        plot(sampling_time, interp_base_wrench_raw(:, 2), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(2, :), 'r')
-        ylabel("Fy [N]")
-        grid on
-
-        subplot(3, 1, 3)
-        plot(sampling_time, interp_base_wrench_raw(:, 3), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(3, :), 'r')
-        ylabel("Fz [N]")
-        xlabel("Time [s]")
-        grid on
-
-        legend('ATI', 'Ad_g Resense')
-
-
-        figure("Name", "Torques")
-        subplot(3, 1, 1)
-        plot(sampling_time, interp_base_wrench_raw(:, 4), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(4, :), 'r')
-        ylabel("Tx [Nm]")
-        grid on
-
-        subplot(3, 1, 2)
-        plot(sampling_time, interp_base_wrench_raw(:, 5), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(5, :), 'r')
-        ylabel("Ty [Nm]")
-        grid on
-
-        subplot(3, 1, 3)
-        plot(sampling_time, interp_base_wrench_raw(:, 6), 'b')
-        hold on
-        plot(sampling_time, wrench_at_base(6, :), 'r')
-        ylabel("Tz [Nm]")
-        xlabel("Time [s]")
-        grid on
-
-        legend('ATI', 'Ad_g Resense')
 
     end
 
