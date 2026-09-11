@@ -47,7 +47,7 @@ ramp_rad = math.radians(desired_degree)
 duration = args.duration
 angle_tol = math.radians(0.5)  # Very precise: 0.05 degrees
 vel_tol = 0.05  # Also tighten velocity tolerance
-if motion_pattern == "circle" or "Lissajous":
+if motion_pattern == "circle" or motion_pattern == "Lissajous":
     angle_tol = math.radians(12)  # Very precise: 0.05 degrees
     vel_tol = 1  # Also tighten velocity tolerance
 name, ext = os.path.splitext(args.filename)
@@ -104,21 +104,7 @@ print(f"  Motor 3: {home3:.3f} rad = {math.degrees(home3):.1f}°")
 print(f"  Motor 4: {home4:.3f} rad = {math.degrees(home4):.1f}°")
 print()
 
-# Define circle phases with antagonistic pairs: 1&3 antagonistic, 2&4 antagonistic
-# Phase logic: when motor moves +rad, its antagonist moves -rad automatically
-# # phases = [
-# #     # Phase 1: Motor 1 extends (+), Motor 3 compensates (-), others at home
-# #     (home1 + ramp_rad,  home2,              home3 - ramp_rad,   home4           ),
-    
-# #     # Phase 2: Motor 2 extends (+), Motor 4 compensates (-), Motor 1&3 stay extended/retracted  
-# #     (home1 + ramp_rad,  home2 + ramp_rad,   home3 - ramp_rad,   home4 - ramp_rad),
-    
-# #     # Phase 3: Motor 1 retracts (-), Motor 3 compensates (+), Motor 2&4 stay extended/retracted
-# #     (home1 - ramp_rad,  home2 + ramp_rad,   home3 + ramp_rad,   home4 - ramp_rad),
-    
-# #     # Phase 4: Motor 2 retracts (-), Motor 4 compensates (+), all return towards home
-# #     (home1 - ramp_rad,  home2 - ramp_rad,   home3 + ramp_rad,   home4 + ramp_rad)
-# # ]
+
 if motion_pattern == "circle":
     # Creat a pattern for circle
     sqrt_2 = math.sqrt(2)
@@ -283,13 +269,11 @@ time.sleep( wait_before_start )
 while time.time() - start_time < duration:
     target1, target2, target3, target4 = phases[current_phase]
     phase_index += 1
-    # print(f"Phase {phase_index}: Pair 1&3: M1={math.degrees(target1):.1f}°, M3={math.degrees(target3):.1f}° | Pair 2&4: M2={math.degrees(target2):.1f}°, M4={math.degrees(target4):.1f}°")
-    # print(f"  Antagonistic check: M1+M3={math.degrees(target1-home1):.1f}+{math.degrees(target3-home3):.1f}={math.degrees((target1-home1)+(target3-home3)):.1f}°")
-    # print(f"  Antagonistic check: M2+M4={math.degrees(target2-home2):.1f}+{math.degrees(target4-home4):.1f}={math.degrees((target2-home2)+(target4-home4)):.1f}°")
+    
     phase_start = time.time()
     # Send commands with speed limit
     limit_speed     = desired_speed
-    if motion_pattern == "circle" or "Lissajous":
+    if motion_pattern == "circle" or motion_pattern == "Lissajous":
         if current_phase < n_preparation_phase:
             limit_speed = 1 # speed for the preparation phase
         else:
@@ -391,14 +375,11 @@ while time.time() - start_time < duration:
                 torque4,
             ]
         )
-        # print(f"{angle_rad1+home1} vs {target1}")
-        # print(f"m1: cur: {abs_angle_rad1} - tg: {target1} - m2: cur: {abs_angle_rad2} - tg: {target2} - m3: cur: {abs_angle_rad3} - tg: {target3} - m4: cur: {abs_angle_rad4} - tg: {target4}")
 
-        finish1 = abs(abs_angle_rad1 - target1) <= angle_tol #and abs(velocity1) <= vel_tol
-        finish2 = abs(abs_angle_rad2 - target2) <= angle_tol #and abs(velocity2) <= vel_tol
-        finish3 = abs(abs_angle_rad3 - target3) <= angle_tol #and abs(velocity3) <= vel_tol
-        finish4 = abs(abs_angle_rad4 - target4) <= angle_tol #and abs(velocity4) <= vel_tol
-
+        finish1 = abs(abs_angle_rad1 - target1) <= angle_tol 
+        finish2 = abs(abs_angle_rad2 - target2) <= angle_tol 
+        finish3 = abs(abs_angle_rad3 - target3) <= angle_tol 
+        finish4 = abs(abs_angle_rad4 - target4) <= angle_tol
 
         if finish1 and finish2 and finish3 and finish4:
             print(f"Phase {phase_index} completed - moving to next phase")
