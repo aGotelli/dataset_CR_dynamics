@@ -1,23 +1,13 @@
-
-# ============================================================================= #type: ignore  # noqa E501
-# Copyright © 2025 NaturalPoint, Inc. All Rights Reserved.
-#
-# THIS SOFTWARE IS GOVERNED BY THE OPTITRACK PLUGINS EULA AVAILABLE AT https://www.optitrack.com/about/legal/eula.html #type: ignore  # noqa E501
-# AND/OR FOR DOWNLOAD WITH THE APPLICABLE SOFTWARE FILE(S) (“PLUGINS EULA”). BY DOWNLOADING, INSTALLING, ACTIVATING #type: ignore  # noqa E501
-# AND/OR OTHERWISE USING THE SOFTWARE, YOU ARE AGREEING THAT YOU HAVE READ, AND THAT YOU AGREE TO COMPLY WITH AND ARE #type: ignore  # noqa E501
-# BOUND BY, THE PLUGINS EULA AND ALL APPLICABLE LAWS AND REGULATIONS. IF YOU DO NOT AGREE TO BE BOUND BY THE PLUGINS #type: ignore  # noqa E501
-# EULA, THEN YOU MAY NOT DOWNLOAD, INSTALL, ACTIVATE OR OTHERWISE USE THE SOFTWARE AND YOU MUST PROMPTLY DELETE OR #type: ignore  # noqa E501
-# RETURN IT. IF YOU ARE DOWNLOADING, INSTALLING, ACTIVATING AND/OR OTHERWISE USING THE SOFTWARE ON BEHALF OF AN ENTITY, #type: ignore  # noqa E501
-# THEN BY DOING SO YOU REPRESENT AND WARRANT THAT YOU HAVE THE APPROPRIATE AUTHORITY TO ACCEPT THE PLUGINS EULA ON #type: ignore  # noqa E501
-# BEHALF OF SUCH ENTITY. See license file in root directory for additional governing terms and information. #type: ignore  # noqa E501
-# ============================================================================= #type: ignore  # noqa E501
-
-
-# OptiTrack NatNet direct depacketization sample for Python 3.x
-#
-# Uses the Python NatNetClient.py library to establish
+# This script uses the Python NatNetClient.py library to establish
 # a connection and receive data via that NatNet connection
 # to decode it using the NatNetClientLibrary.
+#
+# Dependencies not included in this repository: NatNetClient.py,
+# MoCapData.py and DataDescriptions.py are NaturalPoint's own NatNet SDK
+# Python sample files, distributed under the OptiTrack Plugins EULA
+# They are not redistributed here; download the NatNet SDK from 
+# https://www.optitrack.com and copy those three files into this folder 
+# before running this script.
 
 import sys
 import time
