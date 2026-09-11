@@ -15,13 +15,13 @@ clc;
 
 %% ====== SETTINGS ======
 
-% Located from this script's own file location (.../code/postprocessing/
-% tests/) rather than a path relative to MATLAB's current folder.
-this_script_folder     = fileparts(mfilename('fullpath'));
-postprocessing_folder  = fileparts(this_script_folder);
-code_folder             = fileparts(postprocessing_folder);
-figshare_revised_folder = fileparts(code_folder);
-data_root = fullfile(figshare_revised_folder, "data");
+% Located from this script's own file location rather than a path
+% relative to MATLAB's current folder: this script lives inside
+% code/postprocessing/tests/, and data/ is code/'s sibling folder, so
+% climb up to code/ and step across into data/.
+this_script_folder = fileparts(mfilename('fullpath'));
+code_folder = fileparts(fileparts(this_script_folder));
+data_root = fullfile(fileparts(code_folder), "data");
 
 data_folder   = fullfile(data_root, "quasi_static", "static_bend_x_180");
 tol_deg       = 0.5;      % position tolerance used to detect "settled"

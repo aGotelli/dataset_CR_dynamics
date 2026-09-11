@@ -367,8 +367,13 @@ writematrix(interp_time_tensions, fullfile(saving_folder ,"cable_tensions.csv"))
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
 writematrix(interp_time_mocap_frames_corr, fullfile(saving_folder , "mocap_frames.csv"));
 
-%   FBGS: save as N_samples x (1 + 3*N_fbgs_points)
-%   columns: [time, x_0..x_501, y_0..y_501, z_0..z_501]
+%   FBGS: save as N_samples x (1 + 3*N_fbgs_points), one time column
+%   followed by one [x y z] triplet per reconstruction point:
+%   columns: [time, x_0,y_0,z_0, x_1,y_1,z_1, ..., x_501,y_501,z_501]
+%   (same per-point interleaving data_fbgs.m reads from the raw FBGS
+%   CSV -- see its "Shapes seem to be saved like" comment -- carried
+%   through unchanged here; technical_validation.m's reshape back to
+%   [N_samples, 3, N_fbgs_points] on read relies on this exact order.)
 interp_fbgs_flat = reshape(permute(interp_fbgs_shapes, [3 1 2]), N_samples, []);
 interp_time_fbgs = [sampling_time interp_fbgs_flat];
 writematrix(interp_time_fbgs, fullfile(saving_folder, "fbgs_shapes.csv"));

@@ -39,19 +39,12 @@ clc;
 % Folder that directly CONTAINS quasi_static/, dynamic_motion/ and
 % contact_motion/.
 %
-% The path is built from this script's own location on disk
-% (mfilename('fullpath')) rather than a "../../..."-style relative
-% path, so it resolves correctly regardless of MATLAB's current
-% folder. This script lives at
-% .../code/postprocessing/tests/, three levels below
-% .../code/postprocessing/../ (figshare_revised/), which is where
-% data/ lives.
-this_script_folder = fileparts(mfilename('fullpath'));
-postprocessing_folder  = fileparts(this_script_folder);
-code_folder             = fileparts(postprocessing_folder);
-figshare_revised_folder = fileparts(code_folder);
-
-data_root = fullfile(figshare_revised_folder, "data");
+% Located from this script's own file location rather than a path
+% relative to MATLAB's current folder: this script lives inside
+% code/postprocessing/tests/, and data/ is code/'s sibling folder, so
+% climb up to code/ and step across into data/.
+code_folder = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+data_root = fullfile(fileparts(code_folder), "data");
 
 % If this is not where you keep the dataset on your machine, replace
 % the line above with a direct path instead, for example:

@@ -34,8 +34,11 @@ function [time_fbgs, fbgs_shapes, curvatures, angles] = data_fbgs(filename)
     %  Extract recorded positions
     position_samples = 502; %   for x, y and z
 
-    %   Shapes seem to be saved like:
-    %   time x_0 y_0 z_0 x_1 y_1 z_1 ... ... ... x_n y_n z_n
+    %   Raw FBGS Shape_* columns are laid out per reconstruction point:
+    %   time x_0 y_0 z_0 x_1 y_1 z_1 ... x_501 y_501 z_501
+    %   (process_data.m carries this same interleaving through to the
+    %   released fbgs_shapes.csv -- see its comment where that file is
+    %   written.)
     fbgs_shapes = zeros(3, position_samples, N_time_fbgs);
 
     index = 0;

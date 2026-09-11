@@ -21,15 +21,12 @@ clc;
 
 %% ====== SETTINGS ======
 
-% Folder that directly CONTAINS quasi_static/, dynamic_motion/ and
-% contact_motion/, located from this script's own file location
-% (.../code/postprocessing/tests/) rather than a path relative to
-% MATLAB's current folder.
-this_script_folder     = fileparts(mfilename('fullpath'));
-postprocessing_folder  = fileparts(this_script_folder);
-code_folder             = fileparts(postprocessing_folder);
-figshare_revised_folder = fileparts(code_folder);
-data_root = fullfile(figshare_revised_folder, "data");
+% Located from this script's own file location rather than a path
+% relative to MATLAB's current folder: this script lives inside
+% code/postprocessing/tests/, and data/ is code/'s sibling folder, so
+% climb up to code/ and step across into data/.
+code_folder = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+data_root = fullfile(fileparts(code_folder), "data");
 
 subsets   = ["quasi_static", "dynamic_motion", "contact_motion"];
 mark10_file = "dataMark10_+x.csv";
