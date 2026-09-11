@@ -4,7 +4,6 @@ clc;
 
 %   load required paths
 addpath("outils\")
-addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 folder = fullfile("../../", "data/","dynamic_motion/","Lissajous_fast/");
@@ -81,10 +80,17 @@ if use_resense
 end
 
 
+%   Bending plane: set to 'x' or 'y' — the axis along which the rod bends
+if(contains(folder, "_y_"))
+    bending_axis = 'y';        % 'y' for plane_y experiments
+else
+    bending_axis = 'x';        % 'x' for all rest
+end
+
 %   Load and spatially align the OptiTrack and FBG data for this recording.
 [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s);
+    align_mocap_and_fbgs(folder, use_resense, align_window_s, bending_axis);
 
 %   Load the FBG pipeline-delay correction, measured separately.
 %
@@ -307,12 +313,19 @@ if use_resense
 
     interp_wrench_wand = zeros(N_samples, 6);
     for it=1:6
-
+    
         interp_wrench_wand(:, it) = interp1(relative_time_resense, wrench_wand_f(:, it), sampling_time)';
     end
 
-    %   Transport the Resense wand wrench to the base frame. This is
-    %   required for some of the techincal validation
+    %   Use the interpolated data to compute the equivalent wrench at base
+    %   of the robot (used for cross-validation). Wand pose here is the
+    %   UNCORRECTED in-memory mocap kinematics (disk 6) -- used only for
+    %   the plot_interpolation_figures diagnostic plot below.
+    %   validate_processed_recording recomputes this again from the
+    %   CORRECTED, released mocap_frames.csv when it builds the
+    %   FT-sensor RMSE, via the same compute_wrench_at_base helper, so
+    %   the transform itself is written once and cannot drift between
+    %   the two call sites.
     wrench_at_base = compute_wrench_at_base(interp_rel_kinematics_disks(:, :, 6), interp_wrench_wand);
 
 end
@@ -331,6 +344,11 @@ if plot_interpolation
         relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num, ...
         use_resense, interp_base_wrench_raw, wrench_at_base);
 end
+
+
+
+
+
 
 
 %%  Save the interpolated data
@@ -366,9 +384,10 @@ end
 interp_time_fbgs_strain      = [sampling_time interp_fbgs_curvatures interp_fbgs_angles];
 writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv"));
 
-%%  Compute metrics for dataset techinical validation
-technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, use_resense, plot_validation);
-
+%%  Validate the saved data (re-reads the CSVs just written above, so
+%   this checks what was actually released, not this run's in-memory
+%   state -- see validate_processed_recording)
+validate_processed_recording(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, use_resense, plot_validation);
 fprintf("   SAVED DATA");
 
 
@@ -404,60 +423,6 @@ function [A] = hat_(x)
     A(3,1)=-x(2);
     A(3,2)=x(1);
 end
-
-function wrench_at_base = compute_wrench_at_base(disk_kinematics_wand, wrench_wand)
-    %   COMPUTE_WRENCH_AT_BASE  Transports the Resense HEX12 wand wrench
-    %   from its own sensor frame to the robot base frame, via the wand's
-    %   mocap pose and the wand's fixed sensor-to-mocap-frame offset
-    %   (g_fix).
-    %
-    %   disk_kinematics_wand : N_samples x 6 [roll pitch yaw px py pz],
-    %                          the wand's own mocap pose over time
-    %   wrench_wand           : N_samples x 6 [Fx Fy Fz Tx Ty Tz], the
-    %                          wand's own measured wrench over time
-    %   wrench_at_base         : 6 x N_samples
-
-    N_samples = size(disk_kinematics_wand, 1);
-
-    R_fix_x = axang2rotm([1 0 0 pi/2]);
-    R_fix_z = axang2rotm([0 0 1 pi/6]);
-    R_fix = R_fix_x*R_fix_z;
-    r_fix = [
-        0
-       -0.1137
-        0
-    ];
-    g_fix = [
-            R_fix r_fix
-            0 0 0   1
-        ];
-
-    wrench_at_base = zeros(6, N_samples);
-    for it_t = 1:N_samples
-        wand_XYZ_xyz = disk_kinematics_wand(it_t, :);
-
-        R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
-        r = wand_XYZ_xyz(4:6)';
-
-        g = [
-          R     r
-          0 0 0 1
-        ];
-
-        g_s = g*g_fix;
-        R_s = g_s(1:3, 1:3);
-        r_s = g_s(1:3, 4);
-        wrench_wand_it_t = wrench_wand(it_t, :)';
-
-        Ad_g_=[R_s zeros(3,3)
-                hat_(r_s)*R_s R_s];
-
-        %   Compute equivalent wrench with action-reaction principle
-        wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
-    end
-end
-
-
 
 function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
         fbgs_time, fbgs_shapes, FBGS_tip_index)
@@ -674,14 +639,18 @@ function plot_filtered_figures(time_cables, cable_tensions, cable_tensions_f, ..
 
 
     figure("Name","Mocap disk kinematics" + int2str(plot_disk_num));
-    XYZ_xyz = rel_kinematics_disks(:, :, plot_disk_num);
+    xyz_XYZ = rel_kinematics_disks(:, :, plot_disk_num);
     XYZ_xyz_f = rel_kinematics_disks_f(:, :, plot_disk_num);
 
+    %   NOTE: columns 1:3 are Euler angles [rad], columns 4:6 are position
+    %   [m] (same convention as elsewhere in this file). The two loops
+    %   below were previously swapped -- fixed so the ylabel matches what
+    %   is actually plotted.
     for it = 1:3
         index_plot = it*2 -1;
         subplot(3,2,index_plot)
 
-        plot(mocap_timestamps, XYZ_xyz(:, it), "b", "LineWidth", 2.0)
+        plot(mocap_timestamps, xyz_XYZ(:, it), "b", "LineWidth", 2.0)
         hold on
         plot(mocap_timestamps, XYZ_xyz_f(:, it), "r", "LineWidth", 2.0)
         ylabel("Euler Angle [rad]")
@@ -697,7 +666,7 @@ function plot_filtered_figures(time_cables, cable_tensions, cable_tensions_f, ..
         index_plot = it*2;
         subplot(3,2,index_plot)
 
-        plot(mocap_timestamps, XYZ_xyz(:, 3 + it), "b", "LineWidth", 2.0)
+        plot(mocap_timestamps, xyz_XYZ(:, 3 + it), "b", "LineWidth", 2.0)
         hold on
         plot(mocap_timestamps, XYZ_xyz_f(:, 3 + it), "r", "LineWidth", 2.0)
 
@@ -884,3 +853,260 @@ end
 
 
 
+function wrench_at_base = compute_wrench_at_base(disk_kinematics_wand, wrench_wand)
+    %   COMPUTE_WRENCH_AT_BASE  Transports the Resense HEX12 wand wrench
+    %   from its own sensor frame to the robot base frame, via the wand's
+    %   mocap pose and the wand's fixed sensor-to-mocap-frame offset
+    %   (g_fix). Shared by the live diagnostic plot in process_data.m
+    %   (fed the UNCORRECTED wand pose, matching this run's in-memory
+    %   state) and validate_processed_recording (fed the CORRECTED wand
+    %   pose loaded back from mocap_frames.csv, the one actually
+    %   released) -- kept in one place so the transform itself can never
+    %   drift between the two.
+    %
+    %   disk_kinematics_wand : N_samples x 6 [roll pitch yaw px py pz],
+    %                          the wand's own mocap pose over time
+    %   wrench_wand           : N_samples x 6 [Fx Fy Fz Tx Ty Tz], the
+    %                          wand's own measured wrench over time
+    %   wrench_at_base         : 6 x N_samples
+
+    N_samples = size(disk_kinematics_wand, 1);
+
+    %   Compute the relative fixed transformation from the mocap frame to
+    %   the Resense HEX12 sensor frame
+    R_fix_x = axang2rotm([1 0 0 pi/2]);
+    R_fix_z = axang2rotm([0 0 1 pi/6]);
+    R_fix = R_fix_x*R_fix_z;
+    r_fix = [
+        0
+       -0.1137
+        0
+    ];
+    g_fix = [
+            R_fix r_fix
+            0 0 0   1
+        ];
+
+    wrench_at_base = zeros(6, N_samples);
+    for it_t = 1:N_samples
+        wand_XYZ_xyz = disk_kinematics_wand(it_t, :);
+
+        R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
+        r = wand_XYZ_xyz(4:6)';
+
+        g = [
+          R     r
+          0 0 0 1
+        ];
+
+        g_s = g*g_fix;
+        R_s = g_s(1:3, 1:3);
+        r_s = g_s(1:3, 4);
+        wrench_wand_it_t = wrench_wand(it_t, :)';
+
+        Ad_g_=[R_s zeros(3,3)
+                hat_(r_s)*R_s R_s];
+
+        %   Compute equivalent wrench with action-reaction principle
+        wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
+    end
+end
+
+
+function validate_processed_recording(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, use_resense, plot_validation)
+    %   VALIDATE_PROCESSED_RECORDING  Recomputes every consistency check
+    %   in the manuscript's Technical Validation section (mocap vs FBGS
+    %   shape RMSE per disk, mocap vs motor cable-length RMSE, and -- for
+    %   contact recordings -- ATI base wrench vs Resense wand wrench
+    %   RMSE), reading ONLY the CSVs process_data.m just wrote to
+    %   saving_folder. This is deliberate: it validates the released
+    %   data itself, not this run's in-memory intermediate state, so a
+    %   change to what gets saved can never silently drift from what
+    %   gets validated. It also means this function can be called
+    %   standalone later, on any already-processed recording, without
+    %   rerunning the raw-data pipeline (e.g. to batch-build one RMSE
+    %   table across every recording in data/).
+    %
+    %   Figures are only generated when plot_validation is true; the
+    %   RMSE numbers themselves (and RMSEs.txt) are always computed and
+    %   saved.
+
+    %   ---- Load back what was released ----
+    angles_csv = readmatrix(fullfile(saving_folder, "angles.csv"));
+    sampling_time = angles_csv(:, 1);
+    interp_angles = angles_csv(:, 2:end);
+    N_samples = size(angles_csv, 1);
+
+    mocap_csv = readmatrix(fullfile(saving_folder, "mocap_frames.csv"));
+    interp_rel_kinematics_disks_corr = reshape(mocap_csv(:, 2:end), [N_samples, 6, N_disks]);
+
+    fbgs_csv = readmatrix(fullfile(saving_folder, "fbgs_shapes.csv"));
+    interp_fbgs_shapes = permute(reshape(fbgs_csv(:, 2:end), [N_samples, 3, N_fbgs_points]), [2 3 1]);
+
+    base_wrench_csv = readmatrix(fullfile(saving_folder, "base_wrench.csv"));
+    interp_base_wrench = base_wrench_csv(:, 2:end);
+
+    %   FBG sample index nearest each disk -- same convention as
+    %   process_data.m's FBGS_disk_indices (disk z-position in mm along
+    %   the ~1mm-spaced fiber).
+    disk_z_positions_m = [0 0.12 0.24 0.36 0.48];
+    FBGS_disk_indices = max(round(disk_z_positions_m*1000), 1);
+
+    %   ---- Mocap vs FBGS: RMSE at every disk ----
+    N_disks_robot = 5;
+    RMSE_disks = zeros(N_disks_robot, 3);
+    RMSE_disks_perc_motion = zeros(N_disks_robot, 3);
+    for d = 1:N_disks_robot
+        xyz_disk_d = interp_rel_kinematics_disks_corr(:, 4:6, d);
+        xyz_FBGS_d = squeeze(interp_fbgs_shapes(:, FBGS_disk_indices(d), :))';
+
+        RMSE_disks(d, :) = rmse(xyz_FBGS_d, xyz_disk_d);
+
+        range_disk_d = max(xyz_disk_d) - min(xyz_disk_d);
+        RMSE_disks_perc_motion(d, :) = (RMSE_disks(d, :)./range_disk_d)*100;
+    end
+
+    %   ---- Mocap vs motor-encoder cable length ----
+    N_interp = 10;
+    [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(interp_rel_kinematics_disks_corr, interp_angles, sampling_time, N_interp);
+
+    RMSE_cables = rmse(delta_cable_computed, delta_cable_measured);
+    range_cables = max(delta_cable_measured) - min(delta_cable_measured);
+    RMSE_cables_perc_motion = (RMSE_cables./range_cables)*100;
+    idx_0 = find(range_cables <= 1e-2);
+    RMSE_cables_perc_motion(idx_0) = 0*RMSE_cables_perc_motion(idx_0);
+
+    %   ---- ATI base wrench vs Resense wand wrench transported to the
+    %   base (FT-sensor consistency comment). Contact recordings only.
+    %   Uses the wand's CORRECTED pose (disk 6 of mocap_frames.csv) --
+    %   see compute_wrench_at_base. ----
+    if use_resense
+        wrench_wand_csv = readmatrix(fullfile(saving_folder, "wrench_wand.csv"));
+        interp_wrench_wand = wrench_wand_csv(:, 2:end);
+
+        wand_pose_corr = interp_rel_kinematics_disks_corr(:, :, 6);
+        wrench_at_base = compute_wrench_at_base(wand_pose_corr, interp_wrench_wand);
+
+        RMSE_wrench = rmse(wrench_at_base', interp_base_wrench);
+        range_wrench = max(interp_base_wrench) - min(interp_base_wrench);
+        RMSE_wrench_perc_motion = (RMSE_wrench./range_wrench)*100;
+    end
+
+    %   ---- Save RMSEs ----
+    fid = fopen(fullfile(saving_folder, "RMSEs.txt"), 'w');
+    for d = 1:N_disks_robot
+        fprintf(fid, 'RMSE_disk_%d = [%s]\n', d, strjoin(string(RMSE_disks(d, :)), ', '));
+        fprintf(fid, 'RMSE_disk_%d_perc_motion = [%s]\n', d, strjoin(string(RMSE_disks_perc_motion(d, :)), ', '));
+    end
+    fprintf(fid, 'RMSE_cables = [%s]\n', strjoin(string(RMSE_cables), ', '));
+    fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc_motion), ', '));
+    if use_resense
+        fprintf(fid, 'RMSE_wrench = [%s]\n', strjoin(string(RMSE_wrench), ', '));
+        fprintf(fid, 'RMSE_wrench_perc_motion = [%s]\n', strjoin(string(RMSE_wrench_perc_motion), ', '));
+    end
+    fclose(fid);
+
+    %   ---- Plots ----
+    if plot_validation
+        XYZ_xyz_disk = interp_rel_kinematics_disks_corr(:, :, 5);
+        xyz_FBGS     = squeeze(interp_fbgs_shapes(:, FBGS_disk_indices(5), :));
+
+        interp_xy_tip = interp_rel_kinematics_disks_corr(:, 4:5, 5);
+        fig = figure("Name", "Tip Trajectory xy plane");
+        plot(interp_xy_tip(:, 1), interp_xy_tip(:, 2), 'LineWidth', 1)
+        hold on
+        plot(xyz_FBGS(1, :), xyz_FBGS(2, :), "r", "LineWidth", 1.0)
+        grid on
+        xlim([-.35 .35])
+        ylim([-.35 .35])
+        xlabel("p_x [m]")
+        ylabel("p_y [m]")
+        legend('OptiTrack (corrected)', 'FBGS')
+        savefig(saving_fig_folder + fig.Name)
+        saveas(fig, saving_fig_folder + fig.Name, 'png')
+
+
+        fig = figure("Name", "Motors Angles");
+        for it=1:4
+            subplot(4, 1, it)
+            plot(sampling_time, interp_angles(:, it), 'b', 'LineWidth', 2)
+            grid on
+            ylabel("Angle [rad]")
+        end
+        xlabel('Time [s]')
+        savefig(saving_fig_folder + fig.Name)
+        saveas(fig, saving_fig_folder + fig.Name, 'png')
+
+
+        fig = figure("Name", "Tip Position Interpolated");
+        vars = {'p_x', 'p_y', 'p_z'};
+        for it = 1:3
+            subplot(3,1,it)
+
+            plot(sampling_time, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
+            hold on
+            plot(sampling_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+
+            grid on
+            ylabel([vars{it} ' [m]'])
+
+            if it == 3
+                xlabel("Time [s]")
+            end
+        end
+        legend('OptiTrack (corrected)', 'FBGS')
+        savefig(saving_fig_folder + fig.Name)
+        saveas(fig, saving_fig_folder + fig.Name, 'png')
+
+
+        cable_labels = {'+x', '+y', '-x', '-y'};
+        pairs = {[1 3], [2 4]};          % x-pair, y-pair
+        pair_names = {"x", "y"};
+        for p = 1:2
+            fig = figure("Name", "Cable Length Change – " + pair_names{p} + " pair");
+            idx = pairs{p};
+            for k = 1:2
+                ax = subplot(2,1,k);
+                set(ax, 'Color', 'w');
+                c = idx(k);
+                plot(sampling_time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 2);  hold on
+                plot(sampling_time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 2);
+                grid on; ylabel('\Delta \ell_c [mm]')
+                title(['Cable ' cable_labels{c}])
+                if k == 1
+                    legend('MoCap (computed)', 'Motor (measured)')
+                end
+                if k == 2, xlabel('Time [s]'); end
+            end
+            savefig(saving_fig_folder + fig.Name)
+            saveas(fig, saving_fig_folder + fig.Name, 'png')
+        end
+
+        if use_resense
+            force_labels = {'Fx','Fy','Fz'};
+            torque_labels = {'Tx','Ty','Tz'};
+
+            figure("Name", "Forces (validation)")
+            for k = 1:3
+                subplot(3,1,k)
+                plot(sampling_time, interp_base_wrench(:, k), 'b'); hold on
+                plot(sampling_time, wrench_at_base(k, :), 'r')
+                ylabel(force_labels{k} + " [N]")
+                grid on
+                if k == 3, xlabel("Time [s]"); end
+            end
+            legend('ATI (base)', 'Resense (transported)')
+
+            figure("Name", "Torques (validation)")
+            for k = 1:3
+                subplot(3,1,k)
+                plot(sampling_time, interp_base_wrench(:, 3+k), 'b'); hold on
+                plot(sampling_time, wrench_at_base(3+k, :), 'r')
+                ylabel(torque_labels{k} + " [Nm]")
+                grid on
+                if k == 3, xlabel("Time [s]"); end
+            end
+            legend('ATI (base)', 'Resense (transported)')
+        end
+    end
+end
