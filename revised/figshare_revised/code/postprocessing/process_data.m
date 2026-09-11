@@ -2,6 +2,12 @@ close all;
 clear;
 clc;
 
+%   Several of the dataset's CSV column headers (e.g. "Fx (N)") aren't
+%   valid MATLAB identifiers, so every readtable call below and in
+%   outils/ sanitizes them and raises this warning. Silenced once here
+%   for the whole session.
+warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
+
 %   load required paths
 addpath("outils\")
 addpath("tests\")

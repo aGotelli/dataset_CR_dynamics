@@ -18,7 +18,7 @@ function sync_results = check_temporal_sync(time_mot, angles, ...
 %   time_mot, angles             - motor timestamps and the corresponding
 %                                   [N x 2] actuator angles
 %   time_moc, kin_disks           - Mocap timestamps and disk kinematics
-%                                   ([N x 6 x N_disks]; column 5 is used)
+%                                   ([N x 6 x N_disks])
 %   time_fbg, fbgs_shapes         - FBG timestamps and reconstructed
 %                                   shapes
 %   FBGS_tip_index                 - FBG sample index used as the tip
@@ -33,10 +33,16 @@ function sync_results = check_temporal_sync(time_mot, angles, ...
 mot_lbl = {'M+x', 'M+y'};
 pos_lbl = {'px',  'py',  'pz'};
 
+%% ====================================================================
+%%  COMMON TIME WINDOW
+%% ====================================================================
+%   Every signal is cut down to the motor recording's own span, then
+%   re-zeroed so all timestamps start at 0.
+
 t0 = time_mot(1);  t1 = time_mot(end);
 
 [t_mot, ang]     = trim_window(time_mot, angles,              t0, t1);
-[t_moc, tip_moc] = trim_window(time_moc, kin_disks(:,4:6,5), t0, t1);
+[t_moc, tip_moc] = trim_window(time_moc, kin_disks(:,4:6,5), t0, t1);   % disk 5 = tip, columns 4:6 = position
 tip_fbg_all      = squeeze(fbgs_shapes(:, FBGS_tip_index, :))';
 [t_fbg, tip_fbg] = trim_window(time_fbg, tip_fbg_all,        t0, t1);
 
@@ -46,25 +52,38 @@ end
 
 t_mot = t_mot - t0;  t_moc = t_moc - t0;  t_fbg = t_fbg - t0;
 
-
 for it=1:4
     t_cables{it} = t_cables{it} - t0;
 end
 
-fs_mot = 1 / median(diff(t_mot));
-fs_moc = 1 / median(diff(t_moc));
+%% ====================================================================
+%%  RESAMPLE ONTO A COMMON GRID
+%% ====================================================================
+%   Each sensor has its own sampling rate and its own, generally
+%   irregular, timestamps. fs_mot/fs_moc and the corresponding max lag in 
+%   samples (ml_mot/ml_moc, fixed at +/-0.2 s) set the search range xcorr 
+%   uses below. up(...) shape-preserving-interpolates any signal onto a 
+%   chosen set of query times, which is how every pair below is brought 
+%   onto a shared time base before cross-correlating.
+
+fs_mot = (numel(t_mot) - 1) / (t_mot(end) - t_mot(1));
+fs_moc = (numel(t_moc) - 1) / (t_moc(end) - t_moc(1));
 
 ml_mot = round(0.2 * fs_mot);
 ml_moc = round(0.2 * fs_moc);
 
 up         = @(ts, x, td) interp1(ts, x, td, 'pchip');
-moc_on_mot = up(t_moc, tip_moc, t_mot);
-fbg_on_mot = up(t_fbg, tip_fbg, t_mot);
-fbg_on_moc = up(t_fbg, tip_fbg, t_moc);
+moc_on_mot = up(t_moc, tip_moc, t_mot);   % Mocap tip position, resampled onto the motor's timestamps
+fbg_on_mot = up(t_fbg, tip_fbg, t_mot);   % FBGS tip position, resampled onto the motor's timestamps
+fbg_on_moc = up(t_fbg, tip_fbg, t_moc);   % FBGS tip position, resampled onto the Mocap's timestamps
 
 
+%% ====================================================================
+%%  CROSS-CORRELATIONS
+%% ====================================================================
 
-% Motor -> Mocap  (2 motors x 3 axes)
+% Motor -> Mocap  (2 motors x 3 axes): every motor angle against every
+% Mocap tip-position axis.
 lag_MM = zeros(2,3);  r_MM = zeros(2,3);
 for m = 1:2
     for d = 1:3
@@ -72,7 +91,8 @@ for m = 1:2
     end
 end
 
-% Motor -> FBGS  (2 motors x 3 axes)
+% Motor -> FBGS  (2 motors x 3 axes): every motor angle against every
+% FBGS tip-position axis.
 lag_MF = zeros(2,3);  r_MF = zeros(2,3);
 for m = 1:2
     for d = 1:3
@@ -80,31 +100,29 @@ for m = 1:2
     end
 end
 
-% Mocap -> FBGS  (3 axes, same axis)
+% Mocap -> FBGS  (3 axes): each Mocap tip-position axis against the same
+% axis of the FBGS tip position (axis-matched, not all combinations).
 lag_OF = zeros(1,3);  r_OF = zeros(1,3);
 for d = 1:3
     [lag_OF(d), r_OF(d)] = peak_lag(tip_moc(:,d), fbg_on_moc(:,d), ml_moc, fs_moc);
 end
 
-
-% Motor -> Tendon tension  (4 motors x 4 tendons)
+% Motor -> Tendon tension  (4 motors x 4 tendons): each motor's angle
+% against its own tendon's tension (paired by index, not all
+% combinations).
 lag_MC = zeros(1, 4); r_MC = zeros(1,4);
 for d = 1:4
 
-    cable_on_motor = up(t_cables{d}, cable_tensions{d}, t_mot);
+    cable_on_motor = up(t_cables{d}, cable_tensions{d}, t_mot);   % that tendon's tension, resampled onto the motor's timestamps
 
     [lag_MC(d), r_MC(d)] = peak_lag(ang(:,d), cable_on_motor, ml_mot, fs_mot);
 end
 
-figure("Name", "Angles and Tensions")
-plot(t_cables{2}, cable_tensions{2}, 'b')
-hold on
-yyaxis right
-plot(t_mot, ang(:,1), 'r')
 
+%% ====================================================================
+%%  SAVE AND RETURN
+%% ====================================================================
 
-
-% ── save ─────────────────────────────────────────────────────────────────────
 if ~isempty(saving_folder)
     fid = fopen(fullfile(saving_folder, 'sync_results.txt'), 'w');
     fprintf(fid, 'Motor -> Mocap  lag_ms [M+x; M+y] = [%.1f %.1f %.1f; %.1f %.1f %.1f]\n', lag_MM');
@@ -126,14 +144,26 @@ sync_results.lag_MC   = lag_MC;
 sync_results.r_MC   = r_MC;
 end
 
-% ── helpers ──────────────────────────────────────────────────────────────────
+%% ====================================================================
+%%  HELPER FUNCTIONS
+%% ====================================================================
+
 function [t_out, x_out] = trim_window(t, x, t0, t1)
+    %   TRIM_WINDOW  Keeps only the rows of x (and the matching entries
+    %   of t) whose timestamp falls in [t0, t1].
     idx = t >= t0 & t <= t1;
     t_out = t(idx);
     x_out = x(idx, :);
 end
 
 function [lag_ms, peak_r] = peak_lag(a, b, max_lag, fs)
+    %   PEAK_LAG  Normalized cross-correlation between mean-removed
+    %   signals a and b, searched over +/-max_lag samples at sample rate
+    %   fs. Finds the lag of the largest-magnitude correlation peak, then
+    %   refines it to sub-sample precision with a parabolic fit through
+    %   the peak and its two neighboring samples. Returns that lag in
+    %   milliseconds (positive lag_ms means b lags behind a) and the
+    %   correlation value at the peak.
     [r, lags] = xcorr(a - mean(a), b - mean(b), max_lag, 'normalized');
     [~, idx]  = max(abs(r));
     d = 0;
