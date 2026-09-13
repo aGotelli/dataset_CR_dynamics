@@ -70,8 +70,7 @@ filename = fullfile(folder, "dataOptiTrack.csv");
 %   Everything below (mocap bending-plane angle, FBG load, and the
 %   FBG-to-mocap realignment) exists purely to align the FBG shape to
 %   mocap's frame, so all of it is skipped when this recording has no
-%   FBG data -- see has_fbgs_data. The mocap load above and the per-disk
-%   correction further below are unaffected either way.
+%   FBG data
 if has_fbgs_data
 
     %   Temporal variable used to defined align window
@@ -86,14 +85,20 @@ if has_fbgs_data
     tip_xy_mocap_centered = tip_xy_mocap - mean(tip_xy_mocap, 1);
     [~, ~, V_m] = svd(tip_xy_mocap_centered, 'econ');
 
-    %   Angle of the principal (max-variance) direction w.r.t. the x-axis.
-    theta_z_mocap = atan2(V_m(2, 1), V_m(1, 1));
-
+    %   Flip axis to avoid pi ambiguity
     if bending_axis == 'y'
-        theta_z_mocap = pi/2 - theta_z_mocap;       % map onto y-axis
+        ref_axis = [0; 1];
     else
-        theta_z_mocap = 0 - theta_z_mocap;          % map onto x-axis
+        ref_axis = [1; 0];
     end
+    if dot(V_m(:, 1), ref_axis) < 0
+        V_m(:, 1) = -V_m(:, 1);
+    end
+
+    %   Angle of the principal (max-variance) direction w.r.t. the x-axis.
+    %   No per-axis remapping: theta_z below only needs the difference
+    %   with theta_z_fbgs (see Realign section), independent of axis.
+    theta_z_mocap = atan2(V_m(2, 1), V_m(1, 1));
 
     %%  FBG section
 
@@ -120,23 +125,22 @@ if has_fbgs_data
     tip_xy_centered = (tip_xy - mean(tip_xy, 2))'; %   Transpose to N_align x 2
     [~, ~, V_f] = svd(tip_xy_centered, 'econ');
 
+    %   Flip axis to avoid pi ambiguity
+    if dot(V_f(:, 1), ref_axis) < 0
+        V_f(:, 1) = -V_f(:, 1);
+    end
+
     %   Angle of the principal (max-variance) direction w.r.t. the x-axis.
     theta_z_fbgs = atan2(V_f(2, 1), V_f(1, 1));
-
-    if bending_axis == 'y'
-        theta_z_fbgs = pi/2 - theta_z_fbgs;       % map onto y-axis
-    else
-        theta_z_fbgs = 0 - theta_z_fbgs;          % map onto x-axis
-    end
 
 
     %%  Realign section
 
-    if bending_axis == 'y'
-        theta_z = theta_z_fbgs + theta_z_mocap;
-    else
-        theta_z = theta_z_fbgs - theta_z_mocap;
-    end
+    %   Rotate the FBG principal direction onto the mocap one; no
+    %   bending_axis case needed (the previous pi/2-remap-then-add/
+    %   subtract form for 'y' was buggy: it only gave zero correction
+    %   when both angles equaled exactly pi/2, not whenever they agree).
+    theta_z = theta_z_mocap - theta_z_fbgs;
 
     R_z = axang2rotm([0 0 1 theta_z]);
     for t = 1:N_time_fbgs
