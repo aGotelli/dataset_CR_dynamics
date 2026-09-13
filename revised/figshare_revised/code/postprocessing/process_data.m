@@ -2,19 +2,13 @@ close all;
 clear;
 clc;
 
-%   Several of the dataset's CSV column headers (e.g. "Fx (N)") aren't
-%   valid MATLAB identifiers, so every readtable call below and in
-%   outils/ sanitizes them and raises this warning. Silenced once here
-%   for the whole session.
-warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
-
 %   load required paths
 addpath("outils\")
 addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "contact_motion/","touching_base_ang/");
+folder = fullfile(data_root, "dynamic_motion/","plane_x_fast/");
 
 
 %%  Postprocessing properties
@@ -66,6 +60,13 @@ align_window_s = 10;
 %   Flag to load resense: automatically detected from whether this
 %   recording's folder contains a dataResenseFT.csv
 use_resense = isfile(fullfile(folder, "dataResenseFT.csv"));
+
+
+%   Several of the dataset's CSV column headers (e.g. "Fx (N)") aren't
+%   valid MATLAB identifiers, so every readtable call below and in
+%   outils/ sanitizes them and raises this warning. Silenced once here
+%   for the whole session.
+warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
 
 
 %   Both of these are one-off, dataset-wide calibration constants, saved
@@ -327,12 +328,10 @@ for it=1:6
 end
 
 %   Kinematics of disks
-interp_rel_kinematics_disks = zeros(N_samples, 6, N_disks);
 interp_rel_kinematics_disks_corr = zeros(N_samples, 6, N_disks);
 for it=1:N_disks
 
     for k=1:6  
-        interp_rel_kinematics_disks(:, k, it) = interp1(relative_time_mocap, rel_kinematics_disks_f(:, k, it), sampling_time);
         interp_rel_kinematics_disks_corr(:, k, it) = interp1(relative_time_mocap, rel_kinematics_disks_corr_f(:, k, it), sampling_time);
 
     end
@@ -379,7 +378,7 @@ if plot_interpolation
     plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
         relative_time_cables, cable_tensions_f, interp_tensions, ...
         relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
-        relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num);
+        relative_time_mocap, rel_kinematics_disks_corr_f, interp_rel_kinematics_disks_corr, plot_disk_num);
 end
 
 
@@ -405,14 +404,6 @@ writematrix(interp_time_mocap_frames_corr, fullfile(saving_folder , "mocap_frame
 %   FBGS: save as N_samples x (1 + 3*N_fbgs_points), one time column
 %   followed by one [x y z] triplet per reconstruction point:
 %   columns: [time, x_0,y_0,z_0, x_1,y_1,z_1, ..., x_501,y_501,z_501]
-%   (same per-point interleaving data_fbgs.m reads from the raw FBGS
-%   CSV -- see its "Shapes seem to be saved like" comment -- carried
-%   through unchanged here; technical_validation.m's reshape back to
-%   [N_samples, 3, N_fbgs_points] on read relies on this exact order.)
-%   Neither FBGS file is written for a recording with no FBG data (see
-%   has_fbgs_data): a zero/placeholder shape would misleadingly look
-%   like a straight rod, so these files are simply absent rather than
-%   synthesized, unlike the zero-filled actuator data above.
 if has_fbgs_data
     interp_fbgs_flat = reshape(permute(interp_fbgs_shapes, [3 1 2]), N_samples, []);
     interp_time_fbgs = [sampling_time interp_fbgs_flat];

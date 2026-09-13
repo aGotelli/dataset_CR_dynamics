@@ -1,98 +1,42 @@
 %% compare_ati_resense_wrench.m
 %
-% Compares the ATI base force/torque sensor against the Resense contact
-% wand, for the two contact_motion recordings that both have this
-% cross-sensor check and are actually shown in the manuscript
-% (push_retract, touching_base -- see RECORDINGS below; a third
-% recording, touching_base_ang, also has both sensors but is not
-% referenced anywhere in the manuscript, so it is intentionally left out
-% of this comparison rather than reported on numbers nobody asked about).
-% The Resense wand's measured wrench is transported from its own
-% sensor frame to the robot base frame (via its mocap pose and a fixed
-% sensor-to-mocap offset, Ad_g) and plotted against the ATI sensor's own
-% base-frame reading, plus a couple of geometric sanity checks on the
-% wand's tracked position.
+% Compares the ATI base wrench (mini40) against the Resense contact wand
+% wrench, transported to the base frame via Ad_g, for the two
+% contact_motion recordings shown in the manuscript: push_retract and
+% touching_base. (touching_base_ang also has both sensors but is not in
+% the manuscript, so it is excluded here.)
 %
-% This script does not reprocess any raw sensor data itself: for each
-% recording it reads base_wrench.csv, wrench_wand.csv and
-% mocap_frames.csv straight from that recording's processed/ folder,
-% i.e. exactly what process_data.m already produced for it (same
-% filtering, resampling and mocap correction as the rest of the
-% pipeline). It only performs the Ad_g transport locally, which
-% process_data.m does not do -- that comparison is diagnostic, not
-% something the released dataset needs. On top of process_data.m's own
-% filtering, both wrenches are further low-pass filtered here
-% (compare_cutoffHz, currently 2 Hz) for this comparison only;
-% process_data.m's own saved CSVs are unaffected.
+% Reads process_data.m's saved base_wrench.csv, wrench_wand.csv and
+% mocap_frames.csv for each recording -- no raw reprocessing. An extra
+% low-pass filter (COMPARE_CUTOFFHZ) is applied on top of
+% process_data.m's own filtering, for this comparison only.
 %
-% CONTACT GATING: for most of any of these recordings the wand is not
-% actually touching anything (it is retracted, or the recording has not
-% reached the contact phase yet), during which both sensors read close
-% to zero and agree trivially -- lumping those samples in with the real
-% contact samples dilutes the RMSE with an easy, uninformative match.
-% Each recording's contact window is instead identified geometrically,
-% from the mocap-tracked distance between the wand sensor and whatever
-% it is meant to be touching: the tip disk for push_retract, or the base
-% origin for touching_base -- see CONTACT_REF below. The two recordings
-% touch different things, so their distance thresholds
-% (CONTACT_DIST_THRESHOLD) are set differently and are not both "disk
-% radius": push_retract presses directly on the tip disk (outer diameter
-% 80 mm, see Table~tab:robot_parameters in the manuscript, i.e. a 40 mm
-% radius), so 50 mm (radius + 10 mm margin) is used there, consistent
-% with the ~38 mm mean sensor-to-disk-centre distance already reported
-% in the manuscript for this recording. touching_base instead presses on
-% the mocap wand's own tracking stick near the base, not on the base
-% disk itself, which sits much further from the base-frame origin than
-% a disk radius would suggest (empirically, minimum ~65 mm rather than
-% ~40 mm) -- so 100 mm is kept there, as before. Both the
-% whole-recording and the contact-only statistics are computed and
-% saved, but the contact-only ones are what should be quoted in the
-% manuscript.
+% Contact gating: for most of a recording the wand isn't touching
+% anything, where both sensors trivially agree near zero. Contact
+% samples are identified from the 3D distance between the wand sensor
+% and its contact reference (tip disk for push_retract, base-frame
+% origin for touching_base), thresholded at CONTACT_THRESHOLDS below --
+% see that variable's comment for why the two recordings use different
+% values. Whole-recording and contact-only stats are both computed and
+% saved; contact-only is what should be quoted.
 %
-% Numerical summary (reviewer Comment 5.4 asked for RMSE, mean bias, max
-% absolute error, and correlation, quantifying the qualitative
-% "close/good agreement" language in the technical validation): computed
-% for all 6 wrench components, but ONLY the 3 force components are
-% reported in the manuscript. Torque is deliberately excluded from the
-% quantitative report: the moment-arm term (r x F) in the Ad_g transport
-% amplifies any sub-cm uncertainty in the wand's fixed sensor offset
-% (g_fix) by the applied force, so torque residuals grow with contact
-% force. This is not a simple, correctable sign error either -- checked
-% by testing a moment-arm sign flip, and separately by decomposing the
-% transported torque into its own-rotation and moment-arm-cross pieces:
-% which torque axis disagrees in sign is inconsistent across recordings
-% (including touching_base_ang, a recording with both sensors that is
-% not part of this script's RECORDINGS -- see the note above), so no
-% single correction fixes it everywhere. That points to a real
-% calibration issue in the wand's fixed sensor offset (g_fix) rather
-% than a code bug, and is out of scope for this revision.
-% Torque RMSE is still computed and saved per recording, for anyone who
-% wants to look, but it is not part of the reported validation numbers.
+% Reported metrics (Comment 5.4): RMSE, bias, max abs error and Pearson
+% r, for Fx/Fy only, contact samples only. Fz is excluded (the sensor's
+% vertical axis carries no contact-force signal in either test). Torque
+% is excluded too: the moment-arm term in the Ad_g transport amplifies
+% any g_fix uncertainty by the applied force, so residuals scale with
+% load rather than reflecting a fixed offset (see the manuscript text).
+% All 6 components' whole-recording RMSE is still saved as a
+% diagnostic.
 %
-% Per-recording outputs, in that recording's own processed/ folder
-% (alongside the data they were computed from -- this script does not
-% touch or recompute any of process_data.m's own saved CSVs):
-%   wrench_RMSEs.txt   - all 6 components' whole-recording RMSE, plus the
-%                        forces-only bias/max-abs-error/correlation
-%                        block, both whole-recording and contact-only
-% Combined output, in this script's own folder (spans multiple
-% recordings, so it does not belong inside any one recording's
-% processed/ folder):
-%   contact_force_validation_summary.txt - forces-only, contact-only
-%                        RMSE/bias/max abs error/correlation for every
-%                        recording in RECORDINGS, side by side -- this
-%                        is what the manuscript table (Comment 5.4) is
-%                        built from.
-% Plots are saved per recording into this script's own figures/<recording>/
-% folder; the distance plot marks the contact threshold and the
-% resulting contact mask.
+% Outputs: wrench_RMSEs.txt per recording (in its own processed/
+% folder), plus contact_force_validation_summary.txt (in this script's
+% folder, forces/contact-only, all recordings side by side -- this is
+% the manuscript table). Figures saved under figures/<recording>/.
 %
-% process_data.m must have been run for every recording in RECORDINGS
-% first, so that each one's processed/ folder contains base_wrench.csv,
-% wrench_wand.csv and mocap_frames.csv.
-%
-% Run this script directly; it locates the dataset relative to its own
-% file location, so MATLAB's current folder does not matter.
+% Requires process_data.m to have already been run for every recording
+% in RECORDINGS. Run directly; paths are relative to this file, not
+% MATLAB's current folder.
 
 close all;
 clear;
@@ -100,45 +44,33 @@ clc;
 
 %% ====== PATHS / SETTINGS ======
 
-% Located from this script's own file location rather than a path
-% relative to MATLAB's current folder: this script lives inside
-% code/postprocessing/tests/, and data/ is code/'s sibling folder, so
-% climb up to code/ and step across into data/.
+% This script lives in code/postprocessing/tests/; data/ is code/'s
+% sibling folder.
 this_script_folder = fileparts(mfilename('fullpath'));
 code_folder = fileparts(fileparts(this_script_folder));
 data_root = fullfile(fileparts(code_folder), "data");
 
-%   The two contact_motion recordings referenced in the manuscript's
-%   contact-force validation section (fig:wrench_push_retract,
-%   fig:wrench_touch_base). touching_base_ang also has both an ATI base
-%   sensor and a Resense contact wand, but it is not shown in the
-%   manuscript, so it is intentionally left out here -- see the header
-%   comment.
+% The two recordings referenced in the manuscript
+% (fig:wrench_push_retract, fig:wrench_touch_base). touching_base_ang
+% also has both sensors but is not in the manuscript, so it's excluded.
 recordings = ["push_retract", "touching_base"];
 
-%   What each recording's wand is actually touching, and how close (in
-%   metres, 3D) it has to be for that to count as contact -- see the
-%   CONTACT GATING note above. push_retract pushes/retracts directly
-%   against the tip disk (40 mm radius + 10 mm margin = 0.05 m);
-%   touching_base presses on the mocap wand's own tracking stick near
-%   the base rather than on the base disk itself, so its threshold is
-%   kept at the larger, empirically-checked 0.10 m used previously.
+% Contact reference point and distance threshold (m) per recording.
+% push_retract: wand presses the tip disk directly (40 mm radius +
+% 10 mm margin = 0.05 m). touching_base: wand presses its own mocap
+% bracket, not the base disk, which sits further from the base-frame
+% origin -- so the larger, empirically-checked 0.10 m is kept.
 contact_refs       = ["tip",  "base"];
 contact_thresholds = [0.05,   0.10 ];
 
-% Number of tracked OptiTrack disks for these recordings: the 5 robot
-% disks plus the Resense wand (disk index 6, 1-based) -- see
+% 5 robot disks + Resense wand (disk index 6, 1-based) -- see
 % outils/data_optitrack.m.
 N_disks = 6;
 wand_disk_index = 6;
 tip_disk_index = 5;
 
-%   process_data.m's own filtering (cutoffHz there, currently 15 Hz) is
-%   tuned for the released dataset. The raw ATI-vs-Resense comparison is
-%   noisy enough at that cutoff that a stronger filter is applied here,
-%   on top of it, purely for this diagnostic comparison -- it does not
-%   change anything process_data.m saves. Applied identically to every
-%   recording in RECORDINGS so the numbers stay comparable across them.
+% Extra low-pass filter on top of process_data.m's own (15 Hz), for
+% this comparison only -- does not affect anything process_data.m saves.
 compare_cutoffHz = 2;
 compare_butterOrder = 4;
 
@@ -230,10 +162,10 @@ for ir = 1:numel(recordings)
 
 
     %% ------ NUMERICAL SUMMARY ------
-    %   All 6 components' RMSE, whole recording (diagnostic only -- see
-    %   header comment). Forces-only bias/max-abs-error/correlation are
-    %   computed twice: once over the whole recording (diagnostic), and
-    %   once restricted to CONTACT_MASK (the numbers to actually quote).
+    %   Forces-only bias/max-abs-err/correlation, computed both over the
+    %   whole recording (diagnostic) and restricted to CONTACT_MASK (the
+    %   numbers to quote). All 6 components' RMSE is also kept, whole
+    %   recording only, as a diagnostic.
 
     rmse_wrench = rmse(wrench_at_base', interp_base_wrench);
 
@@ -262,12 +194,7 @@ for ir = 1:numel(recordings)
     end
     fprintf("\n");
 
-    %   Per-recording file, in the recording's own processed/ folder,
-    %   alongside the data it was computed from. All 6 components'
-    %   whole-recording RMSE are kept here as a diagnostic (including
-    %   torque), even though only the contact-only forces are reported
-    %   in the manuscript -- see the header comment at the top of this
-    %   file.
+    %   Per-recording file, alongside the data it was computed from.
     fid = fopen(fullfile(processed_folder, "wrench_RMSEs.txt"), 'w');
     fprintf(fid, "ATI vs Ad_g-transported Resense (%d Hz comparison filter)\n", compare_cutoffHz);
     fprintf(fid, "Contact ref: %s, threshold %.2f m, %d/%d samples in contact (%.1f%%)\n\n", ...
@@ -290,10 +217,7 @@ for ir = 1:numel(recordings)
     end
     fclose(fid);
 
-    %   Combined cross-recording summary (forces only, contact-only),
-    %   for the manuscript table -- this spans multiple recordings, so
-    %   it lives next to this script rather than inside any one
-    %   recording's processed/ folder.
+    %   Combined cross-recording summary, for the manuscript table.
     fprintf(summary_fid, "%s (contact ref: %s, threshold %.2f m, %d/%d samples in contact, %.1f%%):\n", ...
         recording, contact_ref, contact_threshold, N_contact, N_samples, contact_frac);
     for k = 1:numel(force_idx)
@@ -338,9 +262,7 @@ for ir = 1:numel(recordings)
     saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
-    % Robot tip (disk 5) vs the wand sensor's transported position, as a
-    % geometric sanity check on the Ad_g offset (g_fix, inside
-    % compute_wrench_at_base below).
+    % Tip disk vs wand sensor position -- sanity check on the g_fix offset.
     fig = figure("Name", "Position disk and wand");
     pos_labels = {'p_x [m]', 'p_y [m]', 'p_z [m]'};
     for it = 1:3
@@ -357,10 +279,7 @@ for ir = 1:numel(recordings)
     saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
-    % 3D distance between the wand sensor and its contact reference
-    % (robot tip or base origin, see CONTACT_REF), with the contact
-    % threshold marked -- this is exactly what CONTACT_MASK is built
-    % from, so it doubles as a sanity check on the gating.
+    % Distance to the contact reference -- what CONTACT_MASK is built from.
     fig = figure("Name", "Distance sensor from contact reference");
     plot(sampling_time, dist_contact, 'b', 'LineWidth', 1)
     hold on
