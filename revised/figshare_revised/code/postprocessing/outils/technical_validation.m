@@ -1,17 +1,24 @@
-function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, plot_validation)
+function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, has_fbgs_data, plot_validation)
     %TECHNICAL_VALIDATION Computes the dataset's technical-validation
-    %   metrics: Mocap vs FBGS shape RMSE per disk, and Mocap vs motor
-    %   cable-length RMSE. Reads only the CSV files already written to
-    %   saving_folder by process_data.m, and writes RMSEs.txt back into
-    %   that same folder. If plot_validation is true, also generates and
-    %   saves the corresponding comparison figures into saving_fig_folder.
+    %   metrics: Mocap vs FBGS shape RMSE per disk (when this recording
+    %   has FBG data), and Mocap vs motor cable-length RMSE. Reads only
+    %   the CSV files already written to saving_folder by process_data.m,
+    %   and writes RMSEs.txt back into that same folder. If
+    %   plot_validation is true, also generates and saves the
+    %   corresponding comparison figures into saving_fig_folder.
     %
     %   saving_folder         - this recording's processed/ folder,
     %                           containing angles.csv, mocap_frames.csv,
-    %                           and fbgs_shapes.csv
+    %                           and (when has_fbgs_data) fbgs_shapes.csv
     %   saving_fig_folder     - folder to save validation figures into
     %   N_disks               - number of tracked OptiTrack disks
     %   N_fbgs_points         - number of FBG shape-reconstruction points
+    %                           (0 when has_fbgs_data is false)
+    %   has_fbgs_data         - whether this recording has FBG data (see
+    %                           process_data.m's has_fbgs_data). When
+    %                           false, fbgs_shapes.csv does not exist, so
+    %                           the mocap-vs-FBGS RMSE section and its
+    %                           figures are skipped entirely.
     %   plot_validation       - whether to generate and save figures
 
     angles_csv = readmatrix(fullfile(saving_folder, "angles.csv"));
@@ -22,33 +29,37 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     mocap_csv = readmatrix(fullfile(saving_folder, "mocap_frames.csv"));
     interp_rel_kinematics_disks_corr = reshape(mocap_csv(:, 2:end), [N_samples, 6, N_disks]);
 
-    fbgs_csv = readmatrix(fullfile(saving_folder, "fbgs_shapes.csv"));
-    interp_fbgs_shapes = permute(reshape(fbgs_csv(:, 2:end), [N_samples, 3, N_fbgs_points]), [2 3 1]);
-
-    %   FBG sample index closest to each of the 5 robot disks (same
-    %   mapping process_data.m uses -- see disk_z_positions_m there)
-    disk_z_positions_m = [0 0.12 0.24 0.36 0.48];
-    FBGS_disk_indices = max(round(disk_z_positions_m*1000), 1);
-    FBGS_tip_index = FBGS_disk_indices(5);
-
     %   Mocap vs FBGS: RMSE at every disk, using the corrected mocap
-    %   poses (the ones actually released, in mocap_frames.csv).
+    %   poses (the ones actually released, in mocap_frames.csv). Skipped
+    %   entirely when this recording has no FBG data -- there is no
+    %   fbgs_shapes.csv to read (see has_fbgs_data).
     N_disks_robot = 5;
-    RMSE_disks = zeros(N_disks_robot, 3);
-    RMSE_disks_perc_motion = zeros(N_disks_robot, 3);
-    for d = 1:N_disks_robot
-        xyz_disk_d = interp_rel_kinematics_disks_corr(:, 4:6, d);
-        xyz_FBGS_d = squeeze(interp_fbgs_shapes(:, FBGS_disk_indices(d), :))';
+    if has_fbgs_data
+        fbgs_csv = readmatrix(fullfile(saving_folder, "fbgs_shapes.csv"));
+        interp_fbgs_shapes = permute(reshape(fbgs_csv(:, 2:end), [N_samples, 3, N_fbgs_points]), [2 3 1]);
 
-        RMSE_disks(d, :) = rmse(xyz_FBGS_d, xyz_disk_d);
+        %   FBG sample index closest to each of the 5 robot disks (same
+        %   mapping process_data.m uses -- see disk_z_positions_m there)
+        disk_z_positions_m = [0 0.12 0.24 0.36 0.48];
+        FBGS_disk_indices = max(round(disk_z_positions_m*1000), 1);
+        FBGS_tip_index = FBGS_disk_indices(5);
 
-        range_disk_d = max(xyz_disk_d) - min(xyz_disk_d);
-        RMSE_disks_perc_motion(d, :) = (RMSE_disks(d, :)./range_disk_d)*100;
+        RMSE_disks = zeros(N_disks_robot, 3);
+        RMSE_disks_perc_motion = zeros(N_disks_robot, 3);
+        for d = 1:N_disks_robot
+            xyz_disk_d = interp_rel_kinematics_disks_corr(:, 4:6, d);
+            xyz_FBGS_d = squeeze(interp_fbgs_shapes(:, FBGS_disk_indices(d), :))';
+
+            RMSE_disks(d, :) = rmse(xyz_FBGS_d, xyz_disk_d);
+
+            range_disk_d = max(xyz_disk_d) - min(xyz_disk_d);
+            RMSE_disks_perc_motion(d, :) = (RMSE_disks(d, :)./range_disk_d)*100;
+        end
+
+        %   Tip-only numbers (disk 5), reported alongside the per-disk ones.
+        RMSE_tip = RMSE_disks(5, :);
+        RMSE_tip_perc_motion = RMSE_disks_perc_motion(5, :);
     end
-
-    %   Tip-only numbers (disk 5), reported alongside the per-disk ones.
-    RMSE_tip = RMSE_disks(5, :);
-    RMSE_tip_perc_motion = RMSE_disks_perc_motion(5, :);
 
 
     %   Mocap vs motor: cable-length RMSE
@@ -66,14 +77,18 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     RMSE_cables_perc_motion(idx_0) = 0;
 
 
-    %   Save RMSEs
+    %   Save RMSEs. Disk RMSE lines are omitted entirely for a recording
+    %   with no FBG data (see has_fbgs_data), rather than left as
+    %   placeholders.
     fid = fopen(fullfile(saving_folder , "RMSEs.txt"), 'w');
-    for d = 1:N_disks_robot
-        fprintf(fid, 'RMSE_disk_%d = [%s]\n', d, strjoin(string(RMSE_disks(d, :)), ', '));
-        fprintf(fid, 'RMSE_disk_%d_perc_motion = [%s]\n', d, strjoin(string(RMSE_disks_perc_motion(d, :)), ', '));
+    if has_fbgs_data
+        for d = 1:N_disks_robot
+            fprintf(fid, 'RMSE_disk_%d = [%s]\n', d, strjoin(string(RMSE_disks(d, :)), ', '));
+            fprintf(fid, 'RMSE_disk_%d_perc_motion = [%s]\n', d, strjoin(string(RMSE_disks_perc_motion(d, :)), ', '));
+        end
+        fprintf(fid, 'RMSE_tip = [%s]\n', strjoin(string(RMSE_tip), ', '));
+        fprintf(fid, 'RMSE_tip_perc_motion = [%s]\n', strjoin(string(RMSE_tip_perc_motion), ', '));
     end
-    fprintf(fid, 'RMSE_tip = [%s]\n', strjoin(string(RMSE_tip), ', '));
-    fprintf(fid, 'RMSE_tip_perc_motion = [%s]\n', strjoin(string(RMSE_tip_perc_motion), ', '));
     fprintf(fid, 'RMSE_cables = [%s]\n', strjoin(string(RMSE_cables), ', '));
     fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc_motion), ', '));
     fclose(fid);
@@ -81,21 +96,26 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
 
     if plot_validation
 
-        XYZ_xyz_disk = interp_rel_kinematics_disks_corr(:, :, 5);
-        xyz_FBGS = squeeze(interp_fbgs_shapes(:, FBGS_tip_index, :));
+        %   Both figures below overlay FBGS against mocap, so they are
+        %   skipped when this recording has no FBG data (see
+        %   has_fbgs_data); interp_fbgs_shapes would not even be defined.
+        if has_fbgs_data
+            XYZ_xyz_disk = interp_rel_kinematics_disks_corr(:, :, 5);
+            xyz_FBGS = squeeze(interp_fbgs_shapes(:, FBGS_tip_index, :));
 
-        fig = figure("Name", "Tip Trajectory xy plane");
-        interp_xy_tip = interp_rel_kinematics_disks_corr(:, 4:5, 5);
-        plot(interp_xy_tip(:, 1), interp_xy_tip(:, 2), 'LineWidth', 1)
-        hold on
-        plot(xyz_FBGS(1, :), xyz_FBGS(2, :), "r", "LineWidth", 1.0)
-        grid on
-        xlim([-.35 .35])
-        ylim([-.35 .35])
-        xlabel("p_x [m]")
-        ylabel("p_y [m]")
-        savefig(saving_fig_folder + fig.Name)
-        saveas(fig, saving_fig_folder + fig.Name, 'png')
+            fig = figure("Name", "Tip Trajectory xy plane");
+            interp_xy_tip = interp_rel_kinematics_disks_corr(:, 4:5, 5);
+            plot(interp_xy_tip(:, 1), interp_xy_tip(:, 2), 'LineWidth', 1)
+            hold on
+            plot(xyz_FBGS(1, :), xyz_FBGS(2, :), "r", "LineWidth", 1.0)
+            grid on
+            xlim([-.35 .35])
+            ylim([-.35 .35])
+            xlabel("p_x [m]")
+            ylabel("p_y [m]")
+            savefig(saving_fig_folder + fig.Name)
+            saveas(fig, saving_fig_folder + fig.Name, 'png')
+        end
 
 
         fig = figure("Name", "Motors Angles");
@@ -110,27 +130,29 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
         saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
-        fig = figure("Name", "Tip Position Interpolated");
-        vars = {'p_x', 'p_y', 'p_z'};
-        for it = 1:3
-            subplot(3,1,it)
+        if has_fbgs_data
+            fig = figure("Name", "Tip Position Interpolated");
+            vars = {'p_x', 'p_y', 'p_z'};
+            for it = 1:3
+                subplot(3,1,it)
 
-            plot(sampling_time, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
-            set(gca,"FontSize",20)
-            hold on
-            plot(sampling_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
-            set(gca,"FontSize",20)
+                plot(sampling_time, XYZ_xyz_disk(:, it + 3), "b", "LineWidth", 2.0)
+                set(gca,"FontSize",20)
+                hold on
+                plot(sampling_time, xyz_FBGS(it, :), "r", "LineWidth", 2.0)
+                set(gca,"FontSize",20)
 
-            grid on
-            ylabel([vars{it} ' [m]'], "FontSize", 20)
+                grid on
+                ylabel([vars{it} ' [m]'], "FontSize", 20)
 
-            if it == 3
-                xlabel("Time [s]", "FontSize", 20)
+                if it == 3
+                    xlabel("Time [s]", "FontSize", 20)
+                end
             end
+            legend('OptiTrack', 'FBGS')
+            savefig(saving_fig_folder + fig.Name)
+            saveas(fig, saving_fig_folder + fig.Name, 'png')
         end
-        legend('OptiTrack', 'FBGS')
-        savefig(saving_fig_folder + fig.Name)
-        saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
         cable_labels = {'+x', '+y', '-x', '-y'};

@@ -14,7 +14,7 @@ addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "dynamic_motion/","circle_fast/");
+folder = fullfile(data_root, "contact_motion/","touching_base_ang/");
 
 
 %%  Postprocessing properties
@@ -91,6 +91,12 @@ ati = readtable(fullfile(folder, "dataATIFT.csv"));
 %   without the actuator rig running.
 has_actuator_data = isfile(fullfile(folder, "dataMotor.csv"));
 
+%   Flag to load FBG data: some recordings (e.g. the FT-sensor-only
+%   contact_motion/touching_base and touching_base_ang) have no
+%   dataFBGS.csv at all. Passed into align_mocap_and_fbgs so it can skip
+%   the FBG load/alignment entirely for those recordings.
+has_fbgs_data = isfile(fullfile(folder, "dataFBGS.csv"));
+
 if use_resense
     resense = readtable(fullfile(folder, "dataResenseFT.csv"));
 
@@ -103,12 +109,15 @@ end
 %   Load and spatially align the OptiTrack and FBG data for this recording.
 [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s, data_root);
+    align_mocap_and_fbgs(folder, use_resense, has_fbgs_data, align_window_s, data_root);
 
 %   Load the FBG pipeline-delay correction, measured separately (see the
 %   generation step above -- lag_FBGS_file is guaranteed to exist by now).
-lag_FBGS = str2double(fileread(lag_FBGS_file));
-fbgs_time = fbgs_time - lag_FBGS/1000;
+%   Skipped when this recording has no FBG data (fbgs_time is then empty).
+if has_fbgs_data
+    lag_FBGS = str2double(fileread(lag_FBGS_file));
+    fbgs_time = fbgs_time - lag_FBGS/1000;
+end
 
 
 
@@ -177,21 +186,28 @@ end
 %   Compuse the wrench (force first convention)
 ATI_FT_f = [ATI_F_f ATI_T_f];
 
-%   Filter FBG shapes
-fbgs_shapes_f = zeros(size(fbgs_shapes));   % 3 x 502 x N_time_fbgs
+%   N_fbgs_points is 0 when this recording has no FBG data (see
+%   has_fbgs_data -- align_mocap_and_fbgs then returns fbgs_shapes sized
+%   3 x 0 x 0), so it is always safe to compute unconditionally here.
 N_fbgs_points = size(fbgs_shapes, 2);
-for coord = 1:3
-    for s = 1:N_fbgs_points
-        fbgs_shapes_f(coord, s, :) = butter_filtfilt(fbgs_time, squeeze(fbgs_shapes(coord, s, :)), cutoffHz, butterOrder);
-    end
-end
 
-%   Filter FBG angle and curvature
-fbgs_angles_t = zeros(size(fbgs_angles));
-fbgs_curvatures_f = zeros(size(fbgs_curvatures));
-for it = 1:26
-    fbgs_angles_t(:,it) = butter_filtfilt(fbgs_time, fbgs_angles(:,it), cutoffHz, butterOrder);
-    fbgs_curvatures_f(:,it) = butter_filtfilt(fbgs_time, fbgs_curvatures(:,it), cutoffHz, butterOrder);
+%   Filter FBG shapes, angle and curvature. Skipped entirely when this
+%   recording has no FBG data (fbgs_time would be empty, and
+%   butter_filtfilt cannot estimate a sampling rate from it).
+if has_fbgs_data
+    fbgs_shapes_f = zeros(size(fbgs_shapes));   % 3 x 502 x N_time_fbgs
+    for coord = 1:3
+        for s = 1:N_fbgs_points
+            fbgs_shapes_f(coord, s, :) = butter_filtfilt(fbgs_time, squeeze(fbgs_shapes(coord, s, :)), cutoffHz, butterOrder);
+        end
+    end
+
+    fbgs_angles_t = zeros(size(fbgs_angles));
+    fbgs_curvatures_f = zeros(size(fbgs_curvatures));
+    for it = 1:26
+        fbgs_angles_t(:,it) = butter_filtfilt(fbgs_time, fbgs_angles(:,it), cutoffHz, butterOrder);
+        fbgs_curvatures_f(:,it) = butter_filtfilt(fbgs_time, fbgs_curvatures(:,it), cutoffHz, butterOrder);
+    end
 end
 
 %   Filter the disks kinematics (relative to robot base)
@@ -216,8 +232,9 @@ end
 
 
 
-%   plot the extracted data
-if plot_mocap_fbgs_corrections
+%   plot the extracted data (this figure overlays FBGS, so it needs FBG
+%   data; skipped for recordings without it -- see has_fbgs_data)
+if plot_mocap_fbgs_corrections && has_fbgs_data
     plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
         fbgs_time, fbgs_shapes, FBGS_tip_index);
 end
@@ -234,28 +251,35 @@ end
 %% ====== INTERPOLATION ======
 
 
-%   Find the max initial time (last sensor to start streaming)
+%   Find the max initial time (last sensor to start streaming). Built up
+%   incrementally so fbgs_time(1)/time_resense(1) are only touched when
+%   that sensor is actually present -- fbgs_time is empty for recordings
+%   with no FBG data (see has_fbgs_data), and indexing an empty array
+%   errors.
 init_time = max([time_actuators(1), ...
     time_cables{1}(1), time_cables{2}(1), time_cables{3}(1), time_cables{4}(1), ...
-    tA(1), mocap_timestamps(1), fbgs_time(1)]);
+    tA(1), mocap_timestamps(1)]);
 
-if use_resense
-    init_time = max([time_actuators(1), ...
-        time_cables{1}(1), time_cables{2}(1), time_cables{3}(1), time_cables{4}(1), ...
-        tA(1), time_resense(1), ...
-        mocap_timestamps(1), fbgs_time(1)]);
+if has_fbgs_data
+    init_time = max(init_time, fbgs_time(1));
 end
 
-%   Find the min final time (first sensor to stop streaming)
+if use_resense
+    init_time = max(init_time, time_resense(1));
+end
+
+%   Find the min final time (first sensor to stop streaming); same
+%   incremental-build reasoning as init_time above.
 end_time = min([time_actuators(end), ...
     time_cables{1}(end), time_cables{2}(end), time_cables{3}(end), time_cables{4}(end), ...
-    tA(end), mocap_timestamps(end), fbgs_time(end)]);
+    tA(end), mocap_timestamps(end)]);
+
+if has_fbgs_data
+    end_time = min(end_time, fbgs_time(end));
+end
 
 if use_resense
-    end_time = min([time_actuators(end), ...
-        time_cables{1}(end), time_cables{2}(end), time_cables{3}(end), time_cables{4}(end), ...
-        tA(end), time_resense(end), ...
-        mocap_timestamps(end), fbgs_time(end)]);
+    end_time = min(end_time, time_resense(end));
 end
 
 %   Compute the relative timestamp with respect to the initial timestamp
@@ -314,20 +338,22 @@ for it=1:N_disks
     end
 end
 
-%   FBG shapes
-interp_fbgs_shapes = zeros(3, N_fbgs_points, N_samples);
-for coord = 1:3
-    for s = 1:N_fbgs_points
-        interp_fbgs_shapes(coord, s, :) = interp1(relative_time_fbgs, squeeze(fbgs_shapes_f(coord, s, :)), sampling_time);
+%   FBG shapes, curvature and angle. Skipped entirely when this
+%   recording has no FBG data -- see has_fbgs_data.
+if has_fbgs_data
+    interp_fbgs_shapes = zeros(3, N_fbgs_points, N_samples);
+    for coord = 1:3
+        for s = 1:N_fbgs_points
+            interp_fbgs_shapes(coord, s, :) = interp1(relative_time_fbgs, squeeze(fbgs_shapes_f(coord, s, :)), sampling_time);
+        end
     end
-end
 
-%   FBG curvature and angle
-interp_fbgs_angles = zeros(N_samples, 26);
-interp_fbgs_curvatures = zeros(N_samples, 26);
-for it = 1:26
-    interp_fbgs_angles(:,it) = interp1(relative_time_fbgs, fbgs_angles_t(:, it), sampling_time)';
-    interp_fbgs_curvatures(:,it) = interp1(relative_time_fbgs, fbgs_curvatures_f(:, it), sampling_time)';
+    interp_fbgs_angles = zeros(N_samples, 26);
+    interp_fbgs_curvatures = zeros(N_samples, 26);
+    for it = 1:26
+        interp_fbgs_angles(:,it) = interp1(relative_time_fbgs, fbgs_angles_t(:, it), sampling_time)';
+        interp_fbgs_curvatures(:,it) = interp1(relative_time_fbgs, fbgs_curvatures_f(:, it), sampling_time)';
+    end
 end
 
 
@@ -383,20 +409,25 @@ writematrix(interp_time_mocap_frames_corr, fullfile(saving_folder , "mocap_frame
 %   CSV -- see its "Shapes seem to be saved like" comment -- carried
 %   through unchanged here; technical_validation.m's reshape back to
 %   [N_samples, 3, N_fbgs_points] on read relies on this exact order.)
-interp_fbgs_flat = reshape(permute(interp_fbgs_shapes, [3 1 2]), N_samples, []);
-interp_time_fbgs = [sampling_time interp_fbgs_flat];
-writematrix(interp_time_fbgs, fullfile(saving_folder, "fbgs_shapes.csv"));
+%   Neither FBGS file is written for a recording with no FBG data (see
+%   has_fbgs_data): a zero/placeholder shape would misleadingly look
+%   like a straight rod, so these files are simply absent rather than
+%   synthesized, unlike the zero-filled actuator data above.
+if has_fbgs_data
+    interp_fbgs_flat = reshape(permute(interp_fbgs_shapes, [3 1 2]), N_samples, []);
+    interp_time_fbgs = [sampling_time interp_fbgs_flat];
+    writematrix(interp_time_fbgs, fullfile(saving_folder, "fbgs_shapes.csv"));
+
+    interp_time_fbgs_strain = [sampling_time interp_fbgs_curvatures interp_fbgs_angles];
+    writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv"));
+end
 
 if use_resense
     writematrix(interp_wrench_wand, fullfile(saving_folder , "wrench_wand.csv"));
 end
 
-
-interp_time_fbgs_strain      = [sampling_time interp_fbgs_curvatures interp_fbgs_angles];
-writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv"));
-
 %%  Compute metrics for dataset techinical validation
-technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, plot_validation);
+technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, has_fbgs_data, plot_validation);
 
 fprintf("   SAVED DATA");
 

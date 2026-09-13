@@ -1,14 +1,22 @@
 function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, align_window_s, data_root)
-%ALIGN_MOCAP_AND_FBGS Load one recording's OptiTrack and FBG data and put
-%   them in a common, spatially-aligned frame.
+    align_mocap_and_fbgs(folder, use_resense, has_fbgs_data, align_window_s, data_root)
+%ALIGN_MOCAP_AND_FBGS Load one recording's OptiTrack and (if present) FBG
+%   data and put them in a common, spatially-aligned frame.
 %
 %   Inputs:
 %     folder          - path to one recording's folder (containing
-%                        dataOptiTrack.csv and dataFBGS.csv)
+%                        dataOptiTrack.csv, and dataFBGS.csv when
+%                        has_fbgs_data)
 %     use_resense     - passed straight through to data_optitrack (true
 %                        for recordings that also track the Resense wand)
+%     has_fbgs_data   - whether this recording has a dataFBGS.csv at all
+%                        (some FT-sensor-only recordings, e.g.
+%                        contact_motion/touching_base, do not). When
+%                        false, the entire FBG load/alignment below is
+%                        skipped -- it does not affect the mocap load or
+%                        per-disk correction, which do not depend on FBG
+%                        data being present.
 %     align_window_s  - length, in seconds, of the initial portion of the
 %                        recording used to determine the bending-plane
 %                        rotation (both mocap and FBG use their own first
@@ -30,12 +38,18 @@ function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_
 %                                    carried through unchanged from
 %                                    rel_kinematics_disks
 %     fbgs_time                   - FBG timestamps, UNCORRECTED (see
-%                                    above -- no pipeline-delay shift)
+%                                    above -- no pipeline-delay shift).
+%                                    Empty when has_fbgs_data is false.
 %     fbgs_shapes                 - FBG reconstructed shapes, rotated
 %                                    into the robot body frame and
-%                                    aligned to the mocap bending plane
+%                                    aligned to the mocap bending plane.
+%                                    Sized 3 x 0 x 0 when has_fbgs_data is
+%                                    false, so that N_fbgs_points (=
+%                                    size(fbgs_shapes, 2) downstream)
+%                                    comes out 0 without special-casing.
 %     fbgs_curvatures, fbgs_angles - passed straight through from
-%                                    data_fbgs, unchanged
+%                                    data_fbgs, unchanged. Empty when
+%                                    has_fbgs_data is false.
 
 
 
@@ -53,75 +67,92 @@ end
 filename = fullfile(folder, "dataOptiTrack.csv");
 [N_disks, mocap_timestamps, ~, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense);
 
-%   Temporal variable used to defined align window
-mocap_time_rel  = mocap_timestamps - mocap_timestamps(1);
-idx_align      = mocap_time_rel <= align_window_s;
+%   Everything below (mocap bending-plane angle, FBG load, and the
+%   FBG-to-mocap realignment) exists purely to align the FBG shape to
+%   mocap's frame, so all of it is skipped when this recording has no
+%   FBG data -- see has_fbgs_data. The mocap load above and the per-disk
+%   correction further below are unaffected either way.
+if has_fbgs_data
 
-%   Extract kinematics tip disk which present the most ample motion
-XYZ_xyz_tip_disk = rel_kinematics_disks(:, :, 5);
-tip_xy_mocap  = XYZ_xyz_tip_disk(idx_align, 4:5);
+    %   Temporal variable used to defined align window
+    mocap_time_rel  = mocap_timestamps - mocap_timestamps(1);
+    idx_align      = mocap_time_rel <= align_window_s;
 
-%   Center to compute the plane of motion
-tip_xy_mocap_centered = tip_xy_mocap - mean(tip_xy_mocap, 1);
-[~, ~, V_m] = svd(tip_xy_mocap_centered, 'econ');
+    %   Extract kinematics tip disk which present the most ample motion
+    XYZ_xyz_tip_disk = rel_kinematics_disks(:, :, 5);
+    tip_xy_mocap  = XYZ_xyz_tip_disk(idx_align, 4:5);
 
-%   Angle of the principal (max-variance) direction w.r.t. the x-axis.
-theta_z_mocap = atan2(V_m(2, 1), V_m(1, 1));
+    %   Center to compute the plane of motion
+    tip_xy_mocap_centered = tip_xy_mocap - mean(tip_xy_mocap, 1);
+    [~, ~, V_m] = svd(tip_xy_mocap_centered, 'econ');
 
-if bending_axis == 'y'
-    theta_z_mocap = pi/2 - theta_z_mocap;       % map onto y-axis
+    %   Angle of the principal (max-variance) direction w.r.t. the x-axis.
+    theta_z_mocap = atan2(V_m(2, 1), V_m(1, 1));
+
+    if bending_axis == 'y'
+        theta_z_mocap = pi/2 - theta_z_mocap;       % map onto y-axis
+    else
+        theta_z_mocap = 0 - theta_z_mocap;          % map onto x-axis
+    end
+
+    %%  FBG section
+
+    %   Extract data
+    filename = fullfile(folder, "dataFBGS.csv");
+    [fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = data_fbgs(filename);
+
+    %   Apply rotation of -90 deg along y axis to ALL shapes (align with mocap
+    %   convention)
+    R_y = axang2rotm([0 1 0 -pi/2]);
+    N_time_fbgs = size(fbgs_shapes, 3);
+    for t = 1:N_time_fbgs
+        fbgs_shapes(:, :, t) = R_y * fbgs_shapes(:, :, t);
+    end
+
+    %   The fiber now evolves in z, but bending leaks into both x and y.
+    %   Use SVD on the tip x-y trajectory (first 10 s only, planar portion)
+    %   to find the bending direction, then rotate about z.
+    fbgs_time_rel  = fbgs_time - fbgs_time(1);
+    idx_align      = fbgs_time_rel <= align_window_s;
+
+    tip_xy_all     = squeeze(fbgs_shapes(1:2, end, :));   % 2 x N_time
+    tip_xy         = tip_xy_all(:, idx_align);            % 2 x N_align
+    tip_xy_centered = (tip_xy - mean(tip_xy, 2))'; %   Transpose to N_align x 2
+    [~, ~, V_f] = svd(tip_xy_centered, 'econ');
+
+    %   Angle of the principal (max-variance) direction w.r.t. the x-axis.
+    theta_z_fbgs = atan2(V_f(2, 1), V_f(1, 1));
+
+    if bending_axis == 'y'
+        theta_z_fbgs = pi/2 - theta_z_fbgs;       % map onto y-axis
+    else
+        theta_z_fbgs = 0 - theta_z_fbgs;          % map onto x-axis
+    end
+
+
+    %%  Realign section
+
+    if bending_axis == 'y'
+        theta_z = theta_z_fbgs + theta_z_mocap;
+    else
+        theta_z = theta_z_fbgs - theta_z_mocap;
+    end
+
+    R_z = axang2rotm([0 0 1 theta_z]);
+    for t = 1:N_time_fbgs
+        fbgs_shapes(:, :, t) = R_z * fbgs_shapes(:, :, t);
+    end
+
 else
-    theta_z_mocap = 0 - theta_z_mocap;          % map onto x-axis
+    %   No FBG data for this recording: empty placeholders. fbgs_shapes
+    %   is 3 x 0 x 0 so that N_fbgs_points (= size(fbgs_shapes, 2)
+    %   downstream, in process_data.m and technical_validation.m) comes
+    %   out 0 without any special-casing there.
+    fbgs_time = [];
+    fbgs_shapes = zeros(3, 0, 0);
+    fbgs_curvatures = [];
+    fbgs_angles = [];
 end
-
-%%  FBG section
-
-%   Extract data
-filename = fullfile(folder, "dataFBGS.csv");
-[fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = data_fbgs(filename);
-
-%   Apply rotation of -90 deg along y axis to ALL shapes (align with mocap
-%   convention)
-R_y = axang2rotm([0 1 0 -pi/2]);
-N_time_fbgs = size(fbgs_shapes, 3);
-for t = 1:N_time_fbgs
-    fbgs_shapes(:, :, t) = R_y * fbgs_shapes(:, :, t);
-end
-
-%   The fiber now evolves in z, but bending leaks into both x and y.
-%   Use SVD on the tip x-y trajectory (first 10 s only, planar portion)
-%   to find the bending direction, then rotate about z.
-fbgs_time_rel  = fbgs_time - fbgs_time(1);
-idx_align      = fbgs_time_rel <= align_window_s;
-
-tip_xy_all     = squeeze(fbgs_shapes(1:2, end, :));   % 2 x N_time
-tip_xy         = tip_xy_all(:, idx_align);            % 2 x N_align
-tip_xy_centered = (tip_xy - mean(tip_xy, 2))'; %   Transpose to N_align x 2
-[~, ~, V_f] = svd(tip_xy_centered, 'econ');
-
-%   Angle of the principal (max-variance) direction w.r.t. the x-axis.
-theta_z_fbgs = atan2(V_f(2, 1), V_f(1, 1));
-
-if bending_axis == 'y'
-    theta_z_fbgs = pi/2 - theta_z_fbgs;       % map onto y-axis
-else
-    theta_z_fbgs = 0 - theta_z_fbgs;          % map onto x-axis
-end
-
-
-%%  Realign section
-
-if bending_axis == 'y'
-    theta_z = theta_z_fbgs + theta_z_mocap;
-else
-    theta_z = theta_z_fbgs - theta_z_mocap;
-end
-
-R_z = axang2rotm([0 0 1 theta_z]);
-for t = 1:N_time_fbgs
-    fbgs_shapes(:, :, t) = R_z * fbgs_shapes(:, :, t);
-end
-
 
 
 
