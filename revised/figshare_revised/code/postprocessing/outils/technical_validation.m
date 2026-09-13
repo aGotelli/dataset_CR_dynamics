@@ -1,29 +1,17 @@
-function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, has_actuator_data, plot_validation)
+function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, plot_validation)
     %TECHNICAL_VALIDATION Computes the dataset's technical-validation
     %   metrics: Mocap vs FBGS shape RMSE per disk, and Mocap vs motor
     %   cable-length RMSE. Reads only the CSV files already written to
     %   saving_folder by process_data.m, and writes RMSEs.txt back into
     %   that same folder. If plot_validation is true, also generates and
     %   saves the corresponding comparison figures into saving_fig_folder.
-    %   (The ATI-vs-Resense wrench comparison is not done here -- see
-    %   tests/compare_ati_resense_wrench.m, which reads this same saved
-    %   data.)
     %
-    %   saving_folder      - this recording's processed/ folder,
-    %                         containing angles.csv, mocap_frames.csv,
-    %                         and fbgs_shapes.csv
-    %   saving_fig_folder   - folder to save validation figures into
-    %   N_disks              - number of tracked OptiTrack disks
-    %   N_fbgs_points        - number of FBG shape-reconstruction points
-    %   has_actuator_data     - whether this recording had a real motor
-    %                          rig / Mark10 gauges (see process_data.m's
-    %                          has_actuator_data). When false, angles.csv
-    %                          holds process_data.m's zero-filled
-    %                          stand-in instead of real motor data, so
-    %                          RMSE_cables below is computed against all
-    %                          zeros and is not a meaningful validation
-    %                          number -- it is still written, flagged by
-    %                          the motor_data_available line in RMSEs.txt.
+    %   saving_folder         - this recording's processed/ folder,
+    %                           containing angles.csv, mocap_frames.csv,
+    %                           and fbgs_shapes.csv
+    %   saving_fig_folder     - folder to save validation figures into
+    %   N_disks               - number of tracked OptiTrack disks
+    %   N_fbgs_points         - number of FBG shape-reconstruction points
     %   plot_validation       - whether to generate and save figures
 
     angles_csv = readmatrix(fullfile(saving_folder, "angles.csv"));
@@ -71,12 +59,15 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     range_cables = max(delta_cable_measured) - min(delta_cable_measured);
     RMSE_cables_perc_motion = (RMSE_cables./range_cables)*100;
     idx_0 = find(range_cables <= 1e-2);
-    RMSE_cables_perc_motion(idx_0) = 0*RMSE_cables_perc_motion(idx_0);
+    %   Zero range (e.g. a recording with no real motor data, so
+    %   delta_cable_measured is constant) would otherwise divide out to
+    %   Inf above; multiplying that Inf by 0 gives NaN, not 0, so assign
+    %   directly instead.
+    RMSE_cables_perc_motion(idx_0) = 0;
 
 
     %   Save RMSEs
     fid = fopen(fullfile(saving_folder , "RMSEs.txt"), 'w');
-    fprintf(fid, 'motor_data_available = %d\n', has_actuator_data);
     for d = 1:N_disks_robot
         fprintf(fid, 'RMSE_disk_%d = [%s]\n', d, strjoin(string(RMSE_disks(d, :)), ', '));
         fprintf(fid, 'RMSE_disk_%d_perc_motion = [%s]\n', d, strjoin(string(RMSE_disks_perc_motion(d, :)), ', '));

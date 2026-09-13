@@ -14,7 +14,7 @@ addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "dynamic_motion/","Lissajous_fast/");
+folder = fullfile(data_root, "dynamic_motion/","circle_fast/");
 
 
 %%  Postprocessing properties
@@ -29,10 +29,10 @@ samplingHz = 100;
 
 
 %   Plots switches
-plot_mocap_fbgs_corrections = false;
+plot_mocap_fbgs_corrections = true;
 plot_filtered               = false;
 plot_interpolation          = false;
-plot_validation              = false; %   RMSE comparison plots (RMSE numbers/RMSEs.txt always computed)
+plot_validation             = true; %   RMSE comparison plots (RMSE numbers/RMSEs.txt always computed)
 plot_disk_num = 5;  %   Which disk to plot (5 = robot tip)
 
 
@@ -86,26 +86,10 @@ end
 %% ====== LOAD DATA ======
 ati = readtable(fullfile(folder, "dataATIFT.csv"));
 
-%   Flag to load actuator data (motor angles + Mark10 cable tensions):
-%   automatically detected from whether this recording's folder contains
-%   a dataMotor.csv. Some recordings (e.g. contact_motion/push_retract)
-%   were captured without the actuator rig running, so dataMotor.csv and
-%   the 4 dataMark10_*.csv files are all absent together. When that's the
-%   case, angles/cable-tension data is synthesized as zeros below (see
-%   the LOAD DATA block further down) rather than skipped, so the rest of
-%   the pipeline (filtering, common-window logic, interpolation, saving)
-%   runs unchanged and every recording's processed/ folder keeps the same
-%   file set and column layout. See motor_data_available in RMSEs.txt.
+%   Flag to load actuator data (motor angles + Mark10 cable tensions). 
+%   Some recordings (e.g. contact_motion/push_retract) were captured 
+%   without the actuator rig running.
 has_actuator_data = isfile(fullfile(folder, "dataMotor.csv"));
-
-if has_actuator_data
-    motor = readtable(fullfile(folder, "dataMotor.csv"));
-
-    mk_1_negx = readtable(fullfile(folder, "dataMark10_-x.csv"));
-    mk_1_x    = readtable(fullfile(folder, "dataMark10_+x.csv"));
-    mk_2_negy = readtable(fullfile(folder, "dataMark10_-y.csv"));
-    mk_2_y    = readtable(fullfile(folder, "dataMark10_+y.csv"));
-end
 
 if use_resense
     resense = readtable(fullfile(folder, "dataResenseFT.csv"));
@@ -128,34 +112,35 @@ fbgs_time = fbgs_time - lag_FBGS/1000;
 
 
 
-%   Extract timestamps, target and measured angles from motors encoders
+%   Load (or synthesize) actuator data: motor encoder timestamps/angles,
+%   and MK10 cable tensions. See has_actuator_data above.
 if has_actuator_data
-    time_actuators = motor.timestamp;
+    motor = readtable(fullfile(folder, "dataMotor.csv"));
 
+    mk_1_negx = readtable(fullfile(folder, "dataMark10_-x.csv"));
+    mk_1_x    = readtable(fullfile(folder, "dataMark10_+x.csv"));
+    mk_2_negy = readtable(fullfile(folder, "dataMark10_-y.csv"));
+    mk_2_y    = readtable(fullfile(folder, "dataMark10_+y.csv"));
+
+    time_actuators = motor.timestamp;
     target_angles = [motor.target1_rad, motor.target2_rad, motor.target3_rad, motor.target4_rad];
     measured_angles   = [motor.rel_angle1_rad, motor.rel_angle2_rad, motor.rel_angle3_rad, motor.rel_angle4_rad];
-else
-    %   No actuator rig for this recording (see has_actuator_data above):
-    %   fall back to the ATI timestamp -- always present, spans the full
-    %   recording -- so the common-window logic below still gets a real
-    %   time vector, and fill the angles with zeros of matching length.
-    time_actuators = ati.timestamp;
-    target_angles = zeros(numel(time_actuators), 4);
-    measured_angles = zeros(numel(time_actuators), 4);
-end
 
-%   Extract timestamp and cable tensions from the MK10 force gauges
-time_cables = cell(1,4);
-cable_tensions  = cell(1,4);
-
-if has_actuator_data
+    time_cables = cell(1,4);
+    cable_tensions  = cell(1,4);
     time_cables{1} = mk_1_x.timestamp;       cable_tensions{1} = mk_1_x.tension_N_/2;
     time_cables{2} = mk_2_y.timestamp;       cable_tensions{2} = mk_2_y.tension_N_/2;
     time_cables{3} = mk_1_negx.timestamp;    cable_tensions{3} = mk_1_negx.tension_N_/2;
     time_cables{4} = mk_2_negy.timestamp;    cable_tensions{4} = mk_2_negy.tension_N_/2;
 else
-    %   No Mark10 gauges for this recording either (see has_actuator_data
-    %   above): zero-filled tensions on the same fallback time vector.
+    %   No actuator rig for this recording: create dummy values to keep
+    %   postprocessing pipeline intact
+    time_actuators = mocap_timestamps;
+    target_angles = zeros(numel(time_actuators), 4);
+    measured_angles = zeros(numel(time_actuators), 4);
+
+    time_cables = cell(1,4);
+    cable_tensions = cell(1,4);
     for it = 1:4
         time_cables{it} = time_actuators;
         cable_tensions{it} = zeros(numel(time_actuators), 1);
@@ -346,10 +331,7 @@ for it = 1:26
 end
 
 
-%   Contact wrench (Resense wand, resampled onto the common grid, still
-%   in its own sensor frame). Transporting this to the robot base frame
-%   is not done here -- see tests/compare_ati_resense_wrench.m, which
-%   does that transform itself from this saved data.
+%   Contact wrench (Resense HEX12)
 if use_resense
 
     interp_wrench_wand = zeros(N_samples, 6);
@@ -414,7 +396,7 @@ interp_time_fbgs_strain      = [sampling_time interp_fbgs_curvatures interp_fbgs
 writematrix(interp_time_fbgs_strain, fullfile(saving_folder, "fbgs_strains.csv"));
 
 %%  Compute metrics for dataset techinical validation
-technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, has_actuator_data, plot_validation);
+technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, plot_validation);
 
 fprintf("   SAVED DATA");
 
