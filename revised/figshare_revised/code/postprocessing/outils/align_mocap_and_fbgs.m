@@ -67,6 +67,58 @@ end
 filename = fullfile(folder, "dataOptiTrack.csv");
 [N_disks, mocap_timestamps, ~, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense);
 
+
+
+%   Correct pose mocap (only frame of the robot)
+
+%   Loads the per-disk residual-offset correction computed and saved by
+%   outils/compute_mocap_correction.m, and applies it to the 5 robot
+%   disks.
+correction_file = fullfile(data_root, "postprocess_calibration", "mocap_correction.csv");
+
+if ~isfile(correction_file)
+    error("align_mocap_and_fbgs:missingCorrection", ...
+        "Mocap correction file not found: %s\nRun outils/compute_mocap_correction.m first.", correction_file);
+end
+
+correction_kinematics = readmatrix(correction_file);   % N_disks_robot x 6, [roll pitch yaw px py pz]
+
+N_disks_robot = 5;
+rel_kinematics_disks_corr = zeros(size(rel_kinematics_disks));
+
+for it = 1:N_disks_robot
+
+    R_correction = eul2rotm(correction_kinematics(it, 1:3), 'XYZ');
+    r_correction = correction_kinematics(it, 4:6)';
+
+    g_correction = [
+        R_correction  r_correction
+        0   0   0     1
+    ];
+
+    rel_poses_disk = rel_poses_disks(:, :, it, :);
+    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction);
+
+    r_disk_corr = squeeze( rel_poses_disk_corr(1:3,   4, :, :) );
+    R_disk_corr = squeeze( rel_poses_disk_corr(1:3, 1:3, :, :) );
+    XYZ_disk_corr = rotm2eul(R_disk_corr, 'XYZ');
+
+    rel_kinematics_disks_corr(:, :, it) = [
+      XYZ_disk_corr   r_disk_corr'
+    ];
+
+end
+
+%   Pass through, unmodified, any disk beyond the robot's own 5 (the
+%   Resense wand, when present)
+if N_disks > N_disks_robot
+    rel_kinematics_disks_corr(:, :, N_disks_robot+1:N_disks) = ...
+        rel_kinematics_disks(:, :, N_disks_robot+1:N_disks);
+end
+
+
+%%  FBGS section
+
 %   Everything below (mocap bending-plane angle, FBG load, and the
 %   FBG-to-mocap realignment) exists purely to align the FBG shape to
 %   mocap's frame, so all of it is skipped when this recording has no
@@ -78,7 +130,7 @@ if has_fbgs_data
     idx_align      = mocap_time_rel <= align_window_s;
 
     %   Extract kinematics tip disk which present the most ample motion
-    XYZ_xyz_tip_disk = rel_kinematics_disks(:, :, 5);
+    XYZ_xyz_tip_disk = rel_kinematics_disks_corr(:, :, 5);
     tip_xy_mocap  = XYZ_xyz_tip_disk(idx_align, 4:5);
 
     %   Center to compute the plane of motion
@@ -160,55 +212,5 @@ end
 
 
 
-%%  Correct pose mocap (only frame of the robot)
-
-%   Loads the per-disk residual-offset correction computed and saved by
-%   outils/compute_mocap_correction.m, and applies it to the 5 robot
-%   disks. That correction is calibrated from the straight_config
-%   reference recording, which has no notion of a 6th, non-robot disk, so
-%   it does not apply to (and is never computed for) the Resense contact
-%   wand -- its pose, when present, is carried through unchanged below.
-correction_file = fullfile(data_root, "postprocess_calibration", "mocap_correction.csv");
-
-if ~isfile(correction_file)
-    error("align_mocap_and_fbgs:missingCorrection", ...
-        "Mocap correction file not found: %s\nRun outils/compute_mocap_correction.m first.", correction_file);
-end
-
-correction_kinematics = readmatrix(correction_file);   % N_disks_robot x 6, [roll pitch yaw px py pz]
-
-N_disks_robot = 5;
-rel_kinematics_disks_corr = zeros(size(rel_kinematics_disks));
-
-for it = 1:N_disks_robot
-
-    R_correction = eul2rotm(correction_kinematics(it, 1:3), 'XYZ');
-    r_correction = correction_kinematics(it, 4:6)';
-
-    g_correction = [
-        R_correction  r_correction
-        0   0   0     1
-    ];
-
-    rel_poses_disk = rel_poses_disks(:, :, it, :);
-    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction);
-
-    r_disk_corr = squeeze( rel_poses_disk_corr(1:3,   4, :, :) );
-    R_disk_corr = squeeze( rel_poses_disk_corr(1:3, 1:3, :, :) );
-    XYZ_disk_corr = rotm2eul(R_disk_corr, 'XYZ');
-
-    rel_kinematics_disks_corr(:, :, it) = [
-      XYZ_disk_corr   r_disk_corr'
-    ];
-
-end
-
-%   Pass through, unmodified, any disk beyond the robot's own 5 (the
-%   Resense wand, when present) -- otherwise it would be left at zero,
-%   which downstream code could mistake for a valid pose.
-if N_disks > N_disks_robot
-    rel_kinematics_disks_corr(:, :, N_disks_robot+1:N_disks) = ...
-        rel_kinematics_disks(:, :, N_disks_robot+1:N_disks);
-end
 
 end
