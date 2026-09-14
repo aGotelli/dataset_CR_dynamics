@@ -107,10 +107,25 @@ if use_resense
 end
 
 
+%   Number of tracked robot disks (fixed -- the Resense wand, when
+%   present, is not one of them; it is loaded separately below).
+N_disks_robot = 5;
+
 %   Load and spatially align the OptiTrack and FBG data for this recording.
-[N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
+[mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, has_fbgs_data, align_window_s, data_root);
+    align_mocap_and_fbgs(folder, has_fbgs_data, align_window_s, data_root);
+
+%   Load the Resense contact wand's pose separately: it is not one of the
+%   robot's 5 disks and has no per-disk correction defined for it (see
+%   align_mocap_and_fbgs). Re-reads dataOptiTrack.csv a second time
+%   (cheap) rather than threading wand-handling through the disk-alignment
+%   pipeline. Only the 6th rigid body (the wand) from this second read is
+%   kept; the first 5 duplicate what align_mocap_and_fbgs already returned.
+if use_resense
+    [~, ~, ~, ~, rel_kinematics_disks_all] = data_optitrack(fullfile(folder, "dataOptiTrack.csv"), true);
+    rel_kinematics_wand = rel_kinematics_disks_all(:, :, N_disks_robot + 1);
+end
 
 %   Load the FBG pipeline-delay correction, measured separately (see the
 %   generation step above -- lag_FBGS_file is guaranteed to exist by now).
@@ -214,12 +229,21 @@ end
 %   Filter the disks kinematics (relative to robot base)
 rel_kinematics_disks_f = zeros(size(rel_kinematics_disks));
 rel_kinematics_disks_corr_f = zeros(size(rel_kinematics_disks));
-for it=1:N_disks
+for it=1:N_disks_robot
 
-    for k=1:6  
+    for k=1:6
         rel_kinematics_disks_f(:, k, it) = butter_filtfilt(mocap_timestamps, rel_kinematics_disks(:, k, it), cutoffHz, butterOrder);
         rel_kinematics_disks_corr_f(:, k, it) = butter_filtfilt(mocap_timestamps, rel_kinematics_disks_corr(:, k, it), cutoffHz, butterOrder);
-        
+
+    end
+end
+
+%   Filter the wand pose (no per-disk correction defined for it -- see
+%   align_mocap_and_fbgs)
+if use_resense
+    rel_kinematics_wand_f = zeros(size(rel_kinematics_wand));
+    for k=1:6
+        rel_kinematics_wand_f(:, k) = butter_filtfilt(mocap_timestamps, rel_kinematics_wand(:, k), cutoffHz, butterOrder);
     end
 end
 
@@ -328,12 +352,20 @@ for it=1:6
 end
 
 %   Kinematics of disks
-interp_rel_kinematics_disks_corr = zeros(N_samples, 6, N_disks);
-for it=1:N_disks
+interp_rel_kinematics_disks_corr = zeros(N_samples, 6, N_disks_robot);
+for it=1:N_disks_robot
 
-    for k=1:6  
+    for k=1:6
         interp_rel_kinematics_disks_corr(:, k, it) = interp1(relative_time_mocap, rel_kinematics_disks_corr_f(:, k, it), sampling_time);
 
+    end
+end
+
+%   Kinematics of the wand (no per-disk correction defined for it)
+if use_resense
+    interp_rel_kinematics_wand = zeros(N_samples, 6);
+    for k=1:6
+        interp_rel_kinematics_wand(:, k) = interp1(relative_time_mocap, rel_kinematics_wand_f(:, k), sampling_time);
     end
 end
 
@@ -387,11 +419,12 @@ end
 interp_time_angles      = [sampling_time interp_angles];
 interp_time_tensions    = [sampling_time interp_tensions];
 interp_time_base_wrench = [sampling_time interp_base_wrench];
-interp_time_mocap_frames_corr = reshape(interp_rel_kinematics_disks_corr, [N_samples, 6*N_disks]);
+interp_time_mocap_frames_corr = reshape(interp_rel_kinematics_disks_corr, [N_samples, 6*N_disks_robot]);
 interp_time_mocap_frames_corr = [sampling_time interp_time_mocap_frames_corr];
 
 if use_resense
     interp_wrench_wand = [sampling_time interp_wrench_wand];
+    interp_time_wand_pose = [sampling_time interp_rel_kinematics_wand];
 end
 
 
@@ -415,10 +448,11 @@ end
 
 if use_resense
     writematrix(interp_wrench_wand, fullfile(saving_folder , "wrench_wand.csv"));
+    writematrix(interp_time_wand_pose, fullfile(saving_folder , "wand_pose.csv"));
 end
 
 %%  Compute metrics for dataset techinical validation
-technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, has_fbgs_data, plot_validation);
+technical_validation(saving_folder, saving_fig_folder, N_disks_robot, N_fbgs_points, has_fbgs_data, plot_validation);
 
 fprintf("   SAVED DATA");
 

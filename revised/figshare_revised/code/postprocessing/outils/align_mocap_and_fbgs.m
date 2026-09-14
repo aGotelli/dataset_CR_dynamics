@@ -1,15 +1,20 @@
-function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
+function [mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, use_resense, has_fbgs_data, align_window_s, data_root)
+    align_mocap_and_fbgs(folder, has_fbgs_data, align_window_s, data_root)
 %ALIGN_MOCAP_AND_FBGS Load one recording's OptiTrack and (if present) FBG
 %   data and put them in a common, spatially-aligned frame.
+%
+%   Only the robot's 5 tracked disks are handled here. The Resense contact
+%   wand (a 6th OptiTrack rigid body, present only when the Resense sensor
+%   is active) is loaded separately, by process_data.m calling
+%   data_optitrack a second time -- it has no per-disk correction defined
+%   for it and does not participate in the FBG alignment below, so
+%   threading it through this function would only add a special case.
 %
 %   Inputs:
 %     folder          - path to one recording's folder (containing
 %                        dataOptiTrack.csv, and dataFBGS.csv when
 %                        has_fbgs_data)
-%     use_resense     - passed straight through to data_optitrack (true
-%                        for recordings that also track the Resense wand)
 %     has_fbgs_data   - whether this recording has a dataFBGS.csv at all
 %                        (some FT-sensor-only recordings, e.g.
 %                        contact_motion/touching_base, do not). When
@@ -25,18 +30,13 @@ function [N_disks, mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_
 %                        locate data/postprocess_calibration/mocap_correction.csv
 %
 %   Outputs:
-%     N_disks                    - number of tracked OptiTrack disks
 %     mocap_timestamps            - OptiTrack timestamps (unchanged)
 %     rel_kinematics_disks        - mocap disk poses, RAW (no per-disk
-%                                    residual-offset correction)
+%                                    residual-offset correction), for the
+%                                    5 robot disks
 %     rel_kinematics_disks_corr   - mocap disk poses, WITH the per-disk
-%                                    residual-offset correction applied
-%                                    to the 5 robot disks; any disk beyond
-%                                    those 5 (e.g. the Resense contact
-%                                    wand, disk 6, when use_resense) has
-%                                    no correction defined for it and is
-%                                    carried through unchanged from
-%                                    rel_kinematics_disks
+%                                    residual-offset correction applied,
+%                                    for the 5 robot disks
 %     fbgs_time                   - FBG timestamps, UNCORRECTED (see
 %                                    above -- no pipeline-delay shift).
 %                                    Empty when has_fbgs_data is false.
@@ -63,9 +63,11 @@ end
 
 %%  Mocap section
 
-%   Extract data
+%   Extract data. Always requests the 5-robot-disk layout (use_resense =
+%   false) -- the Resense wand, when present, is loaded separately by
+%   process_data.m (see this function's header comment).
 filename = fullfile(folder, "dataOptiTrack.csv");
-[N_disks, mocap_timestamps, ~, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, use_resense);
+[~, mocap_timestamps, ~, rel_poses_disks, rel_kinematics_disks] = data_optitrack(filename, false);
 
 
 
@@ -107,13 +109,6 @@ for it = 1:N_disks_robot
       XYZ_disk_corr   r_disk_corr'
     ];
 
-end
-
-%   Pass through, unmodified, any disk beyond the robot's own 5 (the
-%   Resense wand, when present)
-if N_disks > N_disks_robot
-    rel_kinematics_disks_corr(:, :, N_disks_robot+1:N_disks) = ...
-        rel_kinematics_disks(:, :, N_disks_robot+1:N_disks);
 end
 
 

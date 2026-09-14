@@ -46,9 +46,10 @@ recordings = ["push_retract", "touching_base"];
 contact_refs       = ["tip",  "base"];
 contact_thresholds = [0.05,   0.10 ];
 
-% 5 robot disks + Resense wand (disk index 6, 1-based)
-N_disks = 6;
-wand_disk_index = 6;
+% 5 robot disks; the Resense wand pose is loaded separately from its own
+% wand_pose.csv (see LOAD process_data.m's SAVED OUTPUT below) rather
+% than as a 6th disk block in mocap_frames.csv.
+N_disks_robot = 5;
 tip_disk_index = 5;
 
 % Extra low-pass filter on top of process_data.m's own (15 Hz), for
@@ -84,7 +85,7 @@ for ir = 1:numel(recordings)
 
     %% ------ LOAD process_data.m's SAVED OUTPUT FOR THIS RECORDING ------
 
-    required_files = ["base_wrench.csv", "wrench_wand.csv", "mocap_frames.csv"];
+    required_files = ["base_wrench.csv", "wrench_wand.csv", "mocap_frames.csv", "wand_pose.csv"];
     for f = required_files
         if ~isfile(fullfile(processed_folder, f))
             error(['Missing %s in:\n%s\n' ...
@@ -101,12 +102,14 @@ for ir = 1:numel(recordings)
     wrench_wand_csv    = readmatrix(fullfile(processed_folder, "wrench_wand.csv"));
     interp_wrench_wand = wrench_wand_csv(:, 2:end);
 
-    % Get the disks pose
+    % Get the robot disks' poses (5 disks only -- the wand is not one of
+    % them, see wand_pose.csv below)
     mocap_csv = readmatrix(fullfile(processed_folder, "mocap_frames.csv"));
-    interp_rel_kinematics_disks_corr = reshape(mocap_csv(:, 2:end), [N_samples, 6, N_disks]);
+    interp_rel_kinematics_disks_corr = reshape(mocap_csv(:, 2:end), [N_samples, 6, N_disks_robot]);
 
-    % Load the wand pose 
-    wand_pose = interp_rel_kinematics_disks_corr(:, :, wand_disk_index);
+    % Load the wand pose, saved by process_data.m as its own file
+    wand_pose_csv = readmatrix(fullfile(processed_folder, "wand_pose.csv"));
+    wand_pose = wand_pose_csv(:, 2:end);
 
 
     %% ------ TRANSPORT THE RESENSE WRENCH TO THE ROBOT BASE FRAME (Ad_g) ------
