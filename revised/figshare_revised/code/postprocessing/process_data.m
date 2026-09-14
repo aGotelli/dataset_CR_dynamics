@@ -87,7 +87,7 @@ end
 %% ====== LOAD DATA ======
 ati = readtable(fullfile(folder, "dataATIFT.csv"));
 
-%   Flag to load actuator data (motor angles + Mark10 cable tensions). 
+%   Flag to load actuator data (motor angles + Mark10 tendon tensions). 
 %   Some recordings (e.g. contact_motion/push_retract) were captured 
 %   without the actuator rig running.
 has_actuator_data = isfile(fullfile(folder, "dataMotor.csv"));
@@ -123,7 +123,7 @@ end
 
 
 %   Load (or synthesize) actuator data: motor encoder timestamps/angles,
-%   and MK10 cable tensions. See has_actuator_data above.
+%   and MK10 tendon tensions. See has_actuator_data above.
 if has_actuator_data
     motor = readtable(fullfile(folder, "dataMotor.csv"));
 
@@ -136,12 +136,12 @@ if has_actuator_data
     target_angles = [motor.target1_rad, motor.target2_rad, motor.target3_rad, motor.target4_rad];
     measured_angles   = [motor.rel_angle1_rad, motor.rel_angle2_rad, motor.rel_angle3_rad, motor.rel_angle4_rad];
 
-    time_cables = cell(1,4);
-    cable_tensions  = cell(1,4);
-    time_cables{1} = mk_1_x.timestamp;       cable_tensions{1} = mk_1_x.tension_N_/2;
-    time_cables{2} = mk_2_y.timestamp;       cable_tensions{2} = mk_2_y.tension_N_/2;
-    time_cables{3} = mk_1_negx.timestamp;    cable_tensions{3} = mk_1_negx.tension_N_/2;
-    time_cables{4} = mk_2_negy.timestamp;    cable_tensions{4} = mk_2_negy.tension_N_/2;
+    time_tendons = cell(1,4);
+    tendon_tensions  = cell(1,4);
+    time_tendons{1} = mk_1_x.timestamp;       tendon_tensions{1} = mk_1_x.tension_N_/2;
+    time_tendons{2} = mk_2_y.timestamp;       tendon_tensions{2} = mk_2_y.tension_N_/2;
+    time_tendons{3} = mk_1_negx.timestamp;    tendon_tensions{3} = mk_1_negx.tension_N_/2;
+    time_tendons{4} = mk_2_negy.timestamp;    tendon_tensions{4} = mk_2_negy.tension_N_/2;
 else
     %   No actuator rig for this recording: create dummy values to keep
     %   postprocessing pipeline intact
@@ -149,11 +149,11 @@ else
     target_angles = zeros(numel(time_actuators), 4);
     measured_angles = zeros(numel(time_actuators), 4);
 
-    time_cables = cell(1,4);
-    cable_tensions = cell(1,4);
+    time_tendons = cell(1,4);
+    tendon_tensions = cell(1,4);
     for it = 1:4
-        time_cables{it} = time_actuators;
-        cable_tensions{it} = zeros(numel(time_actuators), 1);
+        time_tendons{it} = time_actuators;
+        tendon_tensions{it} = zeros(numel(time_actuators), 1);
     end
 end
 
@@ -167,13 +167,13 @@ ATI_FT = [ATI_F ATI_T];
 
 %% ====== FILTER (BUTTER + FILTFILT) ======
 
-%   Measured angles and cables tension
+%   Measured angles and tendon tension
 measured_angles_f   = zeros(size(measured_angles));
-cable_tensions_f = cell(1,4);
+tendon_tensions_f = cell(1,4);
 for it = 1:4
     measured_angles_f(:,it)   = butter_filtfilt(time_actuators, measured_angles(:,it),   cutoffHz, butterOrder);
 
-    cable_tensions_f{it} = butter_filtfilt(time_cables{it}, cable_tensions{it}, cutoffHz, butterOrder);
+    tendon_tensions_f{it} = butter_filtfilt(time_tendons{it}, tendon_tensions{it}, cutoffHz, butterOrder);
 end
 
 
@@ -241,7 +241,7 @@ if plot_mocap_fbgs_corrections && has_fbgs_data
 end
 
 if plot_filtered
-    plot_filtered_figures(time_cables, cable_tensions, cable_tensions_f, ...
+    plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f, ...
         time_actuators, measured_angles, measured_angles_f, target_angles, ...
         tA, ATI_T_f, ATI_F_f, ...
         mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_f, plot_disk_num);
@@ -258,7 +258,7 @@ end
 %   with no FBG data (see has_fbgs_data), and indexing an empty array
 %   errors.
 init_time = max([time_actuators(1), ...
-    time_cables{1}(1), time_cables{2}(1), time_cables{3}(1), time_cables{4}(1), ...
+    time_tendons{1}(1), time_tendons{2}(1), time_tendons{3}(1), time_tendons{4}(1), ...
     tA(1), mocap_timestamps(1)]);
 
 if has_fbgs_data
@@ -272,7 +272,7 @@ end
 %   Find the min final time (first sensor to stop streaming); same
 %   incremental-build reasoning as init_time above.
 end_time = min([time_actuators(end), ...
-    time_cables{1}(end), time_cables{2}(end), time_cables{3}(end), time_cables{4}(end), ...
+    time_tendons{1}(end), time_tendons{2}(end), time_tendons{3}(end), time_tendons{4}(end), ...
     tA(end), mocap_timestamps(end)]);
 
 if has_fbgs_data
@@ -286,10 +286,10 @@ end
 %   Compute the relative timestamp with respect to the initial timestamp
 relative_time_motors = time_actuators - init_time;
 
-relative_time_cables{1} = time_cables{1} - init_time;       
-relative_time_cables{2} = time_cables{2} - init_time;     
-relative_time_cables{3} = time_cables{3} - init_time;   
-relative_time_cables{4} = time_cables{4} - init_time;  
+relative_time_tendons{1} = time_tendons{1} - init_time;       
+relative_time_tendons{2} = time_tendons{2} - init_time;     
+relative_time_tendons{3} = time_tendons{3} - init_time;   
+relative_time_tendons{4} = time_tendons{4} - init_time;  
 
 relative_time_ATI = tA - init_time;
 
@@ -315,7 +315,7 @@ for it=1:4
 
     interp_angles(:, it) = interp1(relative_time_motors, measured_angles_f(:,it), sampling_time)';
 
-    interp_tensions(:, it) = interp1(relative_time_cables{it}, cable_tensions_f{it}, sampling_time)';
+    interp_tensions(:, it) = interp1(relative_time_tendons{it}, tendon_tensions_f{it}, sampling_time)';
 end
 
 %   Wrench at the base
@@ -376,7 +376,7 @@ end
 
 if plot_interpolation
     plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
-        relative_time_cables, cable_tensions_f, interp_tensions, ...
+        relative_time_tendons, tendon_tensions_f, interp_tensions, ...
         relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
         relative_time_mocap, rel_kinematics_disks_corr_f, interp_rel_kinematics_disks_corr, plot_disk_num);
 end
@@ -397,7 +397,7 @@ end
 
 
 writematrix(interp_time_angles, fullfile(saving_folder , "angles.csv"));
-writematrix(interp_time_tensions, fullfile(saving_folder ,"cable_tensions.csv"));
+writematrix(interp_time_tensions, fullfile(saving_folder ,"tendon_tensions.csv"));
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
 writematrix(interp_time_mocap_frames_corr, fullfile(saving_folder , "mocap_frames.csv"));
 
@@ -593,7 +593,7 @@ function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kin
 end
 
 
-function plot_filtered_figures(time_cables, cable_tensions, cable_tensions_f, ...
+function plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f, ...
         time_actuators, measured_angles, measured_angles_f, target_angles, ...
         tA, ATI_T_f, ATI_F_f, ...
         mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_f, plot_disk_num)
@@ -605,12 +605,12 @@ function plot_filtered_figures(time_cables, cable_tensions, cable_tensions_f, ..
     for it = 1:4
         subplot(4,1,it)
 
-        plot(time_cables{it}, cable_tensions{it}, "b", "LineWidth", 2.0);
+        plot(time_tendons{it}, tendon_tensions{it}, "b", "LineWidth", 2.0);
         hold on
-        plot(time_cables{it}, cable_tensions_f{it}, "r", "LineWidth", 2.0);
+        plot(time_tendons{it}, tendon_tensions_f{it}, "r", "LineWidth", 2.0);
         ylabel("Tension [N]")
 
-        title("Cable " + it + ": raw vs filtered tension")
+        title("Tendon " + it + ": raw vs filtered tension")
         if it == 4
             xlabel("Time (raw timestamp)")
         end
@@ -697,7 +697,7 @@ end
 
 
 function plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
-        relative_time_cables, cable_tensions_f, interp_tensions, ...
+        relative_time_tendons, tendon_tensions_f, interp_tensions, ...
         relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
         relative_time_mocap, rel_kinematics_disks_f, interp_rel_kinematics_disks, plot_disk_num)
     %   PLOT_INTERPOLATION_FIGURES  Sanity-check plots for the common-grid
@@ -721,16 +721,16 @@ function plot_interpolation_figures(relative_time_motors, measured_angles_f, sam
     end
 
 
-    figure("Name","Cables Tensions");
+    figure("Name","Interpolated Tendon Tensions");
     for it = 1:4
         subplot(4,1,it)
 
-        plot(relative_time_cables{it}, cable_tensions_f{it}, "b", "LineWidth", 2.0); hold on
+        plot(relative_time_tendons{it}, tendon_tensions_f{it}, "b", "LineWidth", 2.0); hold on
         plot(sampling_time, interp_tensions(:,it), "or","MarkerSize", 3);
         ylabel("Tension [N]")
         grid on
 
-        title("Cable " + it)
+        title("Tendon " + it)
         if it == 4
             xlabel("Time [s]")
         end

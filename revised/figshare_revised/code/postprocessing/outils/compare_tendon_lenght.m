@@ -1,7 +1,7 @@
-function [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(disk_kinematics, angles_data, time, N_interp)
+function [delta_tendon_measured, delta_tendon_computed] = compare_tendon_lenght(disk_kinematics, angles_data, time, N_interp)
     %% ====== SETTINGS ======
     
-    d = 0.0375;       % cable offset from backbone center [m] (37.5 mm)
+    d = 0.0375;       % tendon offset from backbone center [m] (37.5 mm)
     r_spool = 0.02;   % spool radius [m]
     
     N_disks = 5;
@@ -34,24 +34,24 @@ function [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(dis
     end
     
     
-    %% ====== CABLE GEOMETRY ======
-    %   4 antagonistic cables at distance d from backbone, in local-frame axes.
+    %% ====== TENDON GEOMETRY ======
+    %   4 antagonistic tendons at distance d from backbone, in local-frame axes.
     %   Motor 1 → +x    Motor 2 → +y    Motor 3 → -x    Motor 4 → -y
-    cable_offsets = [
-         d  0  0      % cable 1  (+x)
-         0  d  0      % cable 2  (+y)
-        -d  0  0      % cable 3  (-x)
-         0 -d  0      % cable 4  (-y)
+    tendon_offsets = [
+         d  0  0      % tendon 1  (+x)
+         0  d  0      % tendon 2  (+y)
+        -d  0  0      % tendon 3  (-x)
+         0 -d  0      % tendon 4  (-y)
     ];
     
-    %% ====== INTERPOLATE DISK FRAMES & COMPUTE CABLE LENGTHS ======
+    %% ====== INTERPOLATE DISK FRAMES & COMPUTE TENDON LENGTHS ======
     %   Parameterise the 5 disks by normalised arc-length  s ∈ [0, 1]
     s_disks  = linspace(0, 1, N_disks);
     s_interp = linspace(0, 1, N_interp);
     
-    cable_lengths = zeros(N_time, 4);
+    tendon_lengths = zeros(N_time, 4);
     
-    % fprintf('Computing cable lengths (%d time steps) ...\n', N_time);
+    % fprintf('Computing tendon lengths (%d time steps) ...\n', N_time);
     for t = 1:N_time
     
         % --- Disk rotations, positions, quaternions at this time step ---
@@ -81,14 +81,14 @@ function [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(dis
         q_interp = q_interp ./ vecnorm(q_interp, 2, 2);
         R_interp = quat2rotm(q_interp);               % 3×3×N_interp
     
-        % --- Cable attachment points & lengths ---
+        % --- Tendon attachment points & lengths ---
         for c = 1:4
-            offset = cable_offsets(c,:)';
+            offset = tendon_offsets(c,:)';
             %   R_interp * offset  →  3×1×N_interp  →  squeeze → 3×N_interp
             offset_world = squeeze(pagemtimes(R_interp, offset));
-            cable_pts    = p_interp + offset_world;
+            tendon_pts    = p_interp + offset_world;
     
-            cable_lengths(t,c) = sum(vecnorm(diff(cable_pts, 1, 2), 2, 1));
+            tendon_lengths(t,c) = sum(vecnorm(diff(tendon_pts, 1, 2), 2, 1));
         end
     
         % if mod(t, 500) == 0, fprintf('  %d / %d\n', t, N_time); end
@@ -96,19 +96,19 @@ function [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(dis
     % fprintf('Done.\n');
     
     %% ====== STRAIGHT-CONFIGURATION REFERENCE ======
-    cable_lengths_ref = mean(cable_lengths(1:N_ref, :), 1);
+    tendon_lengths_ref = mean(tendon_lengths(1:N_ref, :), 1);
     
-    %% ====== DELTA CABLE LENGTHS (from MoCap geometry) ======
-    delta_cable_computed = cable_lengths - cable_lengths_ref;
+    %% ====== DELTA TENDON LENGTHS (from MoCap geometry) ======
+    delta_tendon_computed = tendon_lengths - tendon_lengths_ref;
     
-    %   Sign convention: negate all, then restore +x/-x (cables 1 & 3).
-    delta_cable_computed(:, [2 4]) = -delta_cable_computed(:, [2 4]);
+    %   Sign convention: negate all, then restore +x/-x (tendons 1 & 3).
+    delta_tendon_computed(:, [2 4]) = -delta_tendon_computed(:, [2 4]);
     
-    %% ====== DELTA CABLE LENGTHS (from motor angles) ======
+    %% ====== DELTA TENDON LENGTHS (from motor angles) ======
     %   Sign convention: check whether positive motor angle means pulling
-    %   (cable shortening) or releasing.  Adjust the sign of r_spool if needed.
+    %   (tendon shortening) or releasing.  Adjust the sign of r_spool if needed.
     motor_angles_ref     = mean(angles_data(1:N_ref, :), 1);
-    delta_cable_measured = (angles_data - motor_angles_ref) * r_spool;
+    delta_tendon_measured = (angles_data - motor_angles_ref) * r_spool;
     
 
 end

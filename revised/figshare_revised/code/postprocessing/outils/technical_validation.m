@@ -1,7 +1,7 @@
 function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_points, has_fbgs_data, plot_validation)
     %TECHNICAL_VALIDATION Computes the dataset's technical-validation
     %   metrics: Mocap vs FBGS shape RMSE per disk (when this recording
-    %   has FBG data), and Mocap vs motor cable-length RMSE. Reads only
+    %   has FBG data), and Mocap vs motor tendon-length RMSE. Reads only
     %   the CSV files already written to saving_folder by process_data.m,
     %   and writes RMSEs.txt back into that same folder. If
     %   plot_validation is true, also generates and saves the
@@ -62,19 +62,19 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
     end
 
 
-    %   Mocap vs motor: cable-length RMSE
+    %   Mocap vs motor: tendon-length RMSE
     N_interp = 10;
-    [delta_cable_measured, delta_cable_computed] = compare_cable_lenght(interp_rel_kinematics_disks_corr, interp_angles, sampling_time, N_interp);
+    [delta_tendon_measured, delta_tendon_computed] = compare_tendon_lenght(interp_rel_kinematics_disks_corr, interp_angles, sampling_time, N_interp);
 
-    RMSE_cables = rmse(delta_cable_computed, delta_cable_measured);
-    range_cables = max(delta_cable_measured) - min(delta_cable_measured);
-    RMSE_cables_perc_motion = (RMSE_cables./range_cables)*100;
-    idx_0 = find(range_cables <= 1e-2);
+    RMSE_tendons = rmse(delta_tendon_computed, delta_tendon_measured);
+    range_tendons = max(delta_tendon_measured) - min(delta_tendon_measured);
+    RMSE_tendons_perc_motion = (RMSE_tendons./range_tendons)*100;
+    idx_0 = find(range_tendons <= 1e-2);
     %   Zero range (e.g. a recording with no real motor data, so
-    %   delta_cable_measured is constant) would otherwise divide out to
+    %   delta_tendon_measured is constant) would otherwise divide out to
     %   Inf above; multiplying that Inf by 0 gives NaN, not 0, so assign
     %   directly instead.
-    RMSE_cables_perc_motion(idx_0) = 0;
+    RMSE_tendons_perc_motion(idx_0) = 0;
 
 
     %   Save RMSEs. Disk RMSE lines are omitted entirely for a recording
@@ -89,8 +89,8 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
         fprintf(fid, 'RMSE_tip = [%s]\n', strjoin(string(RMSE_tip), ', '));
         fprintf(fid, 'RMSE_tip_perc_motion = [%s]\n', strjoin(string(RMSE_tip_perc_motion), ', '));
     end
-    fprintf(fid, 'RMSE_cables = [%s]\n', strjoin(string(RMSE_cables), ', '));
-    fprintf(fid, 'RMSE_cables_perc_motion = [%s]\n', strjoin(string(RMSE_cables_perc_motion), ', '));
+    fprintf(fid, 'RMSE_tendons = [%s]\n', strjoin(string(RMSE_tendons), ', '));
+    fprintf(fid, 'RMSE_tendons_perc_motion = [%s]\n', strjoin(string(RMSE_tendons_perc_motion), ', '));
     fclose(fid);
 
 
@@ -155,21 +155,21 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
         end
 
 
-        cable_labels = {'+x', '+y', '-x', '-y'};
+        tendon_labels = {'+x', '+y', '-x', '-y'};
         pairs = {[1 3], [2 4]};          % x-pair, y-pair
         pair_names = {"x", "y"};
 
         for p = 1:2
-            fig = figure("Name", "Cable Length Change (" + pair_names{p} + " pair)");
+            fig = figure("Name", "Tendon Length Change (" + pair_names{p} + " pair)");
             idx = pairs{p};
             for k = 1:2
                 ax = subplot(2,1,k);
                 set(ax, 'Color', 'w');
                 c = idx(k);
-                plot(sampling_time, delta_cable_computed(:,c)*1e3,  'b',  'LineWidth', 2);  hold on
-                plot(sampling_time, delta_cable_measured(:,c)*1e3,  'r--','LineWidth', 2);
+                plot(sampling_time, delta_tendon_computed(:,c)*1e3,  'b',  'LineWidth', 2);  hold on
+                plot(sampling_time, delta_tendon_measured(:,c)*1e3,  'r--','LineWidth', 2);
                 grid on; ylabel('\Delta \ell_c [mm]')
-                title(['Cable ' cable_labels{c}])
+                title(['Tendon ' tendon_labels{c}])
                 if k == 1
                     legend('MoCap (computed)', 'Motor (measured)', 'Location', 'best')
                 end
