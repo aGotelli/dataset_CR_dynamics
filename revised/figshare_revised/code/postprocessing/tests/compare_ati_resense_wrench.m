@@ -1,38 +1,24 @@
 %% compare_ati_resense_wrench.m
 %
 % Compares the ATI base wrench (mini40) against the Resense contact wand
-% wrench, transported to the base frame via Ad_g, for the two
-% contact_motion recordings shown in the manuscript: push_retract and
-% touching_base. (touching_base_ang also has both sensors but is not in
-% the manuscript, so it is excluded here.)
+% wrench, transported to the base frame via Ad_g.
 %
 % Reads process_data.m's saved base_wrench.csv, wrench_wand.csv and
-% mocap_frames.csv for each recording -- no raw reprocessing. An extra
-% low-pass filter (COMPARE_CUTOFFHZ) is applied on top of
-% process_data.m's own filtering, for this comparison only.
+% mocap_frames.csv for each recording. An extra low-pass filter is applied 
+% on top of process_data.m's own filtering, for this comparison only.
 %
 % Contact gating: for most of a recording the wand isn't touching
 % anything, where both sensors trivially agree near zero. Contact
 % samples are identified from the 3D distance between the wand sensor
 % and its contact reference (tip disk for push_retract, base-frame
-% origin for touching_base), thresholded at CONTACT_THRESHOLDS below --
-% see that variable's comment for why the two recordings use different
-% values. Whole-recording and contact-only stats are both computed and
-% saved; contact-only is what should be quoted.
+% origin for touching_base), thresholded at CONTACT_THRESHOLDS below.
 %
-% Reported metrics (Comment 5.4): RMSE, bias, max abs error and Pearson
-% r, for Fx/Fy only, contact samples only. Fz is excluded (the sensor's
-% vertical axis carries no contact-force signal in either test). Torque
-% is excluded too: the moment-arm term in the Ad_g transport amplifies
-% any g_fix uncertainty by the applied force, so residuals scale with
-% load rather than reflecting a fixed offset (see the manuscript text).
-% All 6 components' whole-recording RMSE is still saved as a
-% diagnostic.
+% Reported metrics: RMSE, bias, max abs error and Pearson r, for Fx/Fy only, 
+% contact samples only. Fz is excluded.
 %
 % Outputs: wrench_RMSEs.txt per recording (in its own processed/
 % folder), plus contact_force_validation_summary.txt (in this script's
-% folder, forces/contact-only, all recordings side by side -- this is
-% the manuscript table). Figures saved under figures/<recording>/.
+% folder, forces/contact-only.
 %
 % Requires process_data.m to have already been run for every recording
 % in RECORDINGS. Run directly; paths are relative to this file, not
@@ -50,27 +36,23 @@ this_script_folder = fileparts(mfilename('fullpath'));
 code_folder = fileparts(fileparts(this_script_folder));
 data_root = fullfile(fileparts(code_folder), "data");
 
-% The two recordings referenced in the manuscript
-% (fig:wrench_push_retract, fig:wrench_touch_base). touching_base_ang
-% also has both sensors but is not in the manuscript, so it's excluded.
+% Load the two recordings of interest
 recordings = ["push_retract", "touching_base"];
 
 % Contact reference point and distance threshold (m) per recording.
 % push_retract: wand presses the tip disk directly (40 mm radius +
-% 10 mm margin = 0.05 m). touching_base: wand presses its own mocap
-% bracket, not the base disk, which sits further from the base-frame
-% origin -- so the larger, empirically-checked 0.10 m is kept.
+% 10 mm margin = 0.05 m). touching_base: wand presses against the base
+% mocap y bracket, empirically-checked distance threshold of 0.10 m
 contact_refs       = ["tip",  "base"];
 contact_thresholds = [0.05,   0.10 ];
 
-% 5 robot disks + Resense wand (disk index 6, 1-based) -- see
-% outils/data_optitrack.m.
+% 5 robot disks + Resense wand (disk index 6, 1-based)
 N_disks = 6;
 wand_disk_index = 6;
 tip_disk_index = 5;
 
 % Extra low-pass filter on top of process_data.m's own (15 Hz), for
-% this comparison only -- does not affect anything process_data.m saves.
+% this comparison only
 compare_cutoffHz = 2;
 compare_butterOrder = 4;
 
@@ -119,17 +101,15 @@ for ir = 1:numel(recordings)
     wrench_wand_csv    = readmatrix(fullfile(processed_folder, "wrench_wand.csv"));
     interp_wrench_wand = wrench_wand_csv(:, 2:end);
 
+    % Get the disks pose
     mocap_csv = readmatrix(fullfile(processed_folder, "mocap_frames.csv"));
     interp_rel_kinematics_disks_corr = reshape(mocap_csv(:, 2:end), [N_samples, 6, N_disks]);
 
-    % The wand has no residual-offset correction of its own (see
-    % align_mocap_and_fbgs.m); this is its raw mocap pose, carried
-    % through unchanged into mocap_frames.csv.
+    % Load the wand pose 
     wand_pose = interp_rel_kinematics_disks_corr(:, :, wand_disk_index);
 
 
     %% ------ TRANSPORT THE RESENSE WRENCH TO THE ROBOT BASE FRAME (Ad_g) ------
-
     wrench_at_base = compute_wrench_at_base(wand_pose, interp_wrench_wand);
 
 
