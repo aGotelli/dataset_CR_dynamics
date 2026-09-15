@@ -173,7 +173,15 @@ else
 end
 
 %   Extract timestamp and force/torque measurement from mini40 (ATI)
-tA = ati.timestamp;
+%   readATIFT.py assigns the timestamp when the blocking 5-sample DAQ
+%   read returns, i.e. at the end of that averaging window rather than
+%   its center (Comment 5.33). At the acquisition script's fixed 1 kHz
+%   sample clock, a 5-sample block spans 5 ms, so shifting the timestamp
+%   back by half that window re-centers it on the block it was averaged
+%   over.
+ati_block_samples = 5;
+ati_sample_rate_hz = 1000;
+tA = ati.timestamp - 0.5 * ati_block_samples / ati_sample_rate_hz;
 
 ATI_F = [ati.Fx_N_, ati.Fy_N_, ati.Fz_N_];
 ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
