@@ -11,8 +11,11 @@ code/
 ├── data_acquisition/     Python (+ one C++ client) scripts used to record
 │                         each sensor stream during data collection
 ├── postprocessing/       MATLAB pipeline that turns raw per-sensor CSVs
-│                         into the aligned, filtered, resampled CSVs
-│                         released as the "processed" files
+│   ├── process_data.m    entry point (see "Post-processing" below)
+│   ├── outils/           core pipeline functions (alignment, filtering,
+│   │                     synchronization) called by process_data.m
+│   └── tests/            standalone reviewer-response/validation scripts
+│                         (see "Development / reviewer-response scripts")
 └── LICENSE                MIT
 ```
 
@@ -104,12 +107,11 @@ and column definitions.
 
 ## Development / reviewer-response scripts
 
-`postprocessing/tests/` and `postprocessing/code_changes_additions/`
-contain standalone analysis scripts written to answer specific reviewer
-questions during peer review (named by the comment number they address).
-They are not part of the core acquisition/post-processing pipeline and are
-not required to reproduce the released processed files. Files prefixed
-`TO_DELETE_` are scratch scripts kept for now but not intended for release.
+`postprocessing/tests/` contains standalone analysis scripts written to
+answer specific reviewer questions during peer review. They are not part
+of the core acquisition/post-processing pipeline and are not required to
+reproduce the released processed files. Files prefixed `TO_DELETE_` are
+scratch scripts kept for now but not intended for release.
 
 ## License
 

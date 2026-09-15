@@ -3,8 +3,14 @@
 ## Post-processing (`postprocessing/`)
 
 - **MATLAB R2025b** (developed and tested on this version)
-- **Signal Processing Toolbox** — the pipeline only calls three functions
-  from it: `butter`, `filtfilt`, `interp1`. No other toolbox is required.
+- **Signal Processing Toolbox** — the core pipeline calls `butter`,
+  `filtfilt`, and `interp1` (filtering/resampling in `process_data.m`) and
+  `xcorr` (temporal-synchronization check in `outils/check_temporal_sync.m`,
+  used by `outils/compute_sensors_delay.m`). No other toolbox is required
+  to run `process_data.m`.
+- **Statistics and Machine Learning Toolbox** — only needed for
+  `postprocessing/tests/analyze_reference_noise.m` (calls `normpdf`), a
+  standalone reviewer-response script, not for `process_data.m` itself.
 
 ## Data acquisition (`data_acquisition/`)
 
