@@ -1,6 +1,5 @@
 function sync_results = check_temporal_sync(time_mot, angles, ...
         time_moc, kin_disks, time_fbg, fbgs_shapes, FBGS_tip_index, ...
-        time_cables, cable_tensions_all, ...
         saving_folder)
 %CHECK_TEMPORAL_SYNC Cross-correlate the tip/motor signals from several
 %   sensors against each other and report the time lag and correlation
@@ -10,7 +9,6 @@ function sync_results = check_temporal_sync(time_mot, angles, ...
 %     Motor -> Mocap   (2 motors x 3 tip-position axes)
 %     Motor -> FBGS    (2 motors x 3 tip-position axes)
 %     Mocap -> FBGS    (3 tip-position axes)
-%     Motor -> Tendon  (4 motors x 4 tendons)
 %
 %   Each lag/correlation pair comes from a normalized cross-correlation
 %   between the two signals, resampled onto a common time base.
@@ -22,13 +20,11 @@ function sync_results = check_temporal_sync(time_mot, angles, ...
 %   time_fbg, fbgs_shapes         - FBG timestamps and reconstructed
 %                                   shapes
 %   FBGS_tip_index                 - FBG sample index used as the tip
-%   time_cables, cable_tensions_all - 1x4 cell arrays, one
-%                                   timestamp/tension vector per tendon
 %   saving_folder                  - folder to write sync_results.txt
 %                                   into; pass '' to skip saving
 %
 %   Returns a struct sync_results with fields lag_MM, r_MM, lag_MF, r_MF,
-%   lag_OF, r_OF, lag_MC, r_MC.
+%   lag_OF, r_OF.
 
 mot_lbl = {'M+x', 'M+y'};
 pos_lbl = {'px',  'py',  'pz'};
@@ -46,15 +42,7 @@ t0 = time_mot(1);  t1 = time_mot(end);
 tip_fbg_all      = squeeze(fbgs_shapes(:, FBGS_tip_index, :))';
 [t_fbg, tip_fbg] = trim_window(time_fbg, tip_fbg_all,        t0, t1);
 
-for it=1:4
-    [t_cables{it}, cable_tensions{it}] = trim_window(time_cables{it}, cable_tensions_all{it},        t0, t1);
-end
-
 t_mot = t_mot - t0;  t_moc = t_moc - t0;  t_fbg = t_fbg - t0;
-
-for it=1:4
-    t_cables{it} = t_cables{it} - t0;
-end
 
 %% ====================================================================
 %%  RESAMPLE ONTO A COMMON GRID
@@ -107,17 +95,6 @@ for d = 1:3
     [lag_OF(d), r_OF(d)] = peak_lag(tip_moc(:,d), fbg_on_moc(:,d), ml_moc, fs_moc);
 end
 
-% Motor -> Tendon tension  (4 motors x 4 tendons): each motor's angle
-% against its own tendon's tension (paired by index, not all
-% combinations).
-lag_MC = zeros(1, 4); r_MC = zeros(1,4);
-for d = 1:4
-
-    cable_on_motor = up(t_cables{d}, cable_tensions{d}, t_mot);   % that tendon's tension, resampled onto the motor's timestamps
-
-    [lag_MC(d), r_MC(d)] = peak_lag(ang(:,d), cable_on_motor, ml_mot, fs_mot);
-end
-
 
 %% ====================================================================
 %%  SAVE AND RETURN
@@ -140,8 +117,6 @@ sync_results.lag_MF = lag_MF;   % [2×3]
 sync_results.r_MF   = r_MF;
 sync_results.lag_OF = lag_OF;   % [1×3]
 sync_results.r_OF   = r_OF;
-sync_results.lag_MC   = lag_MC;
-sync_results.r_MC   = r_MC;
 end
 
 %% ====================================================================

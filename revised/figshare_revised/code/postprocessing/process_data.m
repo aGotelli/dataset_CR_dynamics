@@ -77,9 +77,9 @@ if ~isfile(mocap_correction_file)
     compute_mocap_correction(data_root, disk_z_positions_m);
 end
 
-lag_FBGS_file = fullfile(data_root, "postprocess_calibration", "measured_fbg_delay_ms.txt");
+lag_FBGS_file = fullfile(data_root, "postprocess_calibration", "measured_sensors_delay_ms.txt");
 if ~isfile(lag_FBGS_file)
-    compute_fbg_delay(data_root, align_window_s, FBGS_tip_index);
+    compute_sensors_delay(data_root, align_window_s, FBGS_tip_index);
 end
 
 
