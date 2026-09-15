@@ -84,8 +84,9 @@ recording — see Section "Coordinate frame alignment" in the paper):
 - `data/postprocess_calibration/mocap_correction.csv` — per-disk static
   OptiTrack misalignment offset, computed once from
   `data/references/straight_config/`
-- `data/postprocess_calibration/measured_fbg_delay_ms.txt` — FBG pipeline
-  delay, also computed once from `data/references/straight_config/`
+- `data/postprocess_calibration/measured_sensors_delay_ms.txt` — FBG
+  pipeline delay, computed once by `outils/compute_sensors_delay.m` from
+  the four fast `dynamic_motion` trajectories
 
 Both are cached after the first run and simply reloaded on every
 subsequent one. This means `data/references/straight_config/` must be
