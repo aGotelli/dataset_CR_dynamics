@@ -64,7 +64,7 @@ function technical_validation(saving_folder, saving_fig_folder, N_disks, N_fbgs_
 
     %   Mocap vs motor: tendon-length RMSE
     N_interp = 10;
-    [delta_tendon_measured, delta_tendon_computed] = compare_tendon_lenght(interp_rel_kinematics_disks_corr, interp_angles, sampling_time, N_interp);
+    [delta_tendon_measured, delta_tendon_computed] = compare_tendon_length(interp_rel_kinematics_disks_corr, interp_angles, sampling_time, N_interp);
 
     RMSE_tendons = rmse(delta_tendon_computed, delta_tendon_measured);
     range_tendons = max(delta_tendon_measured) - min(delta_tendon_measured);

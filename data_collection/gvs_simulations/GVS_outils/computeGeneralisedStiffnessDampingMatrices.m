@@ -8,9 +8,9 @@ initial_conditions = [Kee_0;
 option=odeset('RelTol',10^(-8),'AbsTol',10^(-8));
 
 %   Integrate Kee and Dee
-[~, Y1] = ode45(@(X,y) elastic_gain(X,y,Const, Config), [0, Config.L], initial_conditions, option);
+[~, Y1] = ode45(@(X,y) integral_K_D(X,y,Const, Config), [0, Config.L], initial_conditions, option);
 
-% ------- Affectation des résultats -----------%
+
 Kee_vec = Y1(end,1:Const.dim_base*Const.dim_base);
 Dee_vec = Y1(end,1+Const.dim_base*Const.dim_base:2*Const.dim_base*Const.dim_base);
 

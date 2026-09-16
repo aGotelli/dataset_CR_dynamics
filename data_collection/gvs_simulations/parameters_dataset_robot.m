@@ -16,19 +16,13 @@ Const.J(2,2) = pi*Const.Rc^4/4;
 Const.J(3,3) = pi*Const.Rc^4/4;
 
 
-
 %   -> Damping coefficient
 Const.mu = 1.8e-1;
 
 
 %   -> Material Properties
 Const.GI = 0;
-% Const.EI = 0.092;
 Const.EI = 0.088;
-
-%   Keep zero
-Const.EA = 0;
-Const.GA = 0;
 
 %   Gravity
 Const.Gamma_g = 9.81;
@@ -52,7 +46,6 @@ Const.D2 = [
 
 
 %%  Define constant matrices in the problem
-
 V_a = Config.V_a;
 
 M_selec = eye(6,6);

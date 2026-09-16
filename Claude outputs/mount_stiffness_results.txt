@@ -1,0 +1,13 @@
+Comment 5.3 -- base mount stiffness (force_at_base test)
+ATI/Mocap alignment: Mocap lags ATI by 6.240 s (cross-correlation r = 0.51)
+Baseline (unloaded) displacement noise: std = 0.0013 mm
+
+t_start (s)    t_end (s)      peakF (N)  d (mm)     dF (Fx,Fy,Fz) (N)        k (N/mm)  
+10.59          12.40          32.53      0.232      (   1.57, -30.30,  -4.16) 140.2     
+13.59          16.39          40.60      0.722      (  36.25, -13.02,  -6.95) 56.3      
+18.54          21.20          25.14      0.080      (   3.82,  22.96,   0.20) 316.1     
+22.95          27.61          47.88      0.672      (   0.28,  -4.44, -46.05) 71.2      
+29.73          34.01          27.66      0.217      (   0.26,  -3.21,  26.37) 127.7     
+
+Per-event stiffness: median = 127.7 N/mm, range = [56.3, 316.1] N/mm (n = 5 events)
+Blanket linear fit across all active samples: k = 109.7 N/mm, R^2 = 0.08 (low R^2 is expected -- pushes were not all in the same direction, so |F| vs |d| is not a single-valued relationship; see per-event table above for direction-resolved values)

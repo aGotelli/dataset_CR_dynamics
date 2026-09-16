@@ -1,0 +1,159 @@
+clc
+clear all
+close all
+
+path = fullfile("../../../../","data","dynamic_motion/",'circle_slow');
+load_path = fullfile(path,'processed/');
+savepath = fullfile(path,"gvs/");
+saving_fig_folder = fullfile(savepath,"figures/");
+
+mkdir(savepath)
+mkdir(saving_fig_folder)
+
+% Add the GVS code folders to the path
+addpath(genpath("GVS_outils"))
+addpath('GVS_outils/outils/')
+addpath('GVS_outils/IDM/')
+
+Config.option = odeset('RelTol',10^(-8),'AbsTol',10^(-8));
+
+%   If you want to plot in real time
+Config.plot = false;
+
+%%  Define position frames Vicon
+Config.X_meas = [0, 0.1189, 0.2388, 0.3577, 0.48];
+
+%%  Defining deformable DoFs
+% K1, K2, K3, ...
+Config.V_a = [0, 1, 1, 0, 0, 0];
+
+%   Defining size of the basis
+Const.dim_base_k = [0, 3, 3, 0, 0, 0];
+
+%   Resulting dimension of q
+Const.dim_base = Config.V_a*Const.dim_base_k';
+
+%%  Load geometric parameters
+parameters_dataset_robot
+
+%% Pose of the base
+r_0 = [0;0;0];
+Q_0 = [0.7071068 0 0.7071068 0]';
+
+%%  Static initial conditions
+Const.q         = zeros(Const.dim_base,1);
+Const.q_dot     = zeros(Const.dim_base,1);
+Const.q_dot_dot = zeros(Const.dim_base,1);
+
+Const.eta_0     = zeros(6,1);
+Const.eta_dot_0 = zeros(6,1);
+
+Const.r_0 = r_0;
+Const.q_0 = Q_0;
+Const.F1  = zeros(6,1);
+
+%%  Load data measurements
+tendon_tensions = load(fullfile(load_path,"tendon_tensions.csv"));
+time_angles_motor = load(fullfile(load_path,"angles.csv"));
+
+Config.data.dt = 0.01;
+Config.data.time = tendon_tensions(:,1);
+
+%   Differential cable tension (the actuation is antagonistic)
+tau_1 = tendon_tensions(:,2) - tendon_tensions(:,4);
+tau_2 = tendon_tensions(:,3) - tendon_tensions(:,5);
+Config.data.tau = [
+    tau_1'
+    tau_2'
+];
+
+%% Time integration
+[q,q_dot,q_dot_dot,position_disks_simu,simulated_wrench_at_base,cables_displacements] = forward_dynamics_simulation(Const,Config);
+
+save(fullfile(savepath,"simulation_results"))
+
+%%  Plotting results
+close all
+load(fullfile(savepath,"simulation_results"))
+
+mocap_frames_stacked = load(fullfile(load_path,"mocap_frames.csv"));
+N_times_vicon = size(mocap_frames_stacked,1);
+time_simu = mocap_frames_stacked(:,1);
+mocap_frames_stacked = mocap_frames_stacked(:,2:end);
+vicon_frames = reshape(mocap_frames_stacked,[N_times_vicon,6,5]);
+disk_num = 5;
+time_kinematics_tip = vicon_frames(:,:,disk_num);
+
+time_base_wrench = load(fullfile(load_path,"base_wrench.csv"));
+fbgs_shapes_stacked = load(fullfile(load_path,"fbgs_shapes.csv"));
+
+time_base_wrench_raw = load(fullfile(load_path,"base_wrench_raw.csv"));
+
+tip_frame = squeeze(position_disks_simu(5,:,:))';
+time_fbgs = fbgs_shapes_stacked(:,1);
+fbgs_xyz_stacked = fbgs_shapes_stacked(:,2:end);
+tip_index_fbgs = 476;
+tip_start_col = 3*(tip_index_fbgs-1)+1;
+tip_fbgs = fbgs_xyz_stacked(:,tip_start_col:tip_start_col+2);
+
+fig = figure("Name","Torque");
+subplot(2,1,1)
+plot(time_base_wrench(:,1),time_base_wrench_raw(:,5),'b','LineWidth',2)
+hold on
+plot(time_simu,-simulated_wrench_at_base(:,3),'r','LineWidth',1)
+set(gca,"FontSize",20)
+grid on
+ylabel("T_x [Nm]","FontSize",20)
+
+subplot(2,1,2)
+plot(time_base_wrench(:,1),time_base_wrench_raw(:,6),'b','LineWidth',2)
+hold on
+plot(time_simu,-simulated_wrench_at_base(:,2),'r','LineWidth',1)
+set(gca,"FontSize",20)
+grid on
+ylabel("T_y [Nm]","FontSize",20)
+xlabel("Time [s]","FontSize",20)
+
+savefig(saving_fig_folder + fig.Name)
+saveas(fig,saving_fig_folder + fig.Name,'png')
+
+%   Plot the cable displacements
+cable_spool_radius = 0.02;
+time_cables = time_angles_motor(:,1);
+motor_angles = time_angles_motor(:,2:end);
+measured_cables_pulled = motor_angles*cable_spool_radius;
+fig = figure("Name","Cable Displacement");
+subplot(2,1,1)
+plot(time_cables,measured_cables_pulled(:,1),'g','LineWidth',1)
+hold on
+plot(time_simu,cables_displacements(:,1),'r','LineWidth',1)
+grid on
+
+subplot(2,1,2)
+plot(time_cables,measured_cables_pulled(:,2),'g','LineWidth',1)
+hold on
+plot(time_simu,-cables_displacements(:,2),'r','LineWidth',1)
+grid on
+
+legend('Measured','Simulated')
+
+savefig(saving_fig_folder + fig.Name)
+saveas(fig,saving_fig_folder + fig.Name,'png')
+
+%%  Compute RMSE
+
+torque_ati = time_base_wrench_raw(:,5:6);
+torque_simu = [-simulated_wrench_at_base(:,3) -simulated_wrench_at_base(:,2)];
+RMSE_Torques = rmse(torque_simu,torque_ati)
+
+%   Compute range of motion
+range_torques = max(torque_ati) - min(torque_ati);
+
+RMSE_torques_perc_range = (RMSE_Torques./range_torques)*100
+
+% Save RMSEs
+fid = fopen(fullfile(load_path,"RMSEs_torques.txt"),'w');
+fprintf(fid,'RMSE_tip = [%s]\n',strjoin(string(RMSE_Torques),', '));
+fprintf(fid,'RMSE_torques_perc_range = [%s]\n',strjoin(string(RMSE_torques_perc_range),', '));
+
+fclose(fid);

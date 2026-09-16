@@ -8,7 +8,7 @@ addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "quasi_static/","static_bend_y_n200/");
+folder = fullfile(data_root, "quasi_static/","static_bend_x_n150/");
 
 
 %%  Postprocessing properties

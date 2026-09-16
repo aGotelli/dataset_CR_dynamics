@@ -6,27 +6,22 @@ L0 = zeros(Const.dim_base, 1);
 q = Const.q;
 
 
-% Définition des noeuds
-N_noeuds = 30; % nombre de noeuds
+% Define nodes
+N_nodes = 30; 
 
-% % Calcul des Noeuds sur la grille [0,L] legendre
-% [x,D_Q]=legDc(N_noeuds-1);  % sur une grille [-1,1]
-% X_grille=Config.L*(-x+1)/2; % sur une grille [0;L]
-% DX =(-2/Config.L)*D_Q;      % Matrice de différentiation sur une grille [0;L]
-
-[~,X_grille]=cheb(N_noeuds-1,Config.L);  % sur une grille [0,L]
+[~,X_grid]=cheb(N_nodes-1,Config.L); 
 
 
 D_prime = zeros(3, 1);
 
 D = Const.D1;
-[~, L] = ode45(@(X, y) actuationOdes(X, y, q, D, D_prime, Const, Config), X_grille', L0);
+[~, L] = ode45(@(X, y) actuationOdes(X, y, q, D, D_prime, Const, Config), X_grid', L0);
 L1 = L(end,:)';
 
 Qad_1 = L1*tau(1);
 
 D = Const.D2;
-[~, L] = ode45(@(X, y) actuationOdes(X, y, q, D, D_prime, Const, Config), X_grille', L0);
+[~, L] = ode45(@(X, y) actuationOdes(X, y, q, D, D_prime, Const, Config), X_grid', L0);
 L2 = L(end,:)';
 
 Qad_2 = L2*tau(2);

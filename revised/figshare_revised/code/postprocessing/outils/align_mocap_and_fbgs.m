@@ -1,6 +1,7 @@
 function [mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
     fbgs_time, fbgs_shapes, fbgs_curvatures, fbgs_angles] = ...
-    align_mocap_and_fbgs(folder, has_fbgs_data, align_window_s, data_root)
+    align_mocap_and_fbgs(folder, has_fbgs_data, align_window_s, data_root, ...
+    plot_check_frames, plot_timestep)
 %ALIGN_MOCAP_AND_FBGS Load one recording's OptiTrack and (if present) FBG
 %   data and put them in a common, spatially-aligned frame.
 %
@@ -28,6 +29,14 @@ function [mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_corr, ...
 %                        align_window_s seconds)
 %     data_root        - path to the dataset's data/ folder; used to
 %                        locate data/postprocess_calibration/mocap_correction.csv
+%     plot_check_frames - (optional, default false) if true, opens a 3-D
+%                        figure comparing the raw and per-disk-corrected
+%                        disk frames (position + orientation) at a single
+%                        time step, as a visual sanity check on the
+%                        correction. Has no effect on the returned outputs.
+%     plot_timestep    - (optional, default 10) the time-step index (into
+%                        the mocap timestamps) plotted when
+%                        plot_check_frames is true.
 %
 %   Outputs:
 %     mocap_timestamps            - OptiTrack timestamps (unchanged)
@@ -88,6 +97,7 @@ correction_kinematics = readmatrix(correction_file);   % N_disks_robot x 6, [rol
 N_disks_robot = 5;
 rel_kinematics_disks_corr = zeros(size(rel_kinematics_disks));
 
+N_time = length(mocap_timestamps);
 for it = 1:N_disks_robot
 
     R_correction = eul2rotm(correction_kinematics(it, 1:3), 'XYZ');
@@ -98,8 +108,10 @@ for it = 1:N_disks_robot
         0   0   0     1
     ];
 
+    g_correction_pages = repmat(g_correction, [1 1 1 N_time]);
+
     rel_poses_disk = rel_poses_disks(:, :, it, :);
-    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction);
+    rel_poses_disk_corr = pagemtimes(rel_poses_disk, g_correction_pages);
 
     r_disk_corr = squeeze( rel_poses_disk_corr(1:3,   4, :, :) );
     R_disk_corr = squeeze( rel_poses_disk_corr(1:3, 1:3, :, :) );
@@ -109,6 +121,22 @@ for it = 1:N_disks_robot
       XYZ_disk_corr   r_disk_corr'
     ];
 
+end
+
+
+%%  OPTIONAL: 3-D check plot of raw vs. corrected disk frames
+%   Sanity-check visualization only -- does not affect any returned
+%   output. Off by default; pass plot_check_frames = true (and,
+%   optionally, plot_timestep) to inspect a given recording, e.g.:
+%     align_mocap_and_fbgs(folder, has_fbgs_data, align_window_s, data_root, true, 10)
+if nargin < 5 || isempty(plot_check_frames)
+    plot_check_frames = false;
+end
+if nargin < 6 || isempty(plot_timestep)
+    plot_timestep = 10;
+end
+if plot_check_frames
+    plot_disk_frames_check(rel_kinematics_disks, rel_kinematics_disks_corr, plot_timestep, folder);
 end
 
 
@@ -208,4 +236,77 @@ end
 
 
 
+end
+
+
+function plot_disk_frames_check(rel_kinematics_raw, rel_kinematics_corr, t_idx, folder)
+%PLOT_DISK_FRAMES_CHECK Visual sanity check: overlay the 5 disk frames
+%   (position + orientation) from the raw and per-disk-corrected mocap
+%   kinematics at a single time step, in 3-D.
+%
+%   rel_kinematics_raw/corr : N_time x 6 x N_disks, columns
+%                              [roll pitch yaw px py pz] (XYZ euler, m)
+%   t_idx                   : time index to plot (1-based; clamped to the
+%                              valid range)
+%   folder                  : recording folder, used only for the title
+
+    N_disks  = size(rel_kinematics_raw, 3);
+    axis_len = 0.04;   % length of plotted frame axes [m]
+
+    t_idx = min(max(round(t_idx), 1), size(rel_kinematics_raw, 1));
+
+    raw_colors  = {[1 0.7 0.7], [0.7 1 0.7], [0.7 0.7 1]};   % pale R/G/B
+    corr_colors = {[1 0 0],     [0 0.6 0],   [0 0 1]};       % full R/G/B
+
+    figure('Name', 'Disk frames: raw vs. corrected');
+    hold on; grid on; axis equal;
+    xlabel('X [m]'); ylabel('Y [m]'); zlabel('Z [m]');
+    title(sprintf('%s -- disk frames at t = %d (pale = raw, bold = corrected)', ...
+        strrep(folder, '\', '/'), t_idx), 'Interpreter', 'none');
+
+    p_raw  = zeros(3, N_disks);
+    p_corr = zeros(3, N_disks);
+
+    for k = 1:N_disks
+        eul_raw  = rel_kinematics_raw(t_idx, 1:3, k);
+        p_r      = rel_kinematics_raw(t_idx, 4:6, k)';
+        eul_corr = rel_kinematics_corr(t_idx, 1:3, k);
+        p_c      = rel_kinematics_corr(t_idx, 4:6, k)';
+
+        R_raw  = eul2rotm(eul_raw,  'XYZ');
+        R_corr = eul2rotm(eul_corr, 'XYZ');
+
+        p_raw(:, k)  = p_r;
+        p_corr(:, k) = p_c;
+
+        plot_frame_triad(p_r, R_raw,  axis_len, raw_colors,  1.0);
+        plot_frame_triad(p_c, R_corr, axis_len, corr_colors, 2.0);
+
+        text(p_c(1), p_c(2), p_c(3), sprintf('  disk %d', k - 1), 'FontSize', 9);
+    end
+
+    plot3(p_raw(1, :),  p_raw(2, :),  p_raw(3, :),  '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
+    plot3(p_corr(1, :), p_corr(2, :), p_corr(3, :), 'k-', 'LineWidth', 1.5);
+
+    h1 = plot3(nan, nan, nan, '-',  'Color', [1 0 0], 'LineWidth', 2);
+    h2 = plot3(nan, nan, nan, '-',  'Color', [1 0.7 0.7], 'LineWidth', 2);
+    h3 = plot3(nan, nan, nan, 'k-', 'LineWidth', 1.5);
+    h4 = plot3(nan, nan, nan, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
+    legend([h1 h2 h3 h4], { ...
+        'corrected frame axes (X/Y/Z = red/green/blue)', ...
+        'raw frame axes (pale)', ...
+        'backbone (corrected)', ...
+        'backbone (raw)'}, 'Location', 'bestoutside');
+
+    view(3);
+end
+
+function plot_frame_triad(p, R, axis_len, colors, line_width)
+%PLOT_FRAME_TRIAD Draw one 3-axis frame triad (X/Y/Z) at position p with
+%   orientation R, using the given per-axis colors and line width.
+    for ax = 1:3
+        v = R(:, ax) * axis_len;
+        quiver3(p(1), p(2), p(3), v(1), v(2), v(3), 0, ...
+            'Color', colors{ax}, 'LineWidth', line_width, 'MaxHeadSize', 0.6);
+    end
 end

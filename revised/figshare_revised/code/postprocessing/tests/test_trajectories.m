@@ -3,7 +3,7 @@ clear all
 close all
 
 
-path = fullfile("../../../", "data", "dynamic_motion/", 'circle_slow');
+path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'circle_slow');
 load_path = fullfile(path, 'processed/');
 savepath = fullfile(path, "gvs/");
 saving_fig_folder = fullfile(savepath, "figures/");
@@ -44,12 +44,15 @@ Const.dim_base   = Config.V_a*Const.dim_base_k';
 parameters_dataset_robot
 
 
+
+
 %% Pose of the base
 r_0 = [0;0;0];
 Q_0 = [0.7071068 0 0.7071068 0]';
 
 
 %%  Static init
+
 Const.q         = zeros(Const.dim_base,1);
 Const.q_dot     = zeros(Const.dim_base,1);
 Const.q_dot_dot = zeros(Const.dim_base,1);
@@ -64,8 +67,12 @@ Const.F1 = zeros(6,1);
 
 
 %%  Take data measurements
+
 cable_tensions = load(fullfile(load_path, "cable_tensions.csv"));
 time_angles_motor = load(fullfile(load_path, "angles.csv"));
+
+
+
 
 Config.data.dt = 0.01;
 Config.data.time = cable_tensions(:, 1);
@@ -82,7 +89,8 @@ Config.data.tau = [
 
 
 %% Time integration
-[q,q_dot,q_dot_dot, position_disks_simu, simulated_wrench_at_base, cables_displacements] = forward_dynamics_simulation(Const, Config);
+
+[q,q_dot,q_dot_dot, position_disks_simu, simulated_wrench_at_base, cables_displacements] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
 
 save(fullfile(savepath,"simulation_results"))
 
@@ -113,6 +121,33 @@ fbgs_xyz_stacked = fbgs_shapes_stacked(:, 2:end);
 tip_index_fbgs = 476;
 tip_start_col = 3*(tip_index_fbgs - 1) + 1;
 tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
+
+% 
+% fig = figure("Name", "Tip Position");
+% subplot(3, 1, 1)
+% plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 5), 'g', 'LineWidth', 1)
+% hold on
+% plot(time_fbgs, tip_fbgs(:, 1), 'b', 'LineWidth', 1)
+% plot(Config.data.time, tip_frame(:, 1), 'r', 'LineWidth', 1)
+% grid on
+% 
+% subplot(3, 1, 2)
+% plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 6), 'g', 'LineWidth', 1)
+% hold on
+% plot(time_fbgs, tip_fbgs(:, 2), 'b', 'LineWidth', 1)
+% plot(Config.data.time, tip_frame(:, 2), 'r', 'LineWidth', 1)
+% grid on
+% 
+% subplot(3, 1, 3)
+% plot(time_kinematics_tip(:, 1), time_kinematics_tip(:, 7), 'g', 'LineWidth', 1)
+% hold on
+% plot(time_fbgs, tip_fbgs(:, 3), 'b', 'LineWidth', 1)
+% plot(Config.data.time, -tip_frame(:, 3), 'r', 'LineWidth', 1)
+% grid on
+% legend('OptiTrack', 'FBGS', 'Simulated')
+% 
+% savefig(saving_fig_folder + fig.Name)
+% saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 fig = figure("Name", "Torque");
