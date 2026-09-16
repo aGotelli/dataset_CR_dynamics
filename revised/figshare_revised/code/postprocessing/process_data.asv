@@ -8,7 +8,7 @@ addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "contact_motion/","push_retract/");
+folder = fullfile(data_root, "dynamic_motion","circle_fast/");
 
 
 %%  Postprocessing properties
@@ -118,7 +118,12 @@ N_disks_robot = 5;
 
 
 
-%   Load the Resense contact wand's pose separately
+%   Load the Resense contact wand's pose separately: it is not one of the
+%   robot's 5 disks and has no per-disk correction defined for it (see
+%   align_mocap_and_fbgs). Re-reads dataOptiTrack.csv a second time
+%   (cheap) rather than threading wand-handling through the disk-alignment
+%   pipeline. Only the 6th rigid body (the wand) from this second read is
+%   kept; the first 5 duplicate what align_mocap_and_fbgs already returned.
 if use_resense
     [~, ~, ~, ~, rel_kinematics_disks_all] = data_optitrack(fullfile(folder, "dataOptiTrack.csv"), true);
     rel_kinematics_wand = rel_kinematics_disks_all(:, :, N_disks_robot + 1);
@@ -190,6 +195,7 @@ ATI_F = [ati.Fx_N_, ati.Fy_N_, ati.Fz_N_];
 ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
 ATI_FT = [ATI_F ATI_T];
 
+return;
 %% ====== FILTER (BUTTER + FILTFILT) ======
 
 %   Measured angles and tendon tension
@@ -366,7 +372,7 @@ for it=1:N_disks_robot
     end
 end
 
-%   Kinematics of the wand
+%   Kinematics of the wand (no per-disk correction defined for it)
 if use_resense
     interp_rel_kinematics_wand = zeros(N_samples, 6);
     for k=1:6
@@ -417,7 +423,6 @@ if plot_interpolation
         relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
         relative_time_mocap, rel_kinematics_disks_corr_f, interp_rel_kinematics_disks_corr, plot_disk_num);
 end
-
 
 
 %%  Save the interpolated data
@@ -634,7 +639,7 @@ function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kin
         end
 
     end
-    legend('OptiTrack (raw)', 'OptiTrack (corrected)')
+    legend('OptiTrack (raw)', 'FBGS', 'OptiTrack (corrected)')
 
 
     xyz_FBGS     = squeeze(fbgs_shapes(:, FBGS_tip_index, :));

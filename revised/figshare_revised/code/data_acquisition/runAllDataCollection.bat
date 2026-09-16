@@ -33,7 +33,7 @@ start "Mark10 COM6" cmd /k "py readMark10.py %duration% %output_dir%\dataMark10_
 start "Mark10 COM7" cmd /k "py readMark10.py %duration% %output_dir%\dataMark10_+y.csv --port COM7"
 
 REM ********************************    MOTORS      ********************************
-start "Motor" cmd /k "py read4MotorCircle.py %duration% %output_dir%\dataMotor.csv --motor1-id 1 --motor2-id 2 --motor3-id 3 --motor4-id 4"
+start "Motor" cmd /k "py command_motors.py %duration% %output_dir%\dataMotor.csv --motor1-id 1 --motor2-id 2 --motor3-id 3 --motor4-id 4"
 
 
 REM ********************************    FT SENSOR      ********************************
