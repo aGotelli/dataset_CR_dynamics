@@ -420,6 +420,10 @@ end
 
 
 
+%%  For Contact case compute the pose of the FT sensor
+
+
+
 %%  Save the interpolated data
 
 interp_time_angles      = [sampling_time interp_angles];
@@ -439,6 +443,15 @@ writematrix(interp_time_angles, fullfile(saving_folder , "angles.csv"));
 writematrix(interp_time_tensions, fullfile(saving_folder ,"tendon_tensions.csv"));
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
 writematrix(interp_time_mocap_frames_corr, fullfile(saving_folder , "mocap_frames.csv"));
+
+%   Save the postprocessing parameters used to generate this dataset, so
+%   they can be loaded back with readtable(".../processing_parameters.csv")
+param_names = {"cutoff_frequency_Hz"; "butterworth_order"; "resampling_frequency_Hz"; ...
+    "align_window_s"; "N_disks_robot"; "use_resense"; "has_actuator_data"; "has_fbgs_data"};
+param_values = {cutoffHz; butterOrder; samplingHz; ...
+    align_window_s; N_disks_robot; use_resense; has_actuator_data; has_fbgs_data};
+processing_parameters = table(param_names, param_values, 'VariableNames', {'parameter', 'value'});
+writetable(processing_parameters, fullfile(saving_folder, "processing_parameters.csv"));
 
 %   FBGS: save as N_samples x (1 + 3*N_fbgs_points), one time column
 %   followed by one [x y z] triplet per reconstruction point:
