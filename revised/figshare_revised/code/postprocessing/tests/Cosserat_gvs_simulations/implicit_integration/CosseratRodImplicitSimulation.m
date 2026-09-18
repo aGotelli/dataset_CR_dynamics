@@ -10,10 +10,12 @@ states_stack.ddq = zeros(Const.dim_base, N_time);
 states_stack.Lambda_X0 = zeros(6, N_time);
 
 
+t = 0;
+
 
 %   Time loop
 idx_t = 1;
-while t<Config.t_end
+while t<=Config.t_end
 
     Const.tau = tau(:, idx_t);
 
@@ -53,13 +55,13 @@ while t<Config.t_end
     %   Stack current state
     t_stack(1, idx_t) = t;
     states_stack.q(:, idx_t)   = q;
-    states_stack.dq(:, idx_t)  = dq;
-    states_stack.ddq(:, idx_t) = ddq;
+    states_stack.dq(:, idx_t)  = dot_q;
+    states_stack.ddq(:, idx_t) = ddot_q;
     
     Lambda_X0 = IDM(t, q, dot_q, ddot_q, Config, Const);
     states_stack.Lambda_X0(:, idx_t) = Lambda_X0;
 
-    
+
     display(t)
 
     %   Update counts

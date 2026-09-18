@@ -31,8 +31,7 @@ clc;
 %% ====== PATHS / SETTINGS ======
 
 %   Font size for figures
-fontSize = 30;
-lineWidth = 4;
+fontSize = 20;
 
 % This script lives in code/postprocessing/tests/; data/ is code/'s
 % sibling folder.
@@ -89,7 +88,7 @@ for ir = 1:numel(recordings)
 
     %% ------ LOAD process_data.m's SAVED OUTPUT FOR THIS RECORDING ------
 
-    required_files = ["base_wrench.csv", "contact_wrench.csv", "mocap_frames.csv", "contact_pose.csv"];
+    required_files = ["base_wrench.csv", "wrench_wand.csv", "mocap_frames.csv", "wand_pose.csv"];
     for f = required_files
         if ~isfile(fullfile(processed_folder, f))
             error(['Missing %s in:\n%s\n' ...
@@ -221,9 +220,9 @@ for ir = 1:numel(recordings)
     force_labels = {'F_x [N]', 'F_y [N]', 'F_z [N]'};
     for it = 1:2
         subplot(2, 1, it)
-        plot(sampling_time, interp_base_wrench(:, it), 'b', 'LineWidth', lineWidth)
+        plot(sampling_time, interp_base_wrench(:, it), 'b')
         hold on
-        plot(sampling_time, wrench_at_base(it, :), 'r', 'LineWidth', lineWidth)
+        plot(sampling_time, wrench_at_base(it, :), 'r')
         ylabel(force_labels{it})
         grid on
         
@@ -234,11 +233,10 @@ for ir = 1:numel(recordings)
             if it == 1, ylim([-2, 2]); end
             xlim([10, 20])
         end
-        
-        set(gca,"FontSize",fontSize)
+
         if it == 3, xlabel("Time [s]"); end
     end
-    % legend('ATI', 'Ad_g Resense')
+    legend('ATI', 'Ad_g Resense')
     savefig(saving_fig_folder + fig.Name)
     saveas(fig, saving_fig_folder + fig.Name, 'png')
 
@@ -246,14 +244,11 @@ for ir = 1:numel(recordings)
     torque_labels = {'T_x [Nm]', 'T_y [Nm]', 'T_z [Nm]'};
     for it = 1:3
         subplot(3, 1, it)
-        plot(sampling_time, interp_base_wrench(:, 3 + it), 'b', 'LineWidth', lineWidth)
+        plot(sampling_time, interp_base_wrench(:, 3 + it), 'b')
         hold on
-        plot(sampling_time, wrench_at_base(3 + it, :), 'r', 'LineWidth', lineWidth)
+        plot(sampling_time, wrench_at_base(3 + it, :), 'r')
         ylabel(torque_labels{it})
         grid on
-
-        set(gca,"FontSize",fontSize)
-
         if it == 3, xlabel("Time [s]"); end
     end
     legend('ATI', 'Ad_g Resense')
@@ -268,13 +263,11 @@ for ir = 1:numel(recordings)
     pos_labels = {'p_x [m]', 'p_y [m]', 'p_z [m]'};
     for it = 1:3
         subplot(3, 1, it)
-        plot(sampling_time, interp_rel_kinematics_disks_corr(:, 3 + it, tip_disk_index), 'b', 'LineWidth', 1, 'LineWidth', lineWidth)
+        plot(sampling_time, interp_rel_kinematics_disks_corr(:, 3 + it, tip_disk_index), 'b', 'LineWidth', 1)
         hold on
-        plot(sampling_time, pos_sensor(it, :), 'r', 'LineWidth', 1, 'LineWidth', lineWidth)
+        plot(sampling_time, pos_sensor(it, :), 'r', 'LineWidth', 1)
         ylabel(pos_labels{it})
         grid on
-
-        set(gca,"FontSize",fontSize)
         if it == 3, xlabel("Time [s]"); end
     end
     legend('robot tip', 'wand')
@@ -284,14 +277,13 @@ for ir = 1:numel(recordings)
 
     % Distance to the contact reference -- what CONTACT_MASK is built from.
     fig = figure("Name", "Distance sensor from contact reference");
-    plot(sampling_time, dist_contact, 'b', 'LineWidth', lineWidth)
+    plot(sampling_time, dist_contact, 'b', 'LineWidth', 1)
     hold on
-    yline(contact_threshold, 'r--', 'LineWidth', lineWidth)
+    yline(contact_threshold, 'r--', 'LineWidth', 1)
     ylabel('Distance [m]')
     legend('distance to ' + contact_ref, 'contact threshold')
     grid on
     xlabel("Time [s]")
-    set(gca,"FontSize",fontSize)
     savefig(saving_fig_folder + fig.Name)
     saveas(fig, saving_fig_folder + fig.Name, 'png')
 

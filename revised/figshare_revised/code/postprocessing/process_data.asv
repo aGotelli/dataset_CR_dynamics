@@ -8,7 +8,7 @@ addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "dynamic_motion","circle_fast/");
+folder = fullfile(data_root, "contact_motion/","push_retract/");
 
 
 %%  Postprocessing properties
@@ -118,12 +118,7 @@ N_disks_robot = 5;
 
 
 
-%   Load the Resense contact wand's pose separately: it is not one of the
-%   robot's 5 disks and has no per-disk correction defined for it (see
-%   align_mocap_and_fbgs). Re-reads dataOptiTrack.csv a second time
-%   (cheap) rather than threading wand-handling through the disk-alignment
-%   pipeline. Only the 6th rigid body (the wand) from this second read is
-%   kept; the first 5 duplicate what align_mocap_and_fbgs already returned.
+%   Load the Resense contact wand's pose separately
 if use_resense
     [~, ~, ~, ~, rel_kinematics_disks_all] = data_optitrack(fullfile(folder, "dataOptiTrack.csv"), true);
     rel_kinematics_wand = rel_kinematics_disks_all(:, :, N_disks_robot + 1);
@@ -195,7 +190,6 @@ ATI_F = [ati.Fx_N_, ati.Fy_N_, ati.Fz_N_];
 ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
 ATI_FT = [ATI_F ATI_T];
 
-return;
 %% ====== FILTER (BUTTER + FILTFILT) ======
 
 %   Measured angles and tendon tension
@@ -372,7 +366,7 @@ for it=1:N_disks_robot
     end
 end
 
-%   Kinematics of the wand (no per-disk correction defined for it)
+%   Kinematics of the wand
 if use_resense
     interp_rel_kinematics_wand = zeros(N_samples, 6);
     for k=1:6
@@ -425,6 +419,39 @@ if plot_interpolation
 end
 
 
+
+%%  For Contact case compute the pose of the FT sensor
+if use_resense
+  
+    g_fix = wand_sensor_offset();
+
+    pose_HEX12 = 0*interp_rel_kinematics_wand;
+    for it_t = 1:N_samples
+        wand_XYZ_xyz = interp_rel_kinematics_wand(it_t, :);
+
+        R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
+        r = wand_XYZ_xyz(4:6)';
+
+        g = [
+          R     r
+          0 0 0 1
+        ];
+
+        g_s = g*g_fix;
+        R_s = g_s(1:3, 1:3);
+        r_s = g_s(1:3, 4);
+
+        XYZ_s = rotm2eul(R_s, 'XYZ');
+
+        pose_HEX12(it, ) = [
+            XYZ_s   r_s'
+        ];
+
+    end
+
+end
+
+
 %%  Save the interpolated data
 
 interp_time_angles      = [sampling_time interp_angles];
@@ -444,6 +471,15 @@ writematrix(interp_time_angles, fullfile(saving_folder , "angles.csv"));
 writematrix(interp_time_tensions, fullfile(saving_folder ,"tendon_tensions.csv"));
 writematrix(interp_time_base_wrench, fullfile(saving_folder , "base_wrench.csv"));
 writematrix(interp_time_mocap_frames_corr, fullfile(saving_folder , "mocap_frames.csv"));
+
+%   Save the postprocessing parameters used to generate this dataset, so
+%   they can be loaded back with readtable(".../processing_parameters.csv")
+param_names = {"cutoff_frequency_Hz"; "butterworth_order"; "resampling_frequency_Hz"; ...
+    "align_window_s"; "N_disks_robot"; "use_resense"; "has_actuator_data"; "has_fbgs_data"};
+param_values = {cutoffHz; butterOrder; samplingHz; ...
+    align_window_s; N_disks_robot; use_resense; has_actuator_data; has_fbgs_data};
+processing_parameters = table(param_names, param_values, 'VariableNames', {'parameter', 'value'});
+writetable(processing_parameters, fullfile(saving_folder, "processing_parameters.csv"));
 
 %   FBGS: save as N_samples x (1 + 3*N_fbgs_points), one time column
 %   followed by one [x y z] triplet per reconstruction point:
@@ -639,7 +675,7 @@ function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kin
         end
 
     end
-    legend('OptiTrack (raw)', 'FBGS', 'OptiTrack (corrected)')
+    legend('OptiTrack (raw)', 'OptiTrack (corrected)')
 
 
     xyz_FBGS     = squeeze(fbgs_shapes(:, FBGS_tip_index, :));

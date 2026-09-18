@@ -8,7 +8,7 @@ addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "contact_motion/","push_retract/");
+folder = fullfile(data_root, "contact_motion/","touching_base/");
 
 
 %%  Postprocessing properties
@@ -103,7 +103,7 @@ if use_resense
 
     time_resense = resense.timestamp_s_;
 
-    wrench_wand = [resense.Fx resense.Fy resense.Fz resense.Tx/1000 resense.Ty/1000 resense.Tz/1000];
+    contact_wrench = [resense.Fx resense.Fy resense.Fz resense.Tx/1000 resense.Ty/1000 resense.Tz/1000];
 end
 
 
@@ -259,9 +259,9 @@ end
 
 %   (if used) filter Resense HEX12 F/T measurments
 if use_resense
-    wrench_wand_f = zeros(size(wrench_wand));
+    contact_wrench_f = zeros(size(contact_wrench));
     for k = 1:6
-        wrench_wand_f(:,k) = butter_filtfilt(time_resense, wrench_wand(:,k), cutoffHz, butterOrder);
+        contact_wrench_f(:,k) = butter_filtfilt(time_resense, contact_wrench(:,k), cutoffHz, butterOrder);
     end
 end
 
@@ -396,10 +396,10 @@ end
 %   Contact wrench (Resense HEX12)
 if use_resense
 
-    interp_wrench_wand = zeros(N_samples, 6);
+    interp_contact_wrench = zeros(N_samples, 6);
     for it=1:6
 
-        interp_wrench_wand(:, it) = interp1(relative_time_resense, wrench_wand_f(:, it), sampling_time)';
+        interp_contact_wrench(:, it) = interp1(relative_time_resense, contact_wrench_f(:, it), sampling_time)';
     end
 
 end
@@ -421,7 +421,35 @@ end
 
 
 %%  For Contact case compute the pose of the FT sensor
+if use_resense
+  
+    g_fix = wand_sensor_offset();
 
+    contact_pose = 0*interp_rel_kinematics_wand;
+    for it_t = 1:N_samples
+        wand_XYZ_xyz = interp_rel_kinematics_wand(it_t, :);
+
+        R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
+        r = wand_XYZ_xyz(4:6)';
+
+        g = [
+          R     r
+          0 0 0 1
+        ];
+
+        g_s = g*g_fix;
+        R_s = g_s(1:3, 1:3);
+        r_s = g_s(1:3, 4);
+
+        XYZ_s = rotm2eul(R_s, 'XYZ');
+
+        contact_pose(it_t, :) = [
+            XYZ_s   r_s'
+        ];
+
+    end
+
+end
 
 
 %%  Save the interpolated data
@@ -433,8 +461,8 @@ interp_time_mocap_frames_corr = reshape(interp_rel_kinematics_disks_corr, [N_sam
 interp_time_mocap_frames_corr = [sampling_time interp_time_mocap_frames_corr];
 
 if use_resense
-    interp_wrench_wand = [sampling_time interp_wrench_wand];
-    interp_time_wand_pose = [sampling_time interp_rel_kinematics_wand];
+    interp_contact_wrench = [sampling_time interp_contact_wrench];
+    interp_time_hex12_pose = [sampling_time contact_pose];
 end
 
 
@@ -466,8 +494,8 @@ if has_fbgs_data
 end
 
 if use_resense
-    writematrix(interp_wrench_wand, fullfile(saving_folder , "wrench_wand.csv"));
-    writematrix(interp_time_wand_pose, fullfile(saving_folder , "wand_pose.csv"));
+    writematrix(interp_contact_wrench, fullfile(saving_folder , "contact_wrench.csv"));
+    writematrix(interp_time_hex12_pose, fullfile(saving_folder , "contact_pose.csv"));
 end
 
 %%  Compute metrics for dataset techinical validation
