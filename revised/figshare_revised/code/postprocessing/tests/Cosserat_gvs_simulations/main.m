@@ -120,7 +120,7 @@ fig = figure("Name", "Torque");
 subplot(2, 1, 1)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
 hold on
-plot(t_stack_implicit, wrench_base_simu(:, 2), 'r', 'LineWidth', 1)
+plot(t_stack_implicit, wrench_base_simu(:, 3), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
 set(gca,"FontSize",20)
 grid on
@@ -130,7 +130,7 @@ ylabel("T_x [Nm]", "FontSize", 20)
 subplot(2, 1, 2)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
 hold on
-plot(t_stack_implicit, wrench_base_simu(:, 3), 'r', 'LineWidth', 1)
+plot(t_stack_implicit, wrench_base_simu(:, 2), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
 set(gca,"FontSize",20)
 grid on
