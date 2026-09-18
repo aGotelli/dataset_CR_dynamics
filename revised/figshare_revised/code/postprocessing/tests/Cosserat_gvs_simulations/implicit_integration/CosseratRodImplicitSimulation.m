@@ -1,9 +1,13 @@
 function [t_stack, states_stack] = CosseratRodImplicitSimulation(q, dot_q, ddot_q, tau, Const, Config)
 
 %   Prepare stacks for data
-t = 0;
-t_stack = [t];
-states_stack = [q', dot_q', ddot_q'];
+N_time = Config.t_end/Config.dt;
+t_stack = zeros(1, N_time);
+states_stack.q   = zeros(Const.dim_base, N_time);
+states_stack.dq  = zeros(Const.dim_base, N_time);
+states_stack.ddq = zeros(Const.dim_base, N_time);
+
+states_stack.Lambda_X0 = zeros(6, N_time);
 
 
 
@@ -45,21 +49,23 @@ while t<Config.t_end
     q         = q_k;
     dot_q     = dot_q_k;
     ddot_q = ddot_q_k;
-    t = t + Config.dt;
-
-    
-    %   Update iter count
-    idx_t = idx_t + 1;
-
 
     %   Stack current state
-    t_stack = [t_stack; t];
-    states_stack = [states_stack;
-                    q', dot_q', ddot_q'];
+    t_stack(1, idx_t) = t;
+    states_stack.q(:, idx_t)   = q;
+    states_stack.dq(:, idx_t)  = dq;
+    states_stack.ddq(:, idx_t) = ddq;
+    
+    Lambda_X0 = IDM(t, q, dot_q, ddot_q, Config, Const);
+    states_stack.Lambda_X0(:, idx_t) = Lambda_X0;
 
+    
     display(t)
 
-    % if Config.plot_simu plotRod(t, q, Const, Config, 'b'); end
+    %   Update counts
+    t = t + Config.dt;
+    idx_t = idx_t + 1;
+
     
 end
 
