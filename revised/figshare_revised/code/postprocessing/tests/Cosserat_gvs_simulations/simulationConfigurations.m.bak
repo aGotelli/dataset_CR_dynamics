@@ -164,6 +164,8 @@ Const.G = 5.0293e5;
 % Const.E  = 210e9;
 Const.E  = 5.2203e+08;
 
+%   Internal damping
+Const.mu = 1e-3;
 
 %   Value of gravity
 Const.g = 9.81;
@@ -178,7 +180,7 @@ Const.EIxx = 0.088;
 Const.EIyy = 0.088;
 
 %   Standard values in case the deformations DoFs are changed
-Const.EIzz = Const.EIyy;
+Const.EIzz = Const.EIxx + Const.EIyy;
 Const.GIxx = 80;
 Const.EA = 1e6;
 Const.GA = 1e6;

@@ -12,7 +12,6 @@ function [dydx] = BackwardDynamics(X, y, q, dot_q, ddot_q, Config, Const)
 %   Obtain the need variables
 B     = Const.B;
 Xi_c  = Const.Xi_c;
-L     = Const.L;
 M     = Const.M_cal;
 
 

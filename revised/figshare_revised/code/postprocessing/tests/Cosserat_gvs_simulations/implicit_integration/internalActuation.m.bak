@@ -30,6 +30,7 @@ function L_prime = actuationOdes(X, ~, q, D, D_prime, Const)
     %   Obtain the need variables
     B     = Const.B;
     Xi_c  = Const.Xi_c;
+    l     = Const.L;
 
     %   Compute strains
     Phi = getPhi(X, Const);
@@ -45,6 +46,6 @@ function L_prime = actuationOdes(X, ~, q, D, D_prime, Const)
                       Gamma_i   ];
 
     %   Compute derivative of internal stress
-    L_prime = Phi'*B'*strain_map/ norm(Gamma_i);
+    L_prime = l*Phi'*B'*strain_map/ norm(Gamma_i);
 
 end

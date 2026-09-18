@@ -31,6 +31,8 @@ time_base_wrench = load(fullfile(load_path,"base_wrench.csv"));
 dt = 0.01;
 time = tendon_tensions(:,1);
 
+time = time(1:2001);
+
 %   Differential cable tension (the actuation is antagonistic)
 tau_1 = tendon_tensions(:,2) - tendon_tensions(:,4);
 tau_2 = tendon_tensions(:,3) - tendon_tensions(:,5);
@@ -118,7 +120,7 @@ fig = figure("Name", "Torque");
 subplot(2, 1, 1)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
 hold on
-plot(time_simu(1:end-1), wrench_base_simu(:, 2), 'r', 'LineWidth', 1)
+plot(t_stack_implicit, wrench_base_simu(:, 2), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
 set(gca,"FontSize",20)
 grid on
@@ -128,7 +130,7 @@ ylabel("T_x [Nm]", "FontSize", 20)
 subplot(2, 1, 2)
 plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
 hold on
-plot(time_simu(1:end-1), wrench_base_simu(:, 3), 'r', 'LineWidth', 1)
+plot(t_stack_implicit, wrench_base_simu(:, 3), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
 set(gca,"FontSize",20)
 grid on
