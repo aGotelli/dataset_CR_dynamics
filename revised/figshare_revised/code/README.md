@@ -61,7 +61,7 @@ parallel, each writing its own raw CSV into a shared output folder:
 | `readATIFT.py` | ATI mini40 base F/T sensor | `dataATIFT.csv` |
 | `optitrackPython.py` | OptiTrack motion capture | `dataOptiTrack.csv` |
 | `readMark10.py` (×4) | Mark-10 tendon-tension gauges | `dataMark10_{+x,-x,+y,-y}.csv` |
-| `read4MotorCircle.py` | Cybergear actuators | `dataMotor.csv` |
+| `command_motors.py` | Cybergear actuators | `dataMotor.csv` |
 | `read_resense_ft.py` | Resense HEX12 contact wand (contact subset only) | `dataResenseFT.csv` |
 
 Run the `.bat` file from `data_acquisition/`, after editing `duration` and

@@ -9,8 +9,7 @@
   used by `outils/compute_sensors_delay.m`). No other toolbox is required
   to run `process_data.m`.
 - **Statistics and Machine Learning Toolbox** — only needed for
-  `postprocessing/tests/analyze_reference_noise.m` (calls `normpdf`), a
-  standalone reviewer-response script, not for `process_data.m` itself.
+  `postprocessing/tests/analyze_reference_noise.m` (calls `normpdf`).
 
 ## Data acquisition (`data_acquisition/`)
 
@@ -22,7 +21,7 @@ Python 3.x. Per-script package requirements:
 | `readATIFT.py` | `nidaqmx`, `numpy` | Requires the NI-DAQmx driver installed (National Instruments) |
 | `readMark10.py` | `pyserial`, `numpy` | |
 | `read_resense_ft.py` | `pyserial`, `numpy`, `matplotlib` | |
-| `read4MotorCircle.py` | `numpy`, `python-can`, `matplotlib` | Uses `sensors/cybergear/pcan_cybergear.py` (included). Requires a PEAK-System PCAN-USB adapter and its driver. |
+| `command_motors.py` | `numpy`, `python-can`, `matplotlib` | Uses `sensors/cybergear/pcan_cybergear.py` (included). Requires a PEAK-System PCAN-USB adapter and its driver. |
 
 **FBG interrogator client**: `readFBGS.exe` (pre-compiled Windows
 executable) is included and is what `runAllDataCollection.bat` actually
