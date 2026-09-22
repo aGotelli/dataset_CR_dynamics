@@ -1,9 +1,9 @@
 close all; clear; clc;
 
-addpath("outils\")
+addpath("../outils/")
 
 %% ====== PATHS ======
-folder = fullfile("../../", "/data/references/released_config");
+folder = fullfile("../../../", "/data/references/released_config");
 
 %% ====== LOAD DATA ======
 mk_px = readtable(fullfile(folder, "dataMark10_+x.csv"));

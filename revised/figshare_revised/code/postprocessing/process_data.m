@@ -191,14 +191,21 @@ ATI_T = [ati.Tx_Nm_, ati.Ty_Nm_, ati.Tz_Nm_];
 ATI_FT = [ATI_F ATI_T];
 
 %% ====== FILTER (BUTTER + FILTFILT) ======
+%
+%   butter_filtfilt returns each signal on its own internal uniform time
+%   grid (same span & sample count as its raw input -- see the function
+%   below), not back on the raw irregular timestamps. The "_f" time
+%   vectors captured below are that grid; they feed directly into the
+%   INTERPOLATION section further down instead of being discarded.
 
 %   Measured angles and tendon tension
 measured_angles_f   = zeros(size(measured_angles));
 tendon_tensions_f = cell(1,4);
+time_tendons_f = cell(1,4);
 for it = 1:4
-    measured_angles_f(:,it)   = butter_filtfilt(time_actuators, measured_angles(:,it),   cutoffHz, butterOrder);
+    [time_actuators_f, measured_angles_f(:,it)]   = butter_filtfilt(time_actuators, measured_angles(:,it),   cutoffHz, butterOrder);
 
-    tendon_tensions_f{it} = butter_filtfilt(time_tendons{it}, tendon_tensions{it}, cutoffHz, butterOrder);
+    [time_tendons_f{it}, tendon_tensions_f{it}] = butter_filtfilt(time_tendons{it}, tendon_tensions{it}, cutoffHz, butterOrder);
 end
 
 
@@ -206,8 +213,8 @@ end
 ATI_F_f = zeros(size(ATI_F));
 ATI_T_f = zeros(size(ATI_T));
 for k = 1:3
-    ATI_F_f(:,k) = butter_filtfilt(tA, ATI_F(:,k), cutoffHz, butterOrder);
-    ATI_T_f(:,k) = butter_filtfilt(tA, ATI_T(:,k), cutoffHz, butterOrder);
+    [tA_f, ATI_F_f(:,k)] = butter_filtfilt(tA, ATI_F(:,k), cutoffHz, butterOrder);
+    [tA_f, ATI_T_f(:,k)] = butter_filtfilt(tA, ATI_T(:,k), cutoffHz, butterOrder);
 end
 %   Compuse the wrench (force first convention)
 ATI_FT_f = [ATI_F_f ATI_T_f];
@@ -224,15 +231,15 @@ if has_fbgs_data
     fbgs_shapes_f = zeros(size(fbgs_shapes));   % 3 x 502 x N_time_fbgs
     for coord = 1:3
         for s = 1:N_fbgs_points
-            fbgs_shapes_f(coord, s, :) = butter_filtfilt(fbgs_time, squeeze(fbgs_shapes(coord, s, :)), cutoffHz, butterOrder);
+            [fbgs_time_f, fbgs_shapes_f(coord, s, :)] = butter_filtfilt(fbgs_time, squeeze(fbgs_shapes(coord, s, :)), cutoffHz, butterOrder);
         end
     end
 
     fbgs_angles_t = zeros(size(fbgs_angles));
     fbgs_curvatures_f = zeros(size(fbgs_curvatures));
     for it = 1:26
-        fbgs_angles_t(:,it) = butter_filtfilt(fbgs_time, fbgs_angles(:,it), cutoffHz, butterOrder);
-        fbgs_curvatures_f(:,it) = butter_filtfilt(fbgs_time, fbgs_curvatures(:,it), cutoffHz, butterOrder);
+        [fbgs_time_f, fbgs_angles_t(:,it)] = butter_filtfilt(fbgs_time, fbgs_angles(:,it), cutoffHz, butterOrder);
+        [fbgs_time_f, fbgs_curvatures_f(:,it)] = butter_filtfilt(fbgs_time, fbgs_curvatures(:,it), cutoffHz, butterOrder);
     end
 end
 
@@ -242,8 +249,8 @@ rel_kinematics_disks_corr_f = zeros(size(rel_kinematics_disks));
 for it=1:N_disks_robot
 
     for k=1:6
-        rel_kinematics_disks_f(:, k, it) = butter_filtfilt(mocap_timestamps, rel_kinematics_disks(:, k, it), cutoffHz, butterOrder);
-        rel_kinematics_disks_corr_f(:, k, it) = butter_filtfilt(mocap_timestamps, rel_kinematics_disks_corr(:, k, it), cutoffHz, butterOrder);
+        [mocap_timestamps_f, rel_kinematics_disks_f(:, k, it)] = butter_filtfilt(mocap_timestamps, rel_kinematics_disks(:, k, it), cutoffHz, butterOrder);
+        [mocap_timestamps_f, rel_kinematics_disks_corr_f(:, k, it)] = butter_filtfilt(mocap_timestamps, rel_kinematics_disks_corr(:, k, it), cutoffHz, butterOrder);
 
     end
 end
@@ -253,7 +260,7 @@ end
 if use_resense
     rel_kinematics_wand_f = zeros(size(rel_kinematics_wand));
     for k=1:6
-        rel_kinematics_wand_f(:, k) = butter_filtfilt(mocap_timestamps, rel_kinematics_wand(:, k), cutoffHz, butterOrder);
+        [mocap_timestamps_f, rel_kinematics_wand_f(:, k)] = butter_filtfilt(mocap_timestamps, rel_kinematics_wand(:, k), cutoffHz, butterOrder);
     end
 end
 
@@ -261,7 +268,7 @@ end
 if use_resense
     contact_wrench_f = zeros(size(contact_wrench));
     for k = 1:6
-        contact_wrench_f(:,k) = butter_filtfilt(time_resense, contact_wrench(:,k), cutoffHz, butterOrder);
+        [time_resense_f, contact_wrench_f(:,k)] = butter_filtfilt(time_resense, contact_wrench(:,k), cutoffHz, butterOrder);
     end
 end
 
@@ -270,10 +277,10 @@ end
 %   plot the extracted data (this figure overlays FBGS, so it needs FBG
 %   data; skipped for recordings without it -- see has_fbgs_data)
 if plot_filtered
-    plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f, ...
-        time_actuators, measured_angles, measured_angles_f, target_angles, ...
-        tA, ATI_T_f, ATI_F_f, ...
-        mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_f, plot_disk_num);
+    plot_filtered_figures(time_tendons, tendon_tensions, time_tendons_f, tendon_tensions_f, ...
+        time_actuators, measured_angles, time_actuators_f, measured_angles_f, target_angles, ...
+        tA, tA_f, ATI_T_f, ATI_F_f, ...
+        mocap_timestamps, rel_kinematics_disks, mocap_timestamps_f, rel_kinematics_disks_f, plot_disk_num);
 end
 
 
@@ -330,6 +337,30 @@ if use_resense
     relative_time_resense = time_resense - init_time;
 end
 
+%   Same, but for each FILTERED signal's own uniform time grid (returned
+%   by butter_filtfilt above) rather than the raw irregular timestamps.
+%   Used below wherever a FILTERED signal is interpolated onto the final
+%   common grid; the raw, unfiltered base wrench keeps using
+%   relative_time_ATI above instead.
+relative_time_motors_f = time_actuators_f - init_time;
+
+relative_time_tendons_f{1} = time_tendons_f{1} - init_time;
+relative_time_tendons_f{2} = time_tendons_f{2} - init_time;
+relative_time_tendons_f{3} = time_tendons_f{3} - init_time;
+relative_time_tendons_f{4} = time_tendons_f{4} - init_time;
+
+relative_time_ATI_f = tA_f - init_time;
+
+relative_time_mocap_f = mocap_timestamps_f - init_time;
+
+if has_fbgs_data
+    relative_time_fbgs_f = fbgs_time_f - init_time;
+end
+
+if use_resense
+    relative_time_resense_f = time_resense_f - init_time;
+end
+
 %   Compute the number of samples
 N_samples = floor(samplingHz*(end_time - init_time));
 sampling_dt = 1/samplingHz;
@@ -342,9 +373,9 @@ interp_angles = zeros(N_samples, 4);
 interp_tensions = zeros(N_samples, 4);
 for it=1:4
 
-    interp_angles(:, it) = interp1(relative_time_motors, measured_angles_f(:,it), sampling_time)';
+    interp_angles(:, it) = interp1(relative_time_motors_f, measured_angles_f(:,it), sampling_time)';
 
-    interp_tensions(:, it) = interp1(relative_time_tendons{it}, tendon_tensions_f{it}, sampling_time)';
+    interp_tensions(:, it) = interp1(relative_time_tendons_f{it}, tendon_tensions_f{it}, sampling_time)';
 end
 
 %   Wrench at the base
@@ -352,7 +383,7 @@ interp_base_wrench = zeros(N_samples, 6);
 interp_base_wrench_raw = zeros(N_samples, 6);
 for it=1:6
 
-    interp_base_wrench(:, it) = interp1(relative_time_ATI, ATI_FT_f(:, it), sampling_time)';
+    interp_base_wrench(:, it) = interp1(relative_time_ATI_f, ATI_FT_f(:, it), sampling_time)';
     interp_base_wrench_raw(:, it) = interp1(relative_time_ATI, ATI_FT(:, it), sampling_time)';
 end
 
@@ -361,7 +392,7 @@ interp_rel_kinematics_disks_corr = zeros(N_samples, 6, N_disks_robot);
 for it=1:N_disks_robot
 
     for k=1:6
-        interp_rel_kinematics_disks_corr(:, k, it) = interp1(relative_time_mocap, rel_kinematics_disks_corr_f(:, k, it), sampling_time);
+        interp_rel_kinematics_disks_corr(:, k, it) = interp1(relative_time_mocap_f, rel_kinematics_disks_corr_f(:, k, it), sampling_time);
 
     end
 end
@@ -370,7 +401,7 @@ end
 if use_resense
     interp_rel_kinematics_wand = zeros(N_samples, 6);
     for k=1:6
-        interp_rel_kinematics_wand(:, k) = interp1(relative_time_mocap, rel_kinematics_wand_f(:, k), sampling_time);
+        interp_rel_kinematics_wand(:, k) = interp1(relative_time_mocap_f, rel_kinematics_wand_f(:, k), sampling_time);
     end
 end
 
@@ -380,15 +411,15 @@ if has_fbgs_data
     interp_fbgs_shapes = zeros(3, N_fbgs_points, N_samples);
     for coord = 1:3
         for s = 1:N_fbgs_points
-            interp_fbgs_shapes(coord, s, :) = interp1(relative_time_fbgs, squeeze(fbgs_shapes_f(coord, s, :)), sampling_time);
+            interp_fbgs_shapes(coord, s, :) = interp1(relative_time_fbgs_f, squeeze(fbgs_shapes_f(coord, s, :)), sampling_time);
         end
     end
 
     interp_fbgs_angles = zeros(N_samples, 26);
     interp_fbgs_curvatures = zeros(N_samples, 26);
     for it = 1:26
-        interp_fbgs_angles(:,it) = interp1(relative_time_fbgs, fbgs_angles_t(:, it), sampling_time)';
-        interp_fbgs_curvatures(:,it) = interp1(relative_time_fbgs, fbgs_curvatures_f(:, it), sampling_time)';
+        interp_fbgs_angles(:,it) = interp1(relative_time_fbgs_f, fbgs_angles_t(:, it), sampling_time)';
+        interp_fbgs_curvatures(:,it) = interp1(relative_time_fbgs_f, fbgs_curvatures_f(:, it), sampling_time)';
     end
 end
 
@@ -399,7 +430,7 @@ if use_resense
     interp_contact_wrench = zeros(N_samples, 6);
     for it=1:6
 
-        interp_contact_wrench(:, it) = interp1(relative_time_resense, contact_wrench_f(:, it), sampling_time)';
+        interp_contact_wrench(:, it) = interp1(relative_time_resense_f, contact_wrench_f(:, it), sampling_time)';
     end
 
 end
@@ -412,10 +443,10 @@ end
 %  Plot interpolated data
 
 if plot_interpolation
-    plot_interpolation_figures(relative_time_motors, measured_angles_f, sampling_time, interp_angles, ...
-        relative_time_tendons, tendon_tensions_f, interp_tensions, ...
-        relative_time_ATI, ATI_FT_f, interp_base_wrench, ...
-        relative_time_mocap, rel_kinematics_disks_corr_f, interp_rel_kinematics_disks_corr, plot_disk_num);
+    plot_interpolation_figures(relative_time_motors_f, measured_angles_f, sampling_time, interp_angles, ...
+        relative_time_tendons_f, tendon_tensions_f, interp_tensions, ...
+        relative_time_ATI_f, ATI_FT_f, interp_base_wrench, ...
+        relative_time_mocap_f, rel_kinematics_disks_corr_f, interp_rel_kinematics_disks_corr, plot_disk_num);
 end
 
 
@@ -508,19 +539,26 @@ fprintf("   SAVED DATA");
 
 
 
-function y = butter_filtfilt(t, x, fc, n)
+function [t_uniform, y_uniform] = butter_filtfilt(t, x, fc, n)
     % Zero-phase Butterworth low-pass filtering, robust to irregular
     % sampling.
     %
-    % It estimates Fs from the mean inter-sample interval, resample the 
-    % signal onto a uniform grid at that rate before filtering
+    % It estimates Fs from the mean inter-sample interval, resamples the
+    % signal onto a uniform grid at that rate, and filters on that grid.
+    %
+    % Returns the signal ON THE UNIFORM GRID (t_uniform), not
+    % re-interpolated back onto the original irregular timestamps: that
+    % round trip would discard the uniform grid built here only to force
+    % the caller to redo equivalent interpolation work when resampling
+    % onto the final common time base. t_uniform spans the same
+    % start/end and sample count as the input t, so callers use it
+    % directly wherever they previously used t.
 
     Fs = (numel(t) - 1) / (t(end) - t(1));            % mean-based rate
     t_uniform = linspace(t(1), t(end), numel(t))';    % regular grid, same span & count
     x_uniform = interp1(t, x, t_uniform, 'linear');
     [b, a] = butter(n, fc/(Fs/2), "low");
     y_uniform = filtfilt(b, a, x_uniform);
-    y = interp1(t_uniform, y_uniform, t, 'linear');   % back onto original timestamps
 end
 
 
@@ -715,13 +753,13 @@ function plot_correction_figures(mocap_timestamps, rel_kinematics_disks, rel_kin
 end
 
 
-function plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f, ...
-        time_actuators, measured_angles, measured_angles_f, target_angles, ...
-        tA, ATI_T_f, ATI_F_f, ...
-        mocap_timestamps, rel_kinematics_disks, rel_kinematics_disks_f, plot_disk_num)
+function plot_filtered_figures(time_tendons, tendon_tensions, time_tendons_f, tendon_tensions_f, ...
+        time_actuators, measured_angles, time_actuators_f, measured_angles_f, target_angles, ...
+        tA, tA_f, ATI_T_f, ATI_F_f, ...
+        mocap_timestamps, rel_kinematics_disks, mocap_timestamps_f, rel_kinematics_disks_f, plot_disk_num)
     %   PLOT_FILTERED_FIGURES  Sanity-check plots for the Butterworth
-    %   filtering step: raw vs filtered signal, per sensor, on each
-    %   sensor's own (unaligned) raw timestamps.
+    %   filtering step: raw signal on its own raw timestamps vs filtered
+    %   signal on its own uniform filter-grid timestamps, per sensor.
 
     figure("Name","Tendon Tensions");
     for it = 1:4
@@ -729,7 +767,7 @@ function plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f,
 
         plot(time_tendons{it}, tendon_tensions{it}, "b", "LineWidth", 2.0);
         hold on
-        plot(time_tendons{it}, tendon_tensions_f{it}, "r", "LineWidth", 2.0);
+        plot(time_tendons_f{it}, tendon_tensions_f{it}, "r", "LineWidth", 2.0);
         ylabel("Tension [N]")
 
         title("Tendon " + it + ": raw vs filtered tension")
@@ -747,7 +785,7 @@ function plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f,
 
         plot(time_actuators, measured_angles(:,it),   "b", "LineWidth", 2.0)
         hold on
-        plot(time_actuators, measured_angles_f(:,it),   "r", "LineWidth", 2.0)
+        plot(time_actuators_f, measured_angles_f(:,it),   "r", "LineWidth", 2.0)
         plot(time_actuators, target_angles(:,it), "--g","LineWidth", 2.0);
         ylabel("Angle [rad]")
         grid on
@@ -763,16 +801,16 @@ function plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f,
 
     figure("Name","ATI FT (filtered)");
     subplot(2,1,1)
-    plot(tA, ATI_T_f(:,1), "r"); hold on
-    plot(tA, ATI_T_f(:,2), "g");
-    plot(tA, ATI_T_f(:,3), "b");
+    plot(tA_f, ATI_T_f(:,1), "r"); hold on
+    plot(tA_f, ATI_T_f(:,2), "g");
+    plot(tA_f, ATI_T_f(:,3), "b");
     grid on; ylabel("Torque [Nm]"); legend("Tx","Ty","Tz")
     title("ATI Torques (filtered)")
 
     subplot(2,1,2)
-    plot(tA, ATI_F_f(:,1), "r"); hold on
-    plot(tA, ATI_F_f(:,2), "g");
-    plot(tA, ATI_F_f(:,3), "b");
+    plot(tA_f, ATI_F_f(:,1), "r"); hold on
+    plot(tA_f, ATI_F_f(:,2), "g");
+    plot(tA_f, ATI_F_f(:,3), "b");
     grid on; ylabel("Force [N]"); xlabel("Time (raw timestamp)")
     legend("Fx","Fy","Fz")
     title("ATI Forces (filtered)")
@@ -788,7 +826,7 @@ function plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f,
 
         plot(mocap_timestamps, XYZ_xyz(:, it), "b", "LineWidth", 2.0)
         hold on
-        plot(mocap_timestamps, XYZ_xyz_f(:, it), "r", "LineWidth", 2.0)
+        plot(mocap_timestamps_f, XYZ_xyz_f(:, it), "r", "LineWidth", 2.0)
         ylabel("Euler Angle [rad]")
         grid on
 
@@ -804,7 +842,7 @@ function plot_filtered_figures(time_tendons, tendon_tensions, tendon_tensions_f,
 
         plot(mocap_timestamps, XYZ_xyz(:, 3 + it), "b", "LineWidth", 2.0)
         hold on
-        plot(mocap_timestamps, XYZ_xyz_f(:, 3 + it), "r", "LineWidth", 2.0)
+        plot(mocap_timestamps_f, XYZ_xyz_f(:, 3 + it), "r", "LineWidth", 2.0)
 
         ylabel("Position [m]")
         grid on

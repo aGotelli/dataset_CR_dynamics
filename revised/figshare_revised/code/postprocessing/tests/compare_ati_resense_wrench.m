@@ -30,6 +30,8 @@ clc;
 
 %% ====== PATHS / SETTINGS ======
 
+data_root = fullfile("../../../", "/data/");
+
 %   Font size for figures
 fontSize = 30;
 lineWidth = 4;
@@ -37,8 +39,6 @@ lineWidth = 4;
 % This script lives in code/postprocessing/tests/; data/ is code/'s
 % sibling folder.
 this_script_folder = fileparts(mfilename('fullpath'));
-code_folder = fileparts(fileparts(this_script_folder));
-data_root = fullfile(fileparts(code_folder), "data");
 
 % Load the two recordings of interest
 recordings = ["push_retract", "touching_base"];
@@ -51,8 +51,7 @@ contact_refs       = ["tip",  "base"];
 contact_thresholds = [0.05,   0.10 ];
 
 % 5 robot disks; the Resense wand pose is loaded separately from its own
-% wand_pose.csv (see LOAD process_data.m's SAVED OUTPUT below) rather
-% than as a 6th disk block in mocap_frames.csv.
+% wand_pose.csv
 N_disks_robot = 5;
 tip_disk_index = 5;
 
