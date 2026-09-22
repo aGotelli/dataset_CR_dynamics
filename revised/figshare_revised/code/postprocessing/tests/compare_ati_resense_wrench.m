@@ -33,7 +33,7 @@ clc;
 data_root = fullfile("../../", "/data/");
 
 %   Font size for figures
-fontSize = 30;
+fontSize = 25;
 lineWidth = 4;
 
 % This script lives in code/postprocessing/tests/; data/ is code/'s

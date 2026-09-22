@@ -18,7 +18,7 @@ recording = "Lissajous_fast";
 
 path = fullfile("../../../../","data", subset, recording);
 load_path = fullfile(path,'processed/');
-savepath = fullfile(path,"gvs/");
+savepath = fullfile(load_path,"gvs/");
 saving_fig_folder = fullfile(savepath,"figures/");
 
 mkdir(savepath)
@@ -31,6 +31,7 @@ time_base_wrench = load(fullfile(load_path,"base_wrench.csv"));
 %   Load this from file
 dt = 0.01;
 time = tendon_tensions(:,1);
+
 
 %   Differential cable tension (the actuation is antagonistic)
 tau_1 = tendon_tensions(:,2) - tendon_tensions(:,4);
