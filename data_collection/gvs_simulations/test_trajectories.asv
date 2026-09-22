@@ -1,81 +1,103 @@
-%% 
-close all
-clear all
 clc
+clear all
+close all
 
 
-addpath("ODEs/")
-addpath("utilities/")
-addpath("rod_properties/")
-addpath("implicit_integration/")
-addpath("explicit_integration/")
-
-
-
-%%  Load processed data
-
-
-path = fullfile("../../../../","data","dynamic_motion/",'circle_slow/');
-load_path = fullfile(path,'processed/');
-savepath = fullfile(path,"gvs/");
-saving_fig_folder = fullfile(savepath,"figures/");
+path = fullfile("..", "dataCollectionPack/data/", "dynamic_motion/", 'circle_slow');
+load_path = fullfile(path, 'processed/');
+savepath = fullfile(path, "gvs/");
+saving_fig_folder = fullfile(savepath, "figures/");
 
 mkdir(savepath)
 mkdir(saving_fig_folder)
 
+% ajoute le dossier outils
+addpath(genpath("GVS_outils"))
+addpath('GVS_outils/outils/')
+addpath('GVS_outils/IDM/')
+addpath('GVS_outils/methode spectral/')
 
-tendon_tensions = load(fullfile(load_path,"tendon_tensions.csv"));
-time_base_wrench = load(fullfile(load_path,"base_wrench.csv"));
+Config.option=odeset('RelTol',10^(-8),'AbsTol',10^(-8));
 
-%   Load this from file
-dt = 0.01;
-time = tendon_tensions(:,1);
 
-time = time(1:2001);
+%   If you want to plot in real time
+Config.plot = false;
 
-%   Differential cable tension (the actuation is antagonistic)
-tau_1 = tendon_tensions(:,2) - tendon_tensions(:,4);
-tau_2 = tendon_tensions(:,3) - tendon_tensions(:,5);
-tau = [
+
+%%  Define position frames Vicon
+Config.X_meas = [0, 0.1189, 0.2388, 0.3577, 0.48];
+% Config.observation_points = Config.X_meas/Config.L; %   Normalized domain
+
+
+%%  Defining deformable DoFs
+% K1, K2, K3, ...
+Config.V_a = [ 0, 1, 1, 0, 0, 0];
+
+%   Defining size of the basis
+Const.dim_base_k = [0, 3, 3, 0, 0, 0];
+
+%   Resulting dimension q
+Const.dim_base   = Config.V_a*Const.dim_base_k';
+
+
+%%  Load gemetric parameters
+parameters_dataset_robot
+
+
+
+
+%% Pose of the base
+r_0 = [0;0;0];
+Q_0 = [0.7071068 0 0.7071068 0]';
+
+
+%%  Static init
+
+Const.q         = zeros(Const.dim_base,1);
+Const.q_dot     = zeros(Const.dim_base,1);
+Const.q_dot_dot = zeros(Const.dim_base,1);
+
+Const.eta_0   = zeros(6,1);
+Const.eta_dot_0 = zeros(6,1);
+
+Const.r_0 = r_0;
+Const.q_0 = Q_0; 
+Const.F1 = zeros(6,1);
+
+
+
+%%  Take data measurements
+
+cable_tensions = load(fullfile(load_path, "cable_tensions.csv"));
+time_angles_motor = load(fullfile(load_path, "angles.csv"));
+
+
+
+
+Config.data.dt = 0.01;
+Config.data.time = cable_tensions(:, 1);
+
+
+%   Compute difference tension
+tau_1 = cable_tensions(:, 2) - cable_tensions(:, 4);
+tau_2 = cable_tensions(:, 3) - cable_tensions(:, 5);
+Config.data.tau = [
     tau_1'
     tau_2'
 ];
 
 
 
-%%  Simulation setup
+%% Time integration
 
+[q,q_dot,q_dot_dot, position_disks_simu, simulated_wrench_at_base, cables_displacements] = Time_integration_Newton_beam_actuated_spectral(Const, Config);
 
-DoFs = [0, 3, 3, 0, 0, 0];
-
-%   Configurations for the simulation
-[Const, Config] = simulationConfigurations(DoFs, time(end), dt);
-
-%   Position of the rod base
-Const.r_X0 = [0;0;0];
-
-%   Quaternion of rod base [w x y z]
-Const.Q_X0 = [0.7071068 0 0.7071068 0]';
-
-
-%   Cosserat rod generalized coordinates
-q      = zeros(Const.dim_base, 1);
-dot_q  = zeros(Const.dim_base, 1);
-ddot_q = zeros(Const.dim_base, 1);
-
-
-Config.plot_simu = true;
-
-[t_stack_implicit, states_stack] = ...
-    CosseratRodImplicitSimulation(q, dot_q, ddot_q, tau, Const, Config);
-
-
-
+save(fullfile(savepath,"simulation_results"))
 
 
 %%  Plotting results
-
-
+close all
+load(fullfile(savepath, "simulation_results"))
 
 mocap_frames_stacked = load(fullfile(load_path, "mocap_frames.csv"));
 N_times_vicon = size(mocap_frames_stacked, 1);
@@ -85,6 +107,20 @@ vicon_frames = reshape(mocap_frames_stacked, [N_times_vicon, 6, 5]);
 disk_num = 5;
 time_kinematics_tip = vicon_frames(:, :, disk_num);
 
+
+
+time_base_wrench = load(fullfile(load_path, "base_wrench.csv"));
+fbgs_shapes_stacked = load(fullfile(load_path, "fbgs_shapes.csv"));
+
+time_base_wrench_raw = load(fullfile(load_path, "base_wrench_raw.csv"));
+
+
+tip_frame = squeeze( position_disks_simu(5, :, :) )';
+time_fbgs = fbgs_shapes_stacked(:, 1);
+fbgs_xyz_stacked = fbgs_shapes_stacked(:, 2:end);
+tip_index_fbgs = 476;
+tip_start_col = 3*(tip_index_fbgs - 1) + 1;
+tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
 
 % 
 % fig = figure("Name", "Tip Position");
@@ -113,33 +149,24 @@ time_kinematics_tip = vicon_frames(:, :, disk_num);
 % savefig(saving_fig_folder + fig.Name)
 % saveas(fig, saving_fig_folder + fig.Name, 'png')
 
-wrench_base_simu = states_stack.Lambda_X0';
-
 
 fig = figure("Name", "Torque");
 subplot(2, 1, 1)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'b', 'LineWidth', 2)
 hold on
-plot(t_stack_implicit, wrench_base_simu(:, 3), 'r', 'LineWidth', 1)
+plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
-set(gca,"FontSize",20)
 grid on
-ylabel("T_x [Nm]", "FontSize", 20)
 
 
 subplot(2, 1, 2)
-plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
+plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'b', 'LineWidth', 2)
 hold on
-plot(t_stack_implicit, wrench_base_simu(:, 2), 'r', 'LineWidth', 1)
+plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
-set(gca,"FontSize",20)
 grid on
-% legend('Measured', 'Simulated')
-ylabel("T_y [Nm]", "FontSize", 20)
-xlabel("Time [s]", "FontSize", 20)
+legend('Measured', 'Simulated')
 
-
-return;
 savefig(saving_fig_folder + fig.Name)
 saveas(fig, saving_fig_folder + fig.Name, 'png')
 
@@ -171,7 +198,7 @@ saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 %%  Compute RMSE
 
-torque_ati = time_base_wrench(:, 5:6);
+torque_ati = time_base_wrench_raw(:, 5:6);
 torque_simu = [-simulated_wrench_at_base(:, 3) -simulated_wrench_at_base(:, 2)];
 RMSE_Torques = rmse(torque_simu, torque_ati)
 
@@ -187,4 +214,3 @@ fprintf(fid, 'RMSE_torques_perc_range = [%s]\n', strjoin(string(RMSE_torques_per
 
 % 3. Close the file
 fclose(fid);
-

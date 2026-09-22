@@ -22,10 +22,7 @@ Const.mu = 1.8e-1;
 
 %   -> Material Properties
 Const.GI = 0;
-Const.EI = 0.044;
-
-Const.EA = 0;
-Const.GA = 0.044;
+Const.EI = 0.088;
 
 %   Gravity
 Const.Gamma_g = 9.81;

@@ -203,90 +203,6 @@ for subset_index = 1:numel(subset_names)
 end   % subsets
 
 
-%%
-
-
-
-figure("Name", "ATI timesteps")
-subplot(2, 1, 1)
-plot(sort(ati_gaps_seconds), 'o')
-grid on
-xlabel("Sorted dt")
-
-subplot(2, 1, 2)
-plot(ati_gaps_seconds, 'o')
-grid on
-xlabel("dt over time")
-
-
-
-figure("Name", "FBGS timesteps")
-subplot(2, 1, 1)
-plot(sort(fbgs_gaps_seconds), 'o')
-grid on
-xlabel("Sorted dt")
-
-subplot(2, 1, 2)
-plot(fbgs_gaps_seconds, 'o')
-grid on
-xlabel("dt over time")
-
-
-
-figure("Name", "OptiTrack timesteps")
-subplot(2, 1, 1)
-plot(sort(optitrack_gaps_seconds), 'o')
-grid on
-xlabel("Sorted dt")
-
-subplot(2, 1, 2)
-plot(optitrack_gaps_seconds, 'o')
-grid on
-xlabel("dt over time")
-
-
-
-figure("Name", "Motor timesteps")
-subplot(2, 1, 1)
-plot(sort(motor_gaps_seconds), 'o')
-grid on
-xlabel("Sorted dt")
-
-subplot(2, 1, 2)
-plot(motor_gaps_seconds, 'o')
-grid on
-xlabel("dt over time")
-
-
-
-figure("Name", "Mark 10 timesteps")
-subplot(2, 1, 1)
-plot(sort(mark10_gaps_seconds), 'o')
-grid on
-xlabel("Sorted dt")
-
-subplot(2, 1, 2)
-plot(mark10_gaps_seconds, 'o')
-grid on
-xlabel("dt over time")
-
-
-
-figure("Name", "Resense timesteps")
-subplot(2, 1, 1)
-plot(sort(resense_gaps_seconds), 'o')
-grid on
-xlabel("Sorted dt")
-
-subplot(2, 1, 2)
-plot(resense_gaps_seconds, 'o')
-grid on
-xlabel("dt over time")
-
-
-
-
-
 %% ====================================================================
 %%  PART 1 OF THE OUTPUT: the detailed, one-row-per-file table
 %% ====================================================================
@@ -319,8 +235,6 @@ fprintf("\n====================================================================\
 fprintf("SUMMARY TABLE -- one row per sensor, pooled across all recordings\n");
 fprintf("====================================================================\n");
 disp(summary_table);
-
-print_latex_tabular(summary_table);
 
 
 %% ====================================================================
@@ -439,7 +353,6 @@ function one_row = make_summary_row(sensor_name, pooled_gaps_in_seconds, number_
     median_gap_ms = median(gaps_ms);
     std_gap_ms    = std(gaps_ms);
     max_gap_ms    = max(gaps_ms);
-    p99_gap_ms    = percentile_no_toolbox(gaps_ms, 99);
 
     % Ratio of mean to median gap: close to 1 means Fs = 1/median(diff(t))
     % is a good estimate for this sensor. Above 1 means the median sits
@@ -474,7 +387,6 @@ function one_row = make_summary_row(sensor_name, pooled_gaps_in_seconds, number_
         median_gap_ms, ...
         std_gap_ms, ...
         min(gaps_ms), ...
-        p99_gap_ms, ...
         max_gap_ms, ...
         ratio, ...
         cv_percent, ...
@@ -483,65 +395,6 @@ function one_row = make_summary_row(sensor_name, pooled_gaps_in_seconds, number_
         'VariableNames', { ...
             'Sensor', 'NumberOfRecordings', 'NumberOfTimeGaps', ...
             'MeanGap_ms', 'MedianGap_ms', 'StdGap_ms', ...
-            'MinGap_ms', 'P99Gap_ms', 'MaxGap_ms', 'MeanOverMedianRatio', ...
+            'MinGap_ms', 'MaxGap_ms', 'MeanOverMedianRatio', ...
             'CV_percent', 'MaxOverMedianRatio', 'PercentGapsAbove2xMedian'});
-end
-
-
-function p = percentile_no_toolbox(x, p_target)
-    % Linear-interpolation percentile, matching numpy's default method
-    % (and MATLAB's own prctile default), without requiring the
-    % Statistics and Machine Learning Toolbox.
-    x = sort(x(:));
-    n = numel(x);
-    if n == 1
-        p = x(1);
-        return
-    end
-    rank = (p_target / 100) * (n - 1) + 1;   % 1-based fractional rank
-    lower_index = floor(rank);
-    upper_index = min(ceil(rank), n);
-    fraction = rank - lower_index;
-    p = x(lower_index) + fraction * (x(upper_index) - x(lower_index));
-end
-
-
-function print_latex_tabular(summary_table)
-    % Prints just the \begin{tabular}...\end{tabular} block for the
-    % per-sensor summary table, ready to paste inside a manuscript
-    % table environment (caption/label added by hand around it).
-    %
-    % Sensor display names are remapped here to the names used in the
-    % manuscript; edit display_names below if the manuscript's wording
-    % changes rather than editing the sensor names used earlier in this
-    % script (which must keep matching the raw file scan above).
-    display_names = containers.Map( ...
-        {'ATI force/torque', 'FBG shape sensor', 'OptiTrack motion capture', ...
-         'Motor encoders', 'Mark-10 tendon tension', 'Resense/HEX12 (contact)'}, ...
-        {'Base wrench (ATI mini40)', 'FBG shape sensor', 'OptiTrack', ...
-         'Motor encoders', 'Mark-10 tendon tension', 'HEX12 contact sensor'});
-
-    fprintf("\n====================================================================\n");
-    fprintf("LATEX TABULAR -- paste inside a table environment in the manuscript\n");
-    fprintf("====================================================================\n");
-    fprintf("\\begin{tabular}{lrrrr}\n");
-    fprintf("\\toprule\n");
-    fprintf("Sensor & Recordings & Mean (ms) & P99 (ms) & Max (ms) \\\\\n");
-    fprintf("\\midrule\n");
-    for row_index = 1:height(summary_table)
-        sensor_key = char(summary_table.Sensor(row_index));
-        if isKey(display_names, sensor_key)
-            display_name = display_names(sensor_key);
-        else
-            display_name = sensor_key;
-        end
-        fprintf("%s & %d & %.2f & %.2f & %.2f \\\\\n", ...
-            display_name, ...
-            summary_table.NumberOfRecordings(row_index), ...
-            summary_table.MeanGap_ms(row_index), ...
-            summary_table.P99Gap_ms(row_index), ...
-            summary_table.MaxGap_ms(row_index));
-    end
-    fprintf("\\bottomrule\n");
-    fprintf("\\end{tabular}\n");
 end

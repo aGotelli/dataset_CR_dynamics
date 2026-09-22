@@ -3,7 +3,7 @@ clear all
 close all
 
 
-path = fullfile("../dataCollectionPack/data/", "dynamic_motion/", 'circle_slow');
+path = fullfile("../../../", "data", "dynamic_motion/", 'circle_slow');
 load_path = fullfile(path, 'processed/');
 savepath = fullfile(path, "gvs/");
 saving_fig_folder = fullfile(savepath, "figures/");
@@ -81,9 +81,6 @@ Config.data.tau = [
 
 
 
-Config.data.time = Config.data.time(1:500);
-
-
 %% Time integration
 [q,q_dot,q_dot_dot, position_disks_simu, simulated_wrench_at_base, cables_displacements] = forward_dynamics_simulation(Const, Config);
 
@@ -107,7 +104,7 @@ time_kinematics_tip = vicon_frames(:, :, disk_num);
 time_base_wrench = load(fullfile(load_path, "base_wrench.csv"));
 fbgs_shapes_stacked = load(fullfile(load_path, "fbgs_shapes.csv"));
 
-time_base_wrench_raw = load(fullfile(load_path, "base_wrench.csv"));
+time_base_wrench_raw = load(fullfile(load_path, "base_wrench_raw.csv"));
 
 
 tip_frame = squeeze( position_disks_simu(5, :, :) )';
@@ -117,13 +114,12 @@ tip_index_fbgs = 476;
 tip_start_col = 3*(tip_index_fbgs - 1) + 1;
 tip_fbgs = fbgs_xyz_stacked(:, tip_start_col:tip_start_col+2);
 
-%% 
 
 fig = figure("Name", "Torque");
 subplot(2, 1, 1)
 plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 5), 'b', 'LineWidth', 2)
 hold on
-plot(Config.data.time, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
+plot(time_simu, -simulated_wrench_at_base(:, 3), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 5), 'b', 'LineWidth', 2)
 set(gca,"FontSize",20)
 grid on
@@ -133,7 +129,7 @@ ylabel("T_x [Nm]", "FontSize", 20)
 subplot(2, 1, 2)
 plot(time_base_wrench(:, 1), time_base_wrench_raw(:, 6), 'b', 'LineWidth', 2)
 hold on
-plot(Config.data.time, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
+plot(time_simu, -simulated_wrench_at_base(:, 2), 'r', 'LineWidth', 1)
 % plot(time_base_wrench(:, 1), time_base_wrench(:, 6), 'b', 'LineWidth', 2)
 set(gca,"FontSize",20)
 grid on
@@ -141,10 +137,8 @@ grid on
 ylabel("T_y [Nm]", "FontSize", 20)
 xlabel("Time [s]", "FontSize", 20)
 
-
-% 
-% savefig(saving_fig_folder + fig.Name)
-% saveas(fig, saving_fig_folder + fig.Name, 'png')
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
 
 %   Plot the cable displacements
@@ -156,43 +150,22 @@ fig = figure("Name", "Cable Displacement");
 subplot(2, 1, 1)
 plot(time_cables, measured_cables_pulled(:, 1), 'g', 'LineWidth', 1)
 hold on 
-plot(Config.data.time, cables_displacements(:, 1), 'r', 'LineWidth', 1)
+plot(time_simu, cables_displacements(:, 1), 'r', 'LineWidth', 1)
 grid on
 
 
 subplot(2, 1, 2)
 plot(time_cables, measured_cables_pulled(:, 2), 'g', 'LineWidth', 1)
 hold on
-plot(Config.data.time, -cables_displacements(:, 2), 'r', 'LineWidth', 1)
+plot(time_simu, -cables_displacements(:, 2), 'r', 'LineWidth', 1)
 grid on
 
 legend('Measured', 'Simulated')
 
-% savefig(saving_fig_folder + fig.Name)
-% saveas(fig, saving_fig_folder + fig.Name, 'png')
+savefig(saving_fig_folder + fig.Name)
+saveas(fig, saving_fig_folder + fig.Name, 'png')
 
-tip_disk_simu = squeeze( position_disks_simu(5, :, :) );
 
-figure("Name", "Tip position")
-subplot(3, 1, 1)
-plot(time_simu, time_kinematics_tip(:, 4), 'b', 'LineWidth', 2)
-hold on
-plot(Config.data.time, tip_disk_simu(1, :), 'r', 'LineWidth', 2)
-grid on
-
-subplot(3, 1, 2)
-plot(time_simu, time_kinematics_tip(:, 5), 'b', 'LineWidth', 2)
-hold on
-plot(Config.data.time, tip_disk_simu(2, :), 'r', 'LineWidth', 2)
-grid on
-
-subplot(3, 1, 3)
-plot(time_simu, time_kinematics_tip(:, 6), 'b', 'LineWidth', 2)
-hold on
-plot(Config.data.time, tip_disk_simu(3, :), 'r', 'LineWidth', 2)
-grid on
-
-return;
 %%  Compute RMSE
 
 torque_ati = time_base_wrench_raw(:, 5:6);

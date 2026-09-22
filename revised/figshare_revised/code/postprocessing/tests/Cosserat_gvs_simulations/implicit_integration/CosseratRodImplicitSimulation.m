@@ -1,14 +1,13 @@
 function [t_stack, states_stack] = CosseratRodImplicitSimulation(q, dot_q, ddot_q, tau, Const, Config)
 
 %   Prepare stacks for data
-N_time = round( Config.t_end/Config.dt );
+N_time = Config.t_end/Config.dt;
 t_stack = zeros(1, N_time);
 states_stack.q   = zeros(Const.dim_base, N_time);
 states_stack.dq  = zeros(Const.dim_base, N_time);
 states_stack.ddq = zeros(Const.dim_base, N_time);
 
 states_stack.Lambda_X0 = zeros(6, N_time);
-states_stack.tip_position = zeros(3, N_time);
 
 
 t = 0;
@@ -59,9 +58,8 @@ while t<=Config.t_end
     states_stack.dq(:, idx_t)  = dot_q;
     states_stack.ddq(:, idx_t) = ddot_q;
     
-    [Lambda_X0, ~, ~, r_X] = IDM(t, q, dot_q, ddot_q, Config, Const);
+    Lambda_X0 = IDM(t, q, dot_q, ddot_q, Config, Const);
     states_stack.Lambda_X0(:, idx_t) = Lambda_X0;
-    states_stack.tip_position(:, idx_t) = r_X(:, end);
 
 
     display(t)
