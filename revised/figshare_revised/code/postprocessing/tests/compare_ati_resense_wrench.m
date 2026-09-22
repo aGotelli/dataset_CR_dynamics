@@ -3,7 +3,7 @@
 % Compares the ATI base wrench (mini40) against the Resense contact wand
 % wrench, transported to the base frame via Ad_g.
 %
-% Reads process_data.m's saved base_wrench.csv, wrench_wand.csv and
+% Reads process_data.m's saved base_wrench.csv, contact_wrench.csv and
 % mocap_frames.csv for each recording. An extra low-pass filter is applied 
 % on top of process_data.m's own filtering, for this comparison only.
 %
@@ -30,7 +30,7 @@ clc;
 
 %% ====== PATHS / SETTINGS ======
 
-data_root = fullfile("../../../", "/data/");
+data_root = fullfile("../../", "/data/");
 
 %   Font size for figures
 fontSize = 30;
@@ -41,7 +41,7 @@ lineWidth = 4;
 this_script_folder = fileparts(mfilename('fullpath'));
 
 % Load the two recordings of interest
-recordings = ["push_retract", "touching_base"];
+recordings = ["push_retract", "touch_base"];
 
 % Contact reference point and distance threshold (m) per recording.
 % push_retract: wand presses the tip disk directly (40 mm radius +
@@ -51,7 +51,7 @@ contact_refs       = ["tip",  "base"];
 contact_thresholds = [0.05,   0.10 ];
 
 % 5 robot disks; the Resense wand pose is loaded separately from its own
-% wand_pose.csv
+% contact_pose.csv
 N_disks_robot = 5;
 tip_disk_index = 5;
 
@@ -102,28 +102,28 @@ for ir = 1:numel(recordings)
     interp_base_wrench = base_wrench_csv(:, 2:end);
     N_samples = numel(sampling_time);
 
-    wrench_wand_csv    = readmatrix(fullfile(processed_folder, "wrench_wand.csv"));
-    interp_wrench_wand = wrench_wand_csv(:, 2:end);
+    contact_wrench_csv    = readmatrix(fullfile(processed_folder, "contact_wrench.csv"));
+    interp_contact_wrench = contact_wrench_csv(:, 2:end);
 
     % Get the robot disks' poses (5 disks only -- the wand is not one of
-    % them, see wand_pose.csv below)
+    % them, see contact_pose.csv below)
     mocap_csv = readmatrix(fullfile(processed_folder, "mocap_frames.csv"));
     interp_rel_kinematics_disks_corr = reshape(mocap_csv(:, 2:end), [N_samples, 6, N_disks_robot]);
 
     % Load the wand pose, saved by process_data.m as its own file
-    wand_pose_csv = readmatrix(fullfile(processed_folder, "wand_pose.csv"));
-    wand_pose = wand_pose_csv(:, 2:end);
+    contact_pose_csv = readmatrix(fullfile(processed_folder, "contact_pose.csv"));
+    contact_pose = contact_pose_csv(:, 2:end);
 
 
     %% ------ TRANSPORT THE RESENSE WRENCH TO THE ROBOT BASE FRAME (Ad_g) ------
-    wrench_at_base = compute_wrench_at_base(wand_pose, interp_wrench_wand);
+    wrench_at_base = compute_wrench_at_base(contact_pose, interp_contact_wrench);
 
 
     %% ------ CONTACT MASK (see CONTACT GATING note at the top of this file) ------
 
     % Position of the Resense sensor frame's origin 
-    % pos_sensor = wand_pose(4:6)';
-    pos_sensor = wand_pose(:, 4:6)';
+    % pos_sensor = contact_pose(4:6)';
+    pos_sensor = contact_pose(:, 4:6)';
 
     if contact_ref == "tip"
         % push_retract: contact happens at the robot's tip (disk 5).
@@ -322,14 +322,14 @@ function [bias_f, max_abs_err_f, corr_f] = force_stats(wrench_at_base_t, interp_
     end
 end
 
-function wrench_at_base = compute_wrench_at_base(disk_kinematics_wand, wrench_wand)
+function wrench_at_base = compute_wrench_at_base(disk_kinematics_wand, contact_wrench)
     %   Transports the Resense HEX12 wand wrench from its own sensor
     %   frame to the robot base frame, via the wand's mocap pose and the
     %   wand's fixed sensor-to-mocap-frame offset (g_fix).
     %
     %   disk_kinematics_wand : N_samples x 6 [roll pitch yaw px py pz],
     %                          the wand's own mocap pose over time
-    %   wrench_wand           : N_samples x 6 [Fx Fy Fz Tx Ty Tz], the
+    %   contact_wrench           : N_samples x 6 [Fx Fy Fz Tx Ty Tz], the
     %                          wand's own measured wrench over time
     %   wrench_at_base         : 6 x N_samples
 
@@ -342,13 +342,13 @@ function wrench_at_base = compute_wrench_at_base(disk_kinematics_wand, wrench_wa
         R = eul2rotm(wand_XYZ_xyz(1:3), 'XYZ');
         r = wand_XYZ_xyz(4:6)';
 
-        wrench_wand_it_t = wrench_wand(it_t, :)';
+        contact_wrench_it_t = contact_wrench(it_t, :)';
 
         Ad_g_=[R zeros(3,3)
                 hat_(r)*R R];
 
         %   Equivalent wrench at the base, by the action-reaction principle.
-        wrench_at_base(:, it_t) = -Ad_g_*wrench_wand_it_t;
+        wrench_at_base(:, it_t) = -Ad_g_*contact_wrench_it_t;
     end
 end
 

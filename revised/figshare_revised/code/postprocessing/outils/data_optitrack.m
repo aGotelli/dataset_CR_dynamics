@@ -120,5 +120,6 @@ function [N_disks, timestamps, poses_disks, rel_poses_disks, rel_kinematics_disk
     poses_disks = poses_disks(:, :, :, 1:end-1);
     rel_poses_disks = rel_poses_disks(:, :, :, 1:end-1);
     rel_kinematics_disks = rel_kinematics_disks(1:end-1, :, :);
+    is_valid_disk = is_valid_disk(1:end-1, :);
 
 end

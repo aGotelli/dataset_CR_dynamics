@@ -1,3 +1,13 @@
 ATI vs Ad_g-transported Resense -- forces only, contact samples only (Comment 5.4)
 Comparison low-pass filter: 2 Hz, order 4
 
+push_retract (contact ref: tip, threshold 0.05 m, 2181/2840 samples in contact, 76.8%):
+  Fx: RMSE = 0.0191 N, bias = +0.0168 N, max_abs_err = 0.0384 N, r = 0.9973
+  Fy: RMSE = 0.0122 N, bias = +0.0093 N, max_abs_err = 0.0271 N, r = 0.9975
+  Fz: RMSE = 0.0514 N, bias = +0.0234 N, max_abs_err = 0.1421 N, r = 0.0935
+
+touch_base (contact ref: base, threshold 0.10 m, 991/2993 samples in contact, 33.1%):
+  Fx: RMSE = 0.1503 N, bias = -0.1132 N, max_abs_err = 0.3330 N, r = 0.5309
+  Fy: RMSE = 0.1495 N, bias = -0.0426 N, max_abs_err = 0.4702 N, r = 0.9984
+  Fz: RMSE = 0.0942 N, bias = +0.0774 N, max_abs_err = 0.2075 N, r = 0.9130
+

@@ -7,8 +7,15 @@ addpath("outils\")
 addpath("tests\")
 
 %% ====== PATHS / SETTINGS ======
+
+%   Specify the subset
+subset = "dynamic_motion"; %    contact_motion | quasi_static | references
+
+%   Specity the recording
+recording = "Lissajous_fast"; % 
+
 data_root = fullfile("../../", "data/");
-folder = fullfile(data_root, "contact_motion/","touching_base/");
+folder = fullfile(data_root, subset, recording);
 
 
 %%  Postprocessing properties
@@ -23,7 +30,7 @@ samplingHz = 100;
 
 
 %   Plots switches
-plot_mocap_fbgs_corrections = true;
+plot_mocap_fbgs_corrections = false;
 plot_filtered               = false;
 plot_interpolation          = false;
 plot_validation             = true; %   RMSE comparison plots (RMSE numbers/RMSEs.txt always computed)
@@ -63,9 +70,7 @@ use_resense = isfile(fullfile(folder, "dataResenseFT.csv"));
 
 
 %   Several of the dataset's CSV column headers (e.g. "Fx (N)") aren't
-%   valid MATLAB identifiers, so every readtable call below and in
-%   outils/ sanitizes them and raises this warning. Silenced once here
-%   for the whole session.
+%   valid MATLAB identifiers, silenced the warning
 warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
 
 
@@ -124,8 +129,7 @@ if use_resense
     rel_kinematics_wand = rel_kinematics_disks_all(:, :, N_disks_robot + 1);
 end
 
-%   Load the FBG pipeline-delay correction, measured separately (see the
-%   generation step above -- lag_FBGS_file is guaranteed to exist by now).
+%   Load the FBG pipeline-delay correction
 %   Skipped when this recording has no FBG data (fbgs_time is then empty).
 if has_fbgs_data
     lag_FBGS = str2double(fileread(lag_FBGS_file));
@@ -178,7 +182,7 @@ end
 %   Extract timestamp and force/torque measurement from mini40 (ATI)
 %   readATIFT.py assigns the timestamp when the blocking 5-sample DAQ
 %   read returns, i.e. at the end of that averaging window rather than
-%   its center (Comment 5.33). At the acquisition script's fixed 1 kHz
+%   its center. At the acquisition script's fixed 1 kHz
 %   sample clock, a 5-sample block spans 5 ms, so shifting the timestamp
 %   back by half that window re-centers it on the block it was averaged
 %   over.
@@ -194,9 +198,9 @@ ATI_FT = [ATI_F ATI_T];
 %
 %   butter_filtfilt returns each signal on its own internal uniform time
 %   grid (same span & sample count as its raw input -- see the function
-%   below), not back on the raw irregular timestamps. The "_f" time
+%   below). The "_f" time
 %   vectors captured below are that grid; they feed directly into the
-%   INTERPOLATION section further down instead of being discarded.
+%   INTERPOLATION section further down.
 
 %   Measured angles and tendon tension
 measured_angles_f   = zeros(size(measured_angles));
@@ -320,28 +324,6 @@ if use_resense
 end
 
 %   Compute the relative timestamp with respect to the initial timestamp
-relative_time_motors = time_actuators - init_time;
-
-relative_time_tendons{1} = time_tendons{1} - init_time;       
-relative_time_tendons{2} = time_tendons{2} - init_time;     
-relative_time_tendons{3} = time_tendons{3} - init_time;   
-relative_time_tendons{4} = time_tendons{4} - init_time;  
-
-relative_time_ATI = tA - init_time;
-
-relative_time_mocap = mocap_timestamps - init_time;
-
-relative_time_fbgs = fbgs_time - init_time;
-
-if use_resense
-    relative_time_resense = time_resense - init_time;
-end
-
-%   Same, but for each FILTERED signal's own uniform time grid (returned
-%   by butter_filtfilt above) rather than the raw irregular timestamps.
-%   Used below wherever a FILTERED signal is interpolated onto the final
-%   common grid; the raw, unfiltered base wrench keeps using
-%   relative_time_ATI above instead.
 relative_time_motors_f = time_actuators_f - init_time;
 
 relative_time_tendons_f{1} = time_tendons_f{1} - init_time;
@@ -380,11 +362,9 @@ end
 
 %   Wrench at the base
 interp_base_wrench = zeros(N_samples, 6);
-interp_base_wrench_raw = zeros(N_samples, 6);
 for it=1:6
 
     interp_base_wrench(:, it) = interp1(relative_time_ATI_f, ATI_FT_f(:, it), sampling_time)';
-    interp_base_wrench_raw(:, it) = interp1(relative_time_ATI, ATI_FT(:, it), sampling_time)';
 end
 
 %   Kinematics of disks
@@ -546,13 +526,7 @@ function [t_uniform, y_uniform] = butter_filtfilt(t, x, fc, n)
     % It estimates Fs from the mean inter-sample interval, resamples the
     % signal onto a uniform grid at that rate, and filters on that grid.
     %
-    % Returns the signal ON THE UNIFORM GRID (t_uniform), not
-    % re-interpolated back onto the original irregular timestamps: that
-    % round trip would discard the uniform grid built here only to force
-    % the caller to redo equivalent interpolation work when resampling
-    % onto the final common time base. t_uniform spans the same
-    % start/end and sample count as the input t, so callers use it
-    % directly wherever they previously used t.
+    % Returns the signal ON THE UNIFORM GRID (t_uniform)
 
     Fs = (numel(t) - 1) / (t(end) - t(1));            % mean-based rate
     t_uniform = linspace(t(1), t(end), numel(t))';    % regular grid, same span & count
@@ -772,7 +746,7 @@ function plot_filtered_figures(time_tendons, tendon_tensions, time_tendons_f, te
 
         title("Tendon " + it + ": raw vs filtered tension")
         if it == 4
-            xlabel("Time (raw timestamp)")
+            xlabel("Time [s]")
         end
 
     end
@@ -792,7 +766,7 @@ function plot_filtered_figures(time_tendons, tendon_tensions, time_tendons_f, te
 
         title("Motor " + it + ": measured vs filtered vs target angle")
         if it == 4
-            xlabel("Time (raw timestamp)")
+            xlabel("Time [s]")
         end
 
     end
